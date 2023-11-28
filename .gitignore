@@ -1,4 +1,6 @@
 .env
 dataset
 .vscode
+_build_
 bin
+Makefile
