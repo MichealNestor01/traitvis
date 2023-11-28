@@ -7,9 +7,13 @@ Final year undergraduate project by Micheal Nestor.
 Premake is used for building:  
 
 Generate make files:  
-```premake5 gmake```
+```
+$ premake5 gmake
+```
 
-Make binaries:
-```make config=release```
+Make binaries and object files:
+```
+$ make config=release
+```
 
-Executables will then be available in ./bin/Release/
+Binaries will then be available in ./bin/Release/
