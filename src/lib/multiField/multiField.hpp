@@ -1,16 +1,17 @@
 #pragma once 
 #include <vector>
+#include <string>
 
 typedef struct floatRange {
     float lower;
     float upper;
 } floatRange;
 
-typedef struct floatDomain {
-    unsigned int dimensions;
-    std::vector<floatRange> dimensionRanges;
+typedef struct attribute {
+    std::string name;
+    floatRange bounds;
     std::vector<float> values;
-} floatDomain;
+} attribute;
 
 typedef struct floatDomainSpecification {
     unsigned int dimensions;
@@ -19,5 +20,5 @@ typedef struct floatDomainSpecification {
 
 typedef struct multiField {
     floatDomainSpecification spacialDomain;
-    floatDomain attributeDomain; 
+    std::vector<attribute> attributeDomain; 
 } multiField;
