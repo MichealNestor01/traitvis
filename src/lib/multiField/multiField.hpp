@@ -2,8 +2,8 @@
 #include <vector>
 
 typedef struct floatRange {
-    float upper;
     float lower;
+    float upper;
 } floatRange;
 
 typedef struct floatDomain {
