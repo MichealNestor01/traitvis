@@ -2,5 +2,7 @@
 
 #include <string>
 #include "../multiField/multiField.hpp"
+#include "dirConfig.hpp"
+#include "fileReader.hpp"
 
-floatDomain readAttributeDirectory(std::string path);
+multiField readIsabel(multiFieldDirConfig config);
