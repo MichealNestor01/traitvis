@@ -4,20 +4,20 @@
 typedef struct floatRange {
     float upper;
     float lower;
-};
+} floatRange;
 
 typedef struct floatDomain {
     unsigned int dimensions;
     std::vector<floatRange> dimensionRanges;
     std::vector<float> values;
-};
+} floatDomain;
 
 typedef struct floatDomainSpecification {
     unsigned int dimensions;
     std::vector<floatRange> dimensionRanges;
-};
+} floatDomainSpecification;
 
 typedef struct multiField {
     floatDomainSpecification spacialDomain;
     floatDomain attributeDomain; 
-};
+} multiField;
