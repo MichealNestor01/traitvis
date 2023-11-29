@@ -23,11 +23,11 @@
 
 int main(int argc, char **argv) {
     // read in the files, and check contents
-    for (int i = 0; i < IsabelTimestep02DirConfig.files.size(); i++) {
-        std::cout << "Checking " << IsabelTimestep02DirConfig.files[i].filename << std::endl;
+    for (int fileIndex = 0; fileIndex < IsabelTimestep02DirConfig.files.size(); fileIndex++) {
+        std::cout << "Checking " << IsabelTimestep02DirConfig.files[fileIndex].filename << std::endl;
 
         // create the filepath of the current file
-        std::string path =  IsabelTimestep02DirConfig.dirPath + IsabelTimestep02DirConfig.files[i].filename;
+        std::string path =  IsabelTimestep02DirConfig.dirPath + IsabelTimestep02DirConfig.files[fileIndex].filename;
 
         // get the values from the file
         std::vector<float> vals = readFloatBinaryFile(path, IsabelTimestep02DirConfig.valuesPerFile);
@@ -36,14 +36,13 @@ int main(int argc, char **argv) {
 
         // check if any of the values are outside of the allowed range for this file
         std::vector<int> invalid_indexes = {};
-        for (int j = 0; j < vals.size(); j++) {
-            
+        for (int valIndex = 0; valIndex < vals.size(); valIndex++) {
             if (
-                vals[i] != NO_DATA_VAL and (
-                    IsabelTimestep02DirConfig.files[i].bounds.lower > vals[j] or 
-                    vals[j] > IsabelTimestep02DirConfig.files[i].bounds.upper
+                vals[valIndex] != NO_DATA_VAL and (
+                    IsabelTimestep02DirConfig.files[fileIndex].bounds.lower > vals[valIndex] or 
+                    vals[valIndex] > IsabelTimestep02DirConfig.files[fileIndex].bounds.upper
                 )) {
-                    invalid_indexes.push_back(j);                
+                    invalid_indexes.push_back(valIndex);                
             }
         }
         std::cout << "Found " << invalid_indexes.size() << " points outside of the allowed range" << std::endl;
