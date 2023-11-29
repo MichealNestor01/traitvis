@@ -22,11 +22,6 @@
 #define NO_DATA_VAL 1.0000000e+35
 
 int main(int argc, char **argv) {
-    if (argc < 2) {
-        std::cout << "USAGE: ./read_multifield dir" << std::endl;
-        return 0;
-    }
-    
     // read in the files, and check contents
     for (int i = 0; i < IsabelTimestep02DirConfig.files.size(); i++) {
         std::cout << "Checking " << IsabelTimestep02DirConfig.files[i].filename << std::endl;
