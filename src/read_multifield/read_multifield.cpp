@@ -10,7 +10,7 @@
         {"QCLOUDf02.bin", {0.f, 0.00332}}, \
         {"QGRAUPf02.bin", {0.f, 0.01638}}, \
         {"QICEf02.bin", {0.f, 0.00099}}, \
-        {"QRAINf02.bin", {0.f, 0.00332}}, /*THIS RANGE IS MISSING ON THE WEBSITE*/ \
+        {"QRAINf02.bin", {0.f, 0.01132}}, \
         {"QSNOWf02.bin", {0.f, 0.00135}}, \
         {"QVAPORf02.bin", {0.f, 0.02368}}, \
         {"TCf02.bin", {-83.00402, 31.51576}}, \
