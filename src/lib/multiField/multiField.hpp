@@ -12,7 +12,12 @@ typedef struct floatDomain {
     std::vector<float> values;
 };
 
+typedef struct floatDomainSpecification {
+    unsigned int dimensions;
+    std::vector<floatRange> dimensionRanges;
+};
+
 typedef struct multiField {
-    floatDomain spacialDomain;
+    floatDomainSpecification spacialDomain;
     floatDomain attributeDomain; 
 };
