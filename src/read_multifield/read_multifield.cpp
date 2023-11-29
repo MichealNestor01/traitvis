@@ -19,7 +19,9 @@
         {"Wf02.bin", {-9.06026, 28.61434}}, \
     } \
 }
-#define NO_DATA_VAL 1.0000000e+35
+
+// value used for an absense of data
+const float NO_DATA_VAL = 1.0000000e+35;
 
 int main(int argc, char **argv) {
     // read in the files, and check contents
