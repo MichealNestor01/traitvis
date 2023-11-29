@@ -1,5 +1,9 @@
 #include "fileReader.hpp"
 
+std::vector<float> readFloatBinaryFile(std::string filename, int ndata) {
+    return readFloatBinaryFile(filename.c_str(), ndata);
+}
+
 std::vector<float> readFloatBinaryFile(const char* filename, int ndata) {
     std::ifstream inputFile(filename, std::ios::binary);
 
