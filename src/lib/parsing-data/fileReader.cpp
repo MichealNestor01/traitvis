@@ -1,13 +1,13 @@
 #include "fileReader.hpp"
 
 // endianess reverser from Gregor Brandt at https://stackoverflow.com/questions/2782725/converting-float-values-from-big-endian-to-little-endian
-float reverseFloat( const float inFloat )
+float reverseFloat( float inFloat )
 {
    float retVal;
-   char *floatToConvert = ( char* ) & inFloat;
-   char *returnFloat = ( char* ) & retVal;
+   char *floatToConvert = reinterpret_cast<char*>(&inFloat);
+   char *returnFloat = reinterpret_cast<char*>(&retVal);
 
-   // swap the bytes into a temporary buffer
+   // swap the bytes
    returnFloat[0] = floatToConvert[3];
    returnFloat[1] = floatToConvert[2];
    returnFloat[2] = floatToConvert[1];
