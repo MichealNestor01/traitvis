@@ -2,23 +2,26 @@
 #include <vector>
 #include <string>
 
-typedef struct floatRange {
+struct FloatRange {
     float lower;
     float upper;
-} floatRange;
+};
 
-typedef struct attribute {
+struct IntRange {
+    int lower;
+    int upper;
+};
+
+struct Attribute {
     std::string name;
-    floatRange bounds;
+    FloatRange bounds;
     std::vector<float> values;
-} attribute;
+};
 
-typedef struct floatDomainSpecification {
-    unsigned int dimensions;
-    std::vector<floatRange> dimensionRanges;
-} floatDomainSpecification;
-
-typedef struct multiField {
-    floatDomainSpecification spacialDomain;
-    std::vector<attribute> attributeDomain; 
-} multiField;
+struct MultiField {
+    bool readError = true;
+    int xVals;
+    int yVals;
+    int zVals;
+    std::vector<Attribute> attributeDomain; 
+};
