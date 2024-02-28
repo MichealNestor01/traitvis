@@ -10,7 +10,7 @@
 #include "configParser.hpp"
 
 
-MultiField readAttributePerFileDataset(DatasetDirConfig config) {
+MultiField readAttributePerFileDataset(const DatasetDirConfig& config) {
     AttributePerFileDataset* dataset = (AttributePerFileDataset*) config.dataset;
 
     MultiField multiField;
@@ -19,10 +19,11 @@ MultiField readAttributePerFileDataset(DatasetDirConfig config) {
     multiField.yVals = dataset->yVals;
     multiField.zVals = dataset->zVals;
 
+    int valuesPerFile = dataset->getValuesPerFile();
     // setup the attributes
     for (auto file : dataset->getFiles()) {
         std::string path = config.filePath + file.filename;
-        std::vector<float> vals = readFloatBinaryFile(path, dataset->getValuesPerFile());
+        std::vector<float> vals = readFloatBinaryFile(path, valuesPerFile);
         if (vals.size() == 0) {
             std::cerr << "Failed to read values from " << path << std::endl;
             return multiField;
@@ -35,10 +36,10 @@ MultiField readAttributePerFileDataset(DatasetDirConfig config) {
 
 MultiField readDataset(std::string filepath) {
     DatasetDirConfig config = parseConfig(filepath); 
+    MultiField empty;
 
     if (config.parseError) {
         std::cerr << "Failed to parse dataset config from " << filepath << std::endl;
-        MultiField empty;
         return empty;
     }
 
@@ -49,6 +50,6 @@ MultiField readDataset(std::string filepath) {
     } 
 
     std::cerr  << "Dataset format not currently supported" << std::endl;
-    return {};
+    return empty;
 }
 
