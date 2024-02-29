@@ -18,6 +18,15 @@ struct Attribute {
     std::vector<float> values;
 };
 
+struct AttributeVertexValue {
+    Attribute & attribute;
+    float value;
+};
+
+struct AttributeVertex {
+    std::vector<AttributeVertexValue> values;
+};
+
 struct MultiField {
     bool readError = true;
     std::string name;

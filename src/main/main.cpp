@@ -1,5 +1,5 @@
 // libraries
-#include <glad/glad.h>
+#include <glad/glad.h> 
 #include <GLFW/glfw3.h>
 #include <glm.hpp>
 #include "imgui.h"
@@ -52,6 +52,8 @@ int main() {
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 130"); 
+    ImFont* font = io.Fonts->AddFontFromFileTTF("assets/OpenSans-VariableFont_wdth,wght.ttf", 24.0f);
+    if (font != nullptr) io.FontDefault = font;
 
     // set mouse input mode + callbacks
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);  
@@ -102,15 +104,18 @@ int main() {
 
 
     // create coordinate grid
-    GridLayout layout = {10, 10, 10};
+    GridLayout layout = {500, 100, 500};
     std::vector<glm::vec3> activeVertices = {
         glm::vec3(2, 1, 1),
         glm::vec3(2, 1, 2),
         glm::vec3(2, 2, 2),
         glm::vec3(2, 3, 2),
-        glm::vec3(2, 3, 3)
+        glm::vec3(2, 3, 3),
+        glm::vec3(249, 49, 249),
     };
     int ** coordinateGrid = createGrid(layout, activeVertices);
+    state.grid = coordinateGrid;
+
 
     // create surface based on active vertices in the grid
     // if a surface exists createa a VAO for it.
@@ -125,9 +130,9 @@ int main() {
     unsigned int cubeVAO = createVAO(cubeVerticesWithNormals, sizeof(cubeVerticesWithNormals));
     
     // create model matrices to place small cubes at each point on the coordinate grid 
-    std::vector<glm::mat4> pixels;
-    for (int pixel = 0; pixel < layout.total; ++pixel) 
-        pixels.push_back(glm::scale(glm::translate(glm::mat4(1.f), glm::vec3({coordinateGrid[pixel][0], coordinateGrid[pixel][1], coordinateGrid[pixel][2]})), glm::vec3(0.1f)));
+    //std::vector<glm::mat4> pixels;
+    //for (int pixel = 0; pixel < layout.total; ++pixel) 
+    //    pixels.push_back(glm::scale(glm::translate(glm::mat4(1.f), glm::vec3({coordinateGrid[pixel][0], coordinateGrid[pixel][1], coordinateGrid[pixel][2]})), glm::vec3(0.1f)));
 
     // create model matrix for the point light
     glm::mat4 lightCubeModel = glm::scale(glm::translate(glm::mat4(1.f), lightPos), glm::vec3(0.2f));
@@ -161,8 +166,6 @@ int main() {
             state.cam.updateDirection(xpos, ypos);
         }
 
-        // draw ui 
-        gui.render();
 
         glViewport(state.windowWidth * (1-state.renderWidthPercentage), 0, state.windowWidth  * state.renderWidthPercentage, state.windowHeight);
 
@@ -188,13 +191,13 @@ int main() {
         lightingShader.setUniform3f("lightPos", lightPos);
 
         // render the pixels
-        for (int pixel = 0; pixel < pixels.size(); ++pixel) {
-            if (coordinateGrid[pixel][3] == 0) lightingShader.setUniform3f("objectColor", colourRed);
-            else lightingShader.setUniform3f("objectColor", colourGreen);
-            lightingShader.setUniformMat4f("model", &pixels[pixel]);
-            glBindVertexArray(cubeVAO);
-            glDrawArrays(GL_TRIANGLES, 0, 6*2*3);
-        }
+        // for (int pixel = 0; pixel < pixels.size(); ++pixel) {
+        //     if (coordinateGrid[pixel][3] == 0) lightingShader.setUniform3f("objectColor", colourRed);
+        //     else lightingShader.setUniform3f("objectColor", colourGreen);
+        //     lightingShader.setUniformMat4f("model", &pixels[pixel]);
+        //     glBindVertexArray(cubeVAO);
+        //     glDrawArrays(GL_TRIANGLES, 0, 6*2*3);
+        // }
 
         // draw surface 
         if (surface.vertices.size()) {
@@ -202,6 +205,14 @@ int main() {
             lightingShader.setUniformMat4f("model", &defaultModel);
             glBindVertexArray(surfaceVAO);
             glDrawArrays(GL_TRIANGLES, 0, surface.vertices.size());
+        }
+
+        if (state.levelSetGenerated) {
+            if (state.levelSetVAO == 0) state.levelSetVAO = createVAO(state.levelSetVertices.data(), state.levelSetVertices.size()*sizeof(float));
+            lightingShader.setUniform3f("objectColor", colourCoral);
+            lightingShader.setUniformMat4f("model", &defaultModel);
+            glBindVertexArray(state.levelSetVAO);
+            glDrawArrays(GL_TRIANGLES, 0, state.levelSetVertices.size());
         }
 
         // swap to simple light cube shader
@@ -213,6 +224,9 @@ int main() {
         // render the light cube
         glBindVertexArray(cubeVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6*2*3);
+
+        // draw ui 
+        gui.render();
 
         // Render ImGui
         ImGui::Render();

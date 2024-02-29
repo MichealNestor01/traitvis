@@ -1,5 +1,7 @@
+#pragma once
+#include <glad/glad.h> 
+
 // libraries
-#include <glad/glad.h>
 #include <cstdlib>
 
 unsigned int createVAO(float vertices[], std::size_t size) {

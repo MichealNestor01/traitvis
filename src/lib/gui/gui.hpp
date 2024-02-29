@@ -7,9 +7,9 @@
 
 struct AttributeWidget {
     Attribute & attribute;
+    bool active;
     float value;
 };
-
 
 class GUI {
 private:
@@ -19,8 +19,10 @@ private:
     std::string displayText = "";
     // attribute widgets
     std::vector<AttributeWidget> attributeWidgets;
+    // level set distance
+    float levelSetDistance = 0.0f;
 public:
     GUI(ProgramState &state) : programState(state) {}
     void render();
     void createDatasetWidgets();
-};
+}; 
