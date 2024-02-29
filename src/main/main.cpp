@@ -97,6 +97,8 @@ int main() {
         windowHeight
     };
     glfwSetWindowUserPointer(window, &state);
+    // setup gui 
+    GUI gui(state);
 
 
     // create coordinate grid
@@ -160,7 +162,7 @@ int main() {
         }
 
         // draw ui 
-        renderGUI(state);
+        gui.render();
 
         glViewport(state.windowWidth * (1-state.renderWidthPercentage), 0, state.windowWidth  * state.renderWidthPercentage, state.windowHeight);
 
