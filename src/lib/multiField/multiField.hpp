@@ -20,6 +20,7 @@ struct Attribute {
 
 struct MultiField {
     bool readError = true;
+    std::string name;
     int xVals, yVals, zVals;
     std::vector<Attribute> attributeDomain; 
 };

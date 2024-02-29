@@ -15,6 +15,7 @@ MultiField readAttributePerFileDataset(const DatasetDirConfig& config) {
 
     MultiField multiField;
 
+    multiField.name = config.name;
     multiField.xVals = dataset->xVals;
     multiField.yVals = dataset->yVals;
     multiField.zVals = dataset->zVals;

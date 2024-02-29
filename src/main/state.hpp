@@ -6,6 +6,8 @@
 #include <gtc/type_ptr.hpp>
 
 #include "../lib/camera/camera.hpp"
+#include "../lib/parsingData/datasetReader.hpp"
+#include "../lib/multiField/multiField.hpp"
 
 typedef struct ProgramState {
     // camera object
@@ -23,6 +25,14 @@ typedef struct ProgramState {
     // frametime variables
     float deltaTime = 0.f;
     float lastFrame = 0.f;
+    // dataset variables
+    bool loadedDataset = false;
+    MultiField dataset;
+
+    void loadDataset(std::string path) {
+        dataset = readDataset(path);
+        loadedDataset = true;
+    }
 
     void toggleCam(GLFWwindow* window) {
         enableCam = not enableCam;
