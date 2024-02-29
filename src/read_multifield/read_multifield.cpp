@@ -1,9 +1,9 @@
 #include <iostream>
 #include <vector>
 
-#include "../lib/parsing-data/datasetReader.hpp"
+#include "../lib/parsingData/datasetReader.hpp"
 #include "../lib/multiField/multiField.hpp"
-#include "../lib/parsing-data/datasetReader.hpp"
+#include "../lib/parsingData/datasetReader.hpp"
 
 
 const float NO_DATA_VAL = 1.0000000e+35;
