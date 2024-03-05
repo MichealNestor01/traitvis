@@ -88,3 +88,66 @@ Triangles extractTriangles(int **grid, const GridLayout &layout) {
 
     return triangles;
 }
+
+void examineCubeWithInterpolation(Triangles &triangles, const GridLayout &layout, float ** grid, int vertex0, float isoValue) {
+    int vertices[8];
+    // find the index in the coordinate grid of each vertex of the cube
+    vertices[0] = vertex0;
+    vertices[1] = vertex0 + 1;
+    vertices[2] = vertex0 + layout.z;
+    vertices[3] = vertex0 + layout.z + 1;
+    vertices[4] = vertex0 + (layout.z * layout.y);
+    vertices[5] = vertex0 + (layout.z * layout.y) + 1;
+    vertices[6] = vertex0 + (layout.z * layout.y) + layout.z;
+    vertices[7] = vertex0 + (layout.z * layout.y) + layout.z + 1;
+    // find the case this cube matches with
+    int cubeIndex = 0;
+    if (grid[vertices[0]][3] < isoValue) cubeIndex |= 1;
+    if (grid[vertices[1]][3] < isoValue) cubeIndex |= 2;
+    if (grid[vertices[2]][3] < isoValue) cubeIndex |= 4;
+    if (grid[vertices[3]][3] < isoValue) cubeIndex |= 8;
+    if (grid[vertices[4]][3] < isoValue) cubeIndex |= 16;
+    if (grid[vertices[5]][3] < isoValue) cubeIndex |= 32;
+    if (grid[vertices[6]][3] < isoValue) cubeIndex |= 64;
+    if (grid[vertices[7]][3] < isoValue) cubeIndex |= 128;
+
+    // No triangles found
+    if (cubeIndex == 0 or cubeIndex == 255) return;
+
+    int *matchingCase = triangleTable[cubeIndex];
+    // loop through the edges bisected in the matching case
+    for (int triIndex = 0; triIndex < matchingCase[0]; ++triIndex) {
+        for (int vertIndex = 1; vertIndex <= 3; ++vertIndex) {
+            // find the midpoint between the two endpoints of the current edge
+            // and add that to the list of vertices
+            int edge = matchingCase[triIndex*3+vertIndex];
+            int *endPoints = edgeTable[edge];
+            float *endPoint0 = grid[vertices[endPoints[0]]];
+            float *endPoint1 = grid[vertices[endPoints[1]]];
+            float isoDistance = (isoValue-endPoint0[3])/(endPoint1[3] - endPoint0[3]); 
+            glm::vec3 vertex(
+                endPoint0[0]+(isoDistance * (endPoint1[0]-endPoint0[0])),
+                endPoint0[1]+(isoDistance * (endPoint1[1]-endPoint0[1])),
+                endPoint0[2]+(isoDistance * (endPoint1[2]-endPoint0[2]))
+            );
+            triangles.vertices.push_back(vertex);
+            // workout which endpoint is active
+            float *activeVertex = grid[vertices[endPoints[not endPoint0[3] < isoValue]]];
+            triangles.normals.push_back(
+                glm::normalize(vertex - glm::vec3(activeVertex[0], activeVertex[1], activeVertex[2]))
+            );
+        }
+    }
+}
+
+Triangles extractTrianglesWithInterpolation(float **grid, const GridLayout &layout, float isoValue) {
+    Triangles triangles;
+
+    for (int x = 0; x < layout.x - 1; ++x) {
+    for (int y = 0; y < layout.y - 1; ++y) {
+    for (int z = 0; z < layout.z - 1; ++z) {
+        examineCubeWithInterpolation(triangles, layout, grid, (x*layout.z*layout.y) + (y*layout.z) + z, isoValue);
+    }}}
+
+    return triangles;
+}

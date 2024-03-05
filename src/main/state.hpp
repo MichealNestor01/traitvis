@@ -9,6 +9,7 @@
 #include "../lib/parsingData/datasetReader.hpp"
 #include "../lib/multiField/multiField.hpp"
 #include "../lib/marchingCubes/marchingCubes.hpp"
+#include "../lib/levelSets/generateFeatureLevelSets.hpp"
 
 struct ProgramState {
     // camera object
@@ -84,7 +85,8 @@ struct ProgramState {
     void generateLevelSet(float euclidianDistance) {
         // identify vertices which map to the level set
         // geneerateLevelset...
-        
+        //float ** distanceField = generateDistanceField(attributeSpaceVertices, dataset);
+        //Triangles surface = extractTrianglesWithInterpolation(distanceField, {dataset.xVals, dataset.yVals, dataset.zVals}, euclidianDistance);
         // render the levelset 
         // clear the grid
         for (int i = 0; i < dataset.xVals * dataset.yVals * dataset.zVals; ++i) grid[i][3] = grid[i][2] == 200;
