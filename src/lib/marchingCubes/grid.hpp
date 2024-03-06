@@ -12,7 +12,7 @@ float ** createGrid(GridLayout layout, std::vector<glm::vec3> activeVertices) {
 		grid[index][0] = x;
 		grid[index][1] = y;
 		grid[index][2] = z;
-		grid[index][3] = 0;
+		grid[index][3] = 3;
 		for (glm::vec3 vertex : activeVertices) 
 			if (glm::vec3(x, y, z) == vertex) grid[index][3] = 1;
 		index++;

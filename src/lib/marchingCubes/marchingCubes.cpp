@@ -165,18 +165,34 @@ void examineCubeWithInterpolation(Triangles &triangles, const GridLayout &layout
 
             triangles.vertices.push_back(vertex);
             // workout which endpoint is active
-            float *activeVertex = grid[vertices[endPoints[not endPoint0[3] < isoValue]]];
-            float *inactiveVertex = grid[vertices[endPoints[not endPoint0[3] >= isoValue]]];
-            zDistribution[activeVertex[2]]++;
+
+            //float *activeVertex = grid[vertices[endPoints[not endPoint0[3] < isoValue]]];
+
+            //float *inactiveVertex = grid[vertices[endPoints[not endPoint0[3] >= isoValue]]];
 
             // triangles.normals.push_back(
             //     glm::normalize(vertex - glm::vec3(activeVertex[0], activeVertex[1], activeVertex[2]))
             // );
             //std::cout << "Triangle vertex: " << vertex.x << " " << vertex.y << " " << vertex.z << "\n";
-            //triangles.activeVertices.insert({activeVertex[0], activeVertex[1], activeVertex[2]});
-            //triangles.inactiveVertices.insert({inactiveVertex[0], inactiveVertex[1], inactiveVertex[2]});
-            
+            //std::cout << "\n" << std::endl;
+            //std::cout << "ISO VALUE: " << isoValue << std::endl;
+            if (endPoint0[3] < isoValue) {
+                //std::cout << "Active vertex endpoint0: " << endPoint0[0] << " " << endPoint0[1] << " " << endPoint0[2] << " " << endPoint0[3] << std::endl;
+                //std::cout  << "Inactive vertex endpoint1: " << endPoint1[0] << " " << endPoint1[1] << " " << endPoint1[2] << " " << endPoint1[3] << std::endl;
+                triangles.activeVertices.insert({endPoint0[0], endPoint0[1], endPoint0[2]});
+                triangles.inactiveVertices.insert({endPoint1[0], endPoint1[1], endPoint1[2]});
+                zDistribution[endPoint0[2]]++;
+
+            } else {
+                //std::cout << "Active vertex endpoint1: " << endPoint1[0] << " " << endPoint1[1] << " " << endPoint1[2] << " " << endPoint1[3] << std::endl;
+                //std::cout << "inactive vertex endpoint0: " << endPoint0[0] << " " << endPoint0[1] << " " << endPoint0[2] << " " << endPoint0[3] <<std::endl;
+                zDistribution[endPoint1[2]]++;
+                triangles.inactiveVertices.insert({endPoint0[0], endPoint0[1], endPoint0[2]});
+                triangles.activeVertices.insert({endPoint1[0], endPoint1[1], endPoint1[2]});
+            }
         }
+            
+        
         glm::vec3 vertex1 = triangles.vertices.at(triangles.vertices.size() - 3);
         glm::vec3 vertex2 = triangles.vertices.at(triangles.vertices.size() - 2);
         glm::vec3 vertex3 = triangles.vertices.at(triangles.vertices.size() - 1);

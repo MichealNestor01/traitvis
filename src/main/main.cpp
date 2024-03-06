@@ -89,6 +89,7 @@ int main() {
     glm::vec3 colourCoral(1.f, 0.5f, 0.31f);
     glm::vec3 colourRed(1.f, 0.f, 0.f);
     glm::vec3 colourGreen(0.f, 1.f, 0.f);
+    glm::vec3 colourTurquoise(0.02f, 1.f, 0.8f);
     // default model matrix (no change)
     glm::mat4 defaultModel(1.f);
 
@@ -110,11 +111,13 @@ int main() {
     // // create coordinate grid
     GridLayout layout = {5, 5, 5};
     std::vector<glm::vec3> activeVertices = {
+        //glm::vec3(0, 0, 0),
+        //glm::vec3(2, 1, 1),
+        //glm::vec3(2, 1, 2),
         glm::vec3(2, 1, 1),
-        glm::vec3(2, 1, 2),
-        glm::vec3(2, 2, 2),
-        glm::vec3(2, 3, 2),
-        glm::vec3(2, 3, 3),
+        //glm::vec3(2, 3, 2),
+        // glm::vec3(2, 3, 3),
+        //glm::vec3(4, 4, 4),
         glm::vec3(249, 49, 249),
     };
     float ** coordinateGrid = createGrid(layout, activeVertices);
@@ -123,7 +126,7 @@ int main() {
 
     //create surface based on active vertices in the grid
     //if a surface exists createa a VAO for it.
-    Triangles surface = extractTrianglesWithInterpolation(coordinateGrid, layout);
+    Triangles surface = extractTrianglesWithInterpolation(coordinateGrid, layout, 2);
     unsigned int surfaceVAO;
     if (surface.vertices.size()) {
         std::vector<float> surfaceVertices = surface.getVertices();
@@ -200,7 +203,7 @@ int main() {
 
         //render the pixels
         for (int pixel = 0; pixel < pixels.size(); ++pixel) {
-            if (coordinateGrid[pixel][3] == 0) lightingShader.setUniform3f("objectColor", colourRed);
+            if (coordinateGrid[pixel][3] > 2) lightingShader.setUniform3f("objectColor", colourRed);
             else lightingShader.setUniform3f("objectColor", colourGreen);
             lightingShader.setUniformMat4f("model", &pixels[pixel]);
             glBindVertexArray(cubeVAO);
@@ -217,7 +220,7 @@ int main() {
 
         if (state.levelSetGenerated) {
             if (state.levelSetVAO == 0) state.levelSetVAO = createVAO(state.levelSetVertices.data(), state.levelSetVertices.size()*sizeof(float));
-            lightingShader.setUniform3f("objectColor", colourCoral);
+            lightingShader.setUniform3f("objectColor", colourTurquoise);
             lightingShader.setUniformMat4f("model", &defaultModel);
             glBindVertexArray(state.levelSetVAO);
             glDrawArrays(GL_TRIANGLES, 0, state.levelSetVertices.size());
