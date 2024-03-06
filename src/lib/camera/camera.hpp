@@ -10,7 +10,7 @@ private:
     glm::vec3 pos;
     glm::vec3 front;
     glm::vec3 up;
-    float speed = 5.f;
+    float speed = 20.f;
     // direction controls
     float mouseSens = 0.15f;
     float firstMouseMovement = true;

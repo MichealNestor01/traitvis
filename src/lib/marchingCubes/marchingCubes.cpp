@@ -4,6 +4,10 @@
 #include <glm.hpp>
 #include <stdlib.h>
 #include <stdio.h>
+#include <iostream>
+#include <map>
+#include <fstream>
+#include <algorithm>
 
 // function to use calculate face normals, not needed anymore
 void Triangles::computeNormals() {
@@ -15,6 +19,8 @@ void Triangles::computeNormals() {
 }
 
 std::vector<float> Triangles::getVertices() {
+    std::cout << "Normals Size: " << normals.size() << std::endl;
+    std::cout << "Vertices Size: " << vertices.size() << std::endl;
     std::vector<float> verticesWithNormals(vertices.size() * 6);
     for (int vertIndex = 0; vertIndex < vertices.size(); ++vertIndex) {
         verticesWithNormals[vertIndex*6] = vertices[vertIndex].x;
@@ -70,10 +76,22 @@ void examineCube(Triangles &triangles, const GridLayout &layout, int **grid, int
             triangles.vertices.push_back(vertex);
             // workout which endpoint is active
             int *activeVertex = grid[vertices[endPoints[not endPoint0[3]]]];
-            triangles.normals.push_back(
-                glm::normalize(vertex - glm::vec3(activeVertex[0], activeVertex[1], activeVertex[2]))
-            );
+            //triangles.normals.push_back(
+            //    glm::normalize(vertex - glm::vec3(activeVertex[0], activeVertex[1], activeVertex[2]))
+            //);
         }
+        // calculate face normal of the tirangle just created
+        glm::vec3 vertex1 = triangles.vertices.at(triangles.vertices.size() - 3);
+        glm::vec3 vertex2 = triangles.vertices.at(triangles.vertices.size() - 2);
+        glm::vec3 vertex3 = triangles.vertices.at(triangles.vertices.size() - 1);
+        glm::vec3 normal = glm::normalize(glm::cross(vertex2 - vertex1, vertex3 - vertex1));
+        triangles.normals.push_back(normal);
+        triangles.normals.push_back(normal);
+        triangles.normals.push_back(normal);
+        // std::cout << "Triangle vertex 1: " << vertex1.x << " " << vertex1.y << " " << vertex1.z << "\n";
+        // std::cout << "Triangle vertex 2: " << vertex2.x << " " << vertex2.y << " " << vertex2.z << "\n";
+        // std::cout << "Triangle vertex 3: " << vertex3.x << " " << vertex3.y << " " << vertex3.z << "\n";
+        // std::cout << "Triangle normal: " << normal.x << " " << normal.y << " " << normal.z << "\n";
     }
 }
 
@@ -86,10 +104,12 @@ Triangles extractTriangles(int **grid, const GridLayout &layout) {
         examineCube(triangles, layout, grid, (x*layout.z*layout.y) + (y*layout.z) + z);
     }}}
 
+    //triangles.computeNormals();
+
     return triangles;
 }
 
-void examineCubeWithInterpolation(Triangles &triangles, const GridLayout &layout, float ** grid, int vertex0, float isoValue) {
+void examineCubeWithInterpolation(Triangles &triangles, const GridLayout &layout, float ** grid, int vertex0, float isoValue, std::map<float, int> &zDistribution) {
     int vertices[8];
     // find the index in the coordinate grid of each vertex of the cube
     vertices[0] = vertex0;
@@ -100,6 +120,7 @@ void examineCubeWithInterpolation(Triangles &triangles, const GridLayout &layout
     vertices[5] = vertex0 + (layout.z * layout.y) + 1;
     vertices[6] = vertex0 + (layout.z * layout.y) + layout.z;
     vertices[7] = vertex0 + (layout.z * layout.y) + layout.z + 1;
+
     // find the case this cube matches with
     int cubeIndex = 0;
     if (grid[vertices[0]][3] < isoValue) cubeIndex |= 1;
@@ -113,8 +134,19 @@ void examineCubeWithInterpolation(Triangles &triangles, const GridLayout &layout
 
     // No triangles found
     if (cubeIndex == 0 or cubeIndex == 255) return;
-
+    // for (int i = 0; i < 8; ++i) {
+    //    std::cout << "\n\n" << grid[vertices[i]][0] << " " << grid[vertices[i]][1] << " " << grid[vertices[i]][2] << " " << grid[vertices[i]][3] << std::endl;
+    // }
+    
+    // std::cout << "Cube index: " << cubeIndex << std::endl;
     int *matchingCase = triangleTable[cubeIndex];
+
+    // std::cout << "Matching case: " << std::endl;
+    // for (int i = 0; i < 16; ++i) {
+    //     std::cout << matchingCase[i] << " ";
+    // }
+    // std::cout << std::endl; 
+
     // loop through the edges bisected in the matching case
     for (int triIndex = 0; triIndex < matchingCase[0]; ++triIndex) {
         for (int vertIndex = 1; vertIndex <= 3; ++vertIndex) {
@@ -130,24 +162,62 @@ void examineCubeWithInterpolation(Triangles &triangles, const GridLayout &layout
                 endPoint0[1]+(isoDistance * (endPoint1[1]-endPoint0[1])),
                 endPoint0[2]+(isoDistance * (endPoint1[2]-endPoint0[2]))
             );
+
             triangles.vertices.push_back(vertex);
             // workout which endpoint is active
             float *activeVertex = grid[vertices[endPoints[not endPoint0[3] < isoValue]]];
-            triangles.normals.push_back(
-                glm::normalize(vertex - glm::vec3(activeVertex[0], activeVertex[1], activeVertex[2]))
-            );
+            float *inactiveVertex = grid[vertices[endPoints[not endPoint0[3] >= isoValue]]];
+            zDistribution[activeVertex[2]]++;
+
+            // triangles.normals.push_back(
+            //     glm::normalize(vertex - glm::vec3(activeVertex[0], activeVertex[1], activeVertex[2]))
+            // );
+            //std::cout << "Triangle vertex: " << vertex.x << " " << vertex.y << " " << vertex.z << "\n";
+            //triangles.activeVertices.insert({activeVertex[0], activeVertex[1], activeVertex[2]});
+            //triangles.inactiveVertices.insert({inactiveVertex[0], inactiveVertex[1], inactiveVertex[2]});
+            
         }
+        glm::vec3 vertex1 = triangles.vertices.at(triangles.vertices.size() - 3);
+        glm::vec3 vertex2 = triangles.vertices.at(triangles.vertices.size() - 2);
+        glm::vec3 vertex3 = triangles.vertices.at(triangles.vertices.size() - 1);
+        glm::vec3 normal = glm::normalize(glm::cross(vertex2 - vertex1, vertex3 - vertex1));
+        triangles.normals.push_back(normal);
+        triangles.normals.push_back(normal);
+        triangles.normals.push_back(normal);
     }
+
+    //exit(0);
+
 }
 
 Triangles extractTrianglesWithInterpolation(float **grid, const GridLayout &layout, float isoValue) {
     Triangles triangles;
+    std::map<float, int> zDistribution;
+    for (int z = 0; z < layout.z; ++z) {
+        zDistribution[z] = 0;
+    }
 
     for (int x = 0; x < layout.x - 1; ++x) {
     for (int y = 0; y < layout.y - 1; ++y) {
     for (int z = 0; z < layout.z - 1; ++z) {
-        examineCubeWithInterpolation(triangles, layout, grid, (x*layout.z*layout.y) + (y*layout.z) + z, isoValue);
+        examineCubeWithInterpolation(triangles, layout, grid, (x*layout.z*layout.y) + (y*layout.z) + z, isoValue, zDistribution);
     }}}
+
+    // remove duplicates in the active vertices
+    //std::cout << "Removing duplicates from active vertices: total: " << triangles.activeVertices.size() << std::endl;
+
+    // remove diplicates from active vertices jsut using a simmple for loop 
+    
+    
+    std::cout << "Active Vertices: " << triangles.activeVertices.size() << std::endl;
+    std::cout << "Inactive Vertices: " << triangles.inactiveVertices.size() << std::endl;
+
+    std::ofstream outFile("z_distribution.csv");
+    outFile << "zpos,number_of_coords\n";
+    for (const auto &pair : zDistribution) {
+        outFile << pair.first << "," << pair.second << "\n";
+    }
+    outFile.close();
 
     return triangles;
 }

@@ -4,6 +4,7 @@
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
 #include <gtc/type_ptr.hpp>
+#include <set>
 
 #include "../lib/camera/camera.hpp"
 #include "../lib/parsingData/datasetReader.hpp"
@@ -23,7 +24,7 @@ struct ProgramState {
     float fov = 45.f;
     float aspectRatio = (renderWidthPercentage*windowWidth)/windowHeight;
     float nearPlane = 0.1f;
-    float farPlane = 500.f;
+    float farPlane = 1000.f;
     // frametime variables
     float deltaTime = 0.f;
     float lastFrame = 0.f;
@@ -32,8 +33,10 @@ struct ProgramState {
     MultiField dataset;
     // levelset variables
     std::vector<AttributeVertex> attributeSpaceVertices;
-    int **grid;
+    float **grid;
     std::vector<float> levelSetVertices;
+    std::set<glm::vec3, Vec3Comparator> activeVertices;
+    std::set<glm::vec3, Vec3Comparator> inactiveVertices;
     unsigned int levelSetVAO = 0;
     bool levelSetGenerated = false;
 
@@ -85,12 +88,14 @@ struct ProgramState {
     void generateLevelSet(float euclidianDistance) {
         // identify vertices which map to the level set
         // geneerateLevelset...
-        //float ** distanceField = generateDistanceField(attributeSpaceVertices, dataset);
-        //Triangles surface = extractTrianglesWithInterpolation(distanceField, {dataset.xVals, dataset.yVals, dataset.zVals}, euclidianDistance);
+        float ** distanceField = generateDistanceField(attributeSpaceVertices, dataset);
+        Triangles surface = extractTrianglesWithInterpolation(distanceField, {dataset.xVals, dataset.yVals, dataset.zVals}, euclidianDistance);
         // render the levelset 
         // clear the grid
-        for (int i = 0; i < dataset.xVals * dataset.yVals * dataset.zVals; ++i) grid[i][3] = grid[i][2] == 200;
-        Triangles surface = extractTriangles(grid, {dataset.xVals, dataset.yVals, dataset.zVals});
+        //for (int i = 0; i < dataset.xVals * dataset.yVals * dataset.zVals; ++i) grid[i][3] = grid[i][2] == 200;
+        //Triangles surface = extractTriangles(grid, {dataset.xVals, dataset.yVals, dataset.zVals});
+        activeVertices = surface.activeVertices;
+        inactiveVertices = surface.inactiveVertices;
         levelSetVertices = surface.getVertices();
         levelSetGenerated = true;
     }

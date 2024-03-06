@@ -2,13 +2,13 @@
 #include <stdlib.h>
 #include "marchingCubes.hpp"
 
-int ** createGrid(GridLayout layout, std::vector<glm::vec3> activeVertices) {
-	int ** grid = (int**)malloc(sizeof(int*) * layout.x * layout.y * layout.z);
+float ** createGrid(GridLayout layout, std::vector<glm::vec3> activeVertices) {
+	float ** grid = (float**)malloc(sizeof(float*) * layout.x * layout.y * layout.z);
 	int index = 0;
     for (int x = 0; x < layout.x; ++x) {
     for (int y = 0; y < layout.y; ++y) {
     for (int z = 0; z < layout.z; ++z) {
-		grid[index] = (int*)malloc(sizeof(int) * 4);
+		grid[index] = (float*)malloc(sizeof(float) * 4);
 		grid[index][0] = x;
 		grid[index][1] = y;
 		grid[index][2] = z;

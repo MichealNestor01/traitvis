@@ -9,6 +9,7 @@
 #include <gtc/type_ptr.hpp>
 #include <iostream>
 #include <math.h>
+#include <set>
 
 // my includes
 #include "state.hpp"
@@ -59,27 +60,30 @@ int main() {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);  
     //glfwSetCursorPosCallback(window, mouse_callback);  
     glfwSetScrollCallback(window, scroll_callback);
-
+    // set opengl to use wireframe
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    // set cull face
+    //glEnable(GL_CULL_FACE);
     // tell opengl how big the window should be 
     glViewport(0, 0, windowWidth, windowHeight);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     // gl config
     glEnable(GL_DEPTH_TEST);
     //glEnable(GL_CULL_FACE);
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glClearColor(0.2f, 0.2f, 0.2f, 0.f);
 
     // create shader programs
     ShaderProgram lightingShader({
         {GL_VERTEX_SHADER, "assets/colours.vert"},
         {GL_FRAGMENT_SHADER, "assets/colours.frag"}
     });
-    ShaderProgram lightCubeShader({
-        {GL_VERTEX_SHADER, "assets/light_cube.vert"},
-        {GL_FRAGMENT_SHADER, "assets/light_cube.frag"}
-    });
+    // ShaderProgram lightCubeShader({
+    //     {GL_VERTEX_SHADER, "assets/light_cube.vert"},
+    //     {GL_FRAGMENT_SHADER, "assets/light_cube.frag"}
+    // });
     
     // global lighting variables
-    glm::vec3 lightPos(0.5f, 7.f, 10.f);
+    glm::vec3 lightPos(0.5f, -3.f, -3.f);
     glm::vec3 lightColour(1.f, 1.f, 1.f);
     // global colour variables
     glm::vec3 colourCoral(1.f, 0.5f, 0.31f);
@@ -103,8 +107,8 @@ int main() {
     GUI gui(state);
 
 
-    // create coordinate grid
-    GridLayout layout = {500, 100, 500};
+    // // create coordinate grid
+    GridLayout layout = {5, 5, 5};
     std::vector<glm::vec3> activeVertices = {
         glm::vec3(2, 1, 1),
         glm::vec3(2, 1, 2),
@@ -113,13 +117,13 @@ int main() {
         glm::vec3(2, 3, 3),
         glm::vec3(249, 49, 249),
     };
-    int ** coordinateGrid = createGrid(layout, activeVertices);
+    float ** coordinateGrid = createGrid(layout, activeVertices);
     state.grid = coordinateGrid;
 
 
-    // create surface based on active vertices in the grid
-    // if a surface exists createa a VAO for it.
-    Triangles surface = extractTriangles(coordinateGrid, layout);
+    //create surface based on active vertices in the grid
+    //if a surface exists createa a VAO for it.
+    Triangles surface = extractTrianglesWithInterpolation(coordinateGrid, layout);
     unsigned int surfaceVAO;
     if (surface.vertices.size()) {
         std::vector<float> surfaceVertices = surface.getVertices();
@@ -129,22 +133,26 @@ int main() {
     // create cube vao
     unsigned int cubeVAO = createVAO(cubeVerticesWithNormals, sizeof(cubeVerticesWithNormals));
     
-    // create model matrices to place small cubes at each point on the coordinate grid 
-    //std::vector<glm::mat4> pixels;
-    //for (int pixel = 0; pixel < layout.total; ++pixel) 
-    //    pixels.push_back(glm::scale(glm::translate(glm::mat4(1.f), glm::vec3({coordinateGrid[pixel][0], coordinateGrid[pixel][1], coordinateGrid[pixel][2]})), glm::vec3(0.1f)));
+    // // create model matrices to place small cubes at each point on the coordinate grid 
+    std::vector<glm::mat4> pixels;
+    for (int pixel = 0; pixel < layout.total; ++pixel) 
+       pixels.push_back(glm::scale(glm::translate(glm::mat4(1.f), glm::vec3({coordinateGrid[pixel][0], coordinateGrid[pixel][1], coordinateGrid[pixel][2]})), glm::vec3(0.1f)));
 
     // create model matrix for the point light
-    glm::mat4 lightCubeModel = glm::scale(glm::translate(glm::mat4(1.f), lightPos), glm::vec3(0.2f));
+    // glm::mat4 lightCubeModel = glm::scale(glm::translate(glm::mat4(1.f), lightPos), glm::vec3(0.2f));
 
     // setup static uniforms for the lighting shader that don't change
     glUseProgram(lightingShader.program);
     lightingShader.setUniform3f("lightColor", lightColour);
     lightingShader.setUniform3f("lightPos", lightPos);
+    // global lighting
+    lightingShader.setUniform3f("lightDir", glm::normalize(glm::vec3(2.f, 4.f, 1.f)));
+    lightingShader.setUniform3f("lightDiffuse", glm::vec3(0.8f, 0.1f, 0.1f));
+    lightingShader.setUniform3f("sceneAmbient", glm::vec3(0.1f, 0.1f, 0.1f));
 
     // setup static uniforms for the light cube shader
-    glUseProgram(lightCubeShader.program);
-    lightCubeShader.setUniformMat4f("model", &lightCubeModel);
+    // glUseProgram(lightCubeShader.program);
+    // lightCubeShader.setUniformMat4f("model", &lightCubeModel);
 
     float lightAngle = 0.0f;
     float lightRadius = 7.0f;
@@ -190,14 +198,14 @@ int main() {
         lightingShader.setUniformMat4f("view", &view);
         lightingShader.setUniform3f("lightPos", lightPos);
 
-        // render the pixels
-        // for (int pixel = 0; pixel < pixels.size(); ++pixel) {
-        //     if (coordinateGrid[pixel][3] == 0) lightingShader.setUniform3f("objectColor", colourRed);
-        //     else lightingShader.setUniform3f("objectColor", colourGreen);
-        //     lightingShader.setUniformMat4f("model", &pixels[pixel]);
-        //     glBindVertexArray(cubeVAO);
-        //     glDrawArrays(GL_TRIANGLES, 0, 6*2*3);
-        // }
+        //render the pixels
+        for (int pixel = 0; pixel < pixels.size(); ++pixel) {
+            if (coordinateGrid[pixel][3] == 0) lightingShader.setUniform3f("objectColor", colourRed);
+            else lightingShader.setUniform3f("objectColor", colourGreen);
+            lightingShader.setUniformMat4f("model", &pixels[pixel]);
+            glBindVertexArray(cubeVAO);
+            glDrawArrays(GL_TRIANGLES, 0, 6*2*3);
+        }
 
         // draw surface 
         if (surface.vertices.size()) {
@@ -213,17 +221,35 @@ int main() {
             lightingShader.setUniformMat4f("model", &defaultModel);
             glBindVertexArray(state.levelSetVAO);
             glDrawArrays(GL_TRIANGLES, 0, state.levelSetVertices.size());
+            // state.activeVertices has a list of vertices where I want a single green point to be rendered
+            glBindVertexArray(cubeVAO);
+            //std::cout << "Active vertices: " << state.activeVertices.size() << "\n";
+            lightingShader.setUniform3f("objectColor", colourGreen);
+
+            for (auto & vertex : state.activeVertices) {
+                //std::cout << "Active vertex: " << vertex.x << " " << vertex.y << " " << vertex.z << "\n";
+                glm::mat4 cubeModel = glm::scale(glm::translate(glm::mat4(1.f), vertex), glm::vec3(0.1f));
+                lightingShader.setUniformMat4f("model", &cubeModel);
+                glDrawArrays(GL_TRIANGLES, 0, 6*2*3);
+            }
+            lightingShader.setUniform3f("objectColor", colourRed);
+            for (auto & vertex : state.inactiveVertices) {
+                //std::cout << "Active vertex: " << vertex.x << " " << vertex.y << " " << vertex.z << "\n";
+                glm::mat4 cubeModel = glm::scale(glm::translate(glm::mat4(1.f), vertex), glm::vec3(0.1f));
+                lightingShader.setUniformMat4f("model", &cubeModel);
+                glDrawArrays(GL_TRIANGLES, 0, 6*2*3);
+            }
         }
 
         // swap to simple light cube shader
-        glUseProgram(lightCubeShader.program);
-        lightCubeShader.setUniformMat4f("model", &lightCubeModel);
-        lightCubeShader.setUniformMat4f("projection", &proj);
-        lightCubeShader.setUniformMat4f("view", &view);
+        // glUseProgram(lightCubeShader.program);
+        // lightCubeShader.setUniformMat4f("model", &lightCubeModel);
+        // lightCubeShader.setUniformMat4f("projection", &proj);
+        // lightCubeShader.setUniformMat4f("view", &view);
 
-        // render the light cube
-        glBindVertexArray(cubeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 6*2*3);
+        // // render the light cube
+        // glBindVertexArray(cubeVAO);
+        // glDrawArrays(GL_TRIANGLES, 0, 6*2*3);
 
         // draw ui 
         gui.render();
@@ -237,7 +263,7 @@ int main() {
     }
 
     // cleanup
-    glDeleteVertexArrays(1, &cubeVAO);
+    //glDeleteVertexArrays(1, &cubeVAO);
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();

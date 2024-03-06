@@ -14,6 +14,7 @@ float ** generateDistanceField(const std::vector<AttributeVertex> & vertices, co
         distanceField[index][0] = static_cast<float>(x);
         distanceField[index][1] = static_cast<float>(y);
         distanceField[index][2] = static_cast<float>(z);
+        distanceField[index][3] = -1.f;
         int indexInDataset = x+(mulitifield.xVals*(y+(mulitifield.yVals * z)));
         // calculate the distance form the current point ot the closest attribute vertex
         float distance = std::numeric_limits<float>::max();
@@ -28,6 +29,7 @@ float ** generateDistanceField(const std::vector<AttributeVertex> & vertices, co
             if (euclidianDistance < distance) distance = euclidianDistance;
         }
         distanceField[index][3] = distance;
+        index++;
     }}}
     return distanceField;
 }
