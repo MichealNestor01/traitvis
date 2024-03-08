@@ -5,12 +5,14 @@
 #include <gtc/matrix_transform.hpp>
 #include <gtc/type_ptr.hpp>
 #include <set>
+#include <vector>
 
 #include "../lib/camera/camera.hpp"
 #include "../lib/parsingData/datasetReader.hpp"
 #include "../lib/multiField/multiField.hpp"
 #include "../lib/marchingCubes/marchingCubes.hpp"
 #include "../lib/levelSets/generateFeatureLevelSets.hpp"
+#include "../lib/levelSets/featureLevelSet.hpp"
 
 struct ProgramState {
     // camera object
@@ -32,16 +34,24 @@ struct ProgramState {
     bool loadedDataset = false;
     MultiField dataset;
     // levelset variables
-    std::vector<AttributeVertex> attributeSpaceVertices;
-    float **grid;
-    std::vector<float> levelSetVertices;
-    std::set<glm::vec3, Vec3Comparator> activeVertices;
-    std::set<glm::vec3, Vec3Comparator> inactiveVertices;
-    unsigned int levelSetVAO = 0;
-    bool levelSetGenerated = false;
+    std::vector<AttributeVertex> attributeSpaceVerticesBuffer;
+    std::vector<FeatureLevelSet> levelSets;
+    //float **grid;
+    //std::vector<float> levelSetVertices;
+    //std::set<glm::vec3, Vec3Comparator> activeVertices;
+    //std::set<glm::vec3, Vec3Comparator> inactiveVertices;
+    //unsigned int levelSetVAO = 0;
+    //bool levelSetGenerated = false;
+    
+    // lighting controls
+    glm::vec3 ambientLightColour = glm::vec3(1.f, 1.f, 1.f);
+    float ambientLightStrength = 0.28f;
+    glm::vec3 diffuseLightColour = glm::vec3(1.f, 1.f, 1.f); 
+    float diffuseLightStrength = 0.58f;
+    glm::vec3 diffuseLightDirection = glm::vec3(-0.44f, -0.82f, -1.f);
 
-    void addAttributeSpaceVertex(AttributeVertex vertex) {
-        attributeSpaceVertices.push_back(vertex);
+    void addAttributeSpaceVertexToBuffer(AttributeVertex vertex) {
+        attributeSpaceVerticesBuffer.push_back(vertex);
     }
 
     void loadDataset(std::string path) {
@@ -85,18 +95,19 @@ struct ProgramState {
         return glm::perspective(glm::radians(fov), aspectRatio, nearPlane, farPlane);
     }
 
-    void generateLevelSet(float euclidianDistance) {
+    void generateLevelSet(float euclidianDistance, glm::vec3 colour) {
+
         // identify vertices which map to the level set
         // geneerateLevelset...
-        float ** distanceField = generateDistanceField(attributeSpaceVertices, dataset);
-        Triangles surface = extractTrianglesWithInterpolation(distanceField, {dataset.xVals, dataset.yVals, dataset.zVals}, euclidianDistance);
+        //float ** distanceField = generateDistanceField(attributeSpaceVerticesBuffer, dataset);
+        //Triangles surface = extractTrianglesWithInterpolation(distanceField, {dataset.xVals, dataset.yVals, dataset.zVals}, euclidianDistance);
         // render the levelset 
         // clear the grid
         //for (int i = 0; i < dataset.xVals * dataset.yVals * dataset.zVals; ++i) grid[i][3] = grid[i][2] == 200;
         //Triangles surface = extractTriangles(grid, {dataset.xVals, dataset.yVals, dataset.zVals});
-        activeVertices = surface.activeVertices;
-        inactiveVertices = surface.inactiveVertices;
-        levelSetVertices = surface.getVertices();
-        levelSetGenerated = true;
+        //activeVertices = surface.activeVertices;
+        //inactiveVertices = surface.inactiveVertices;
+        //levelSetVertices = surface.getVertices();
+        //levelSetGenerated = true;
     }
 };

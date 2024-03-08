@@ -1,10 +1,18 @@
-#include "generateFeatureLevelSets.hpp"
-#include "../multiField/multiField.hpp"
-#include <vector>
-#include <limits>
-#include <cmath>
+#include "featureLevelSet.hpp"
 
-float ** generateDistanceField(const std::vector<AttributeVertex> & vertices, const MultiField & mulitifield) {
+FeatureLevelSet::FeatureLevelSet(std::vector<AttributeVertex> vertices, MultiField & dataset, float euclidianDistance, glm::vec3 colour, std::string id) {
+    this->vertices = vertices;
+    this->colour = colour;
+    this->id = id;
+    float ** distanceField = generateDistanceField(vertices, dataset);
+    surface = extractTrianglesWithInterpolation(distanceField, {dataset.xVals, dataset.yVals, dataset.zVals}, euclidianDistance);
+    surfaceVertices = surface.getVertices();
+    // free distanceField
+    for (int i = (dataset.xVals * dataset.yVals * dataset.zVals)-1; i >= 0; --i) free(distanceField[i]);
+    free(distanceField);
+}   
+
+float ** FeatureLevelSet::generateDistanceField(const std::vector<AttributeVertex> & vertices, const MultiField & mulitifield) {
     float ** distanceField = (float**)malloc(sizeof(float*) * mulitifield.xVals * mulitifield.yVals * mulitifield.zVals);
     int index = 0;
     for (int x = 0; x < mulitifield.xVals; ++x) {

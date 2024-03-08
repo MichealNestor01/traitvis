@@ -2,6 +2,7 @@
 out vec4 FragColor;
   
 uniform vec3 objectColor;
+uniform float objectTransparency; 
 uniform vec3 lightColor;
 uniform vec3 lightPos;
 uniform vec3 viewPos;
@@ -9,16 +10,23 @@ uniform vec3 viewPos;
 uniform vec3 lightDir; // should be normalised 
 uniform vec3 lightDiffuse;
 uniform vec3 sceneAmbient;
-
+// New lighting variabels 
+uniform vec3 ambientLightColour;
+uniform float ambientLightStrength;
+uniform vec3 diffuseLightColour;
+uniform float diffuseLightStrength;
+uniform vec3 diffuseLightDirection; 
 
 in vec3 Normal;
 in vec3 FragPos;
 
 void main()
 {
-    float ambientStrength = 0.3;
+    /*
+    float ambientStrength = 1.0;
     vec3 ambient = ambientStrength * lightColor;
 
+    
     vec3 norm = normalize(Normal);
     vec3 pointLightDir = normalize(lightPos-FragPos);
     float diff = max(dot(norm, pointLightDir), 0.0);
@@ -31,11 +39,14 @@ void main()
     vec3 specular = specularStrength * spec * lightColor;
 
     vec3 resultPointLight = (ambient+diffuse+specular) * objectColor; 
+    */
+    vec3 ambient = ambientLightStrength * ambientLightColour;
+    vec3 diffuse = diffuseLightStrength * diffuseLightColour;
 
     vec3 normal = normalize(Normal);
-    float nDotL = max(0.0, dot(normal, lightDir));
-    vec3 globalDiffuse = nDotL * lightDiffuse;
-    vec3 result = (sceneAmbient + globalDiffuse + (resultPointLight * vec3(0.2))) * objectColor;
+    float nDotL = max(0.0, dot(normal, diffuseLightDirection));
+    vec3 globalDiffuse = nDotL * diffuse;
+    vec3 result = (ambient + globalDiffuse) * objectColor;
 
-    FragColor = vec4(result, 1.0);
+    FragColor = vec4(result, objectTransparency);
 }

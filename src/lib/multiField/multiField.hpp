@@ -19,7 +19,7 @@ struct Attribute {
 };
 
 struct AttributeVertexValue {
-    Attribute & attribute;
+    Attribute * attribute;
     float value;
 };
 

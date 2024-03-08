@@ -179,16 +179,14 @@ void examineCubeWithInterpolation(Triangles &triangles, const GridLayout &layout
             if (endPoint0[3] < isoValue) {
                 //std::cout << "Active vertex endpoint0: " << endPoint0[0] << " " << endPoint0[1] << " " << endPoint0[2] << " " << endPoint0[3] << std::endl;
                 //std::cout  << "Inactive vertex endpoint1: " << endPoint1[0] << " " << endPoint1[1] << " " << endPoint1[2] << " " << endPoint1[3] << std::endl;
-                triangles.activeVertices.insert({endPoint0[0], endPoint0[1], endPoint0[2]});
-                triangles.inactiveVertices.insert({endPoint1[0], endPoint1[1], endPoint1[2]});
-                zDistribution[endPoint0[2]]++;
+                //triangles.activeVertices.insert({endPoint0[0], endPoint0[1], endPoint0[2]});
+                //triangles.inactiveVertices.insert({endPoint1[0], endPoint1[1], endPoint1[2]});
 
             } else {
                 //std::cout << "Active vertex endpoint1: " << endPoint1[0] << " " << endPoint1[1] << " " << endPoint1[2] << " " << endPoint1[3] << std::endl;
                 //std::cout << "inactive vertex endpoint0: " << endPoint0[0] << " " << endPoint0[1] << " " << endPoint0[2] << " " << endPoint0[3] <<std::endl;
-                zDistribution[endPoint1[2]]++;
-                triangles.inactiveVertices.insert({endPoint0[0], endPoint0[1], endPoint0[2]});
-                triangles.activeVertices.insert({endPoint1[0], endPoint1[1], endPoint1[2]});
+                //triangles.inactiveVertices.insert({endPoint0[0], endPoint0[1], endPoint0[2]});
+               // triangles.activeVertices.insert({endPoint1[0], endPoint1[1], endPoint1[2]});
             }
         }
             
@@ -227,6 +225,9 @@ Triangles extractTrianglesWithInterpolation(float **grid, const GridLayout &layo
     
     std::cout << "Active Vertices: " << triangles.activeVertices.size() << std::endl;
     std::cout << "Inactive Vertices: " << triangles.inactiveVertices.size() << std::endl;
+    for (auto & vertex : triangles.activeVertices) {
+        zDistribution[vertex.z] += 1;
+    }
 
     std::ofstream outFile("z_distribution.csv");
     outFile << "zpos,number_of_coords\n";

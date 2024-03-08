@@ -60,6 +60,9 @@ int main() {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);  
     //glfwSetCursorPosCallback(window, mouse_callback);  
     glfwSetScrollCallback(window, scroll_callback);
+    // setup opengl blending
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     // set opengl to use wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     // set cull face
@@ -70,7 +73,7 @@ int main() {
     // gl config
     glEnable(GL_DEPTH_TEST);
     //glEnable(GL_CULL_FACE);
-    glClearColor(0.2f, 0.2f, 0.2f, 0.f);
+    glClearColor(0.52f, 0.81f, 0.92f, 0.f);
 
     // create shader programs
     ShaderProgram lightingShader({
@@ -87,9 +90,10 @@ int main() {
     glm::vec3 lightColour(1.f, 1.f, 1.f);
     // global colour variables
     glm::vec3 colourCoral(1.f, 0.5f, 0.31f);
-    glm::vec3 colourRed(1.f, 0.f, 0.f);
+    glm::vec3 colourRed(1.f, 1.f, 0.f);
     glm::vec3 colourGreen(0.f, 1.f, 0.f);
     glm::vec3 colourTurquoise(0.02f, 1.f, 0.8f);
+    glm::vec3 colourWhite(1.f, 1.f, 1.f);
     // default model matrix (no change)
     glm::mat4 defaultModel(1.f);
 
@@ -121,7 +125,7 @@ int main() {
         glm::vec3(249, 49, 249),
     };
     float ** coordinateGrid = createGrid(layout, activeVertices);
-    state.grid = coordinateGrid;
+    //state.grid = coordinateGrid;
 
 
     //create surface based on active vertices in the grid
@@ -148,10 +152,17 @@ int main() {
     glUseProgram(lightingShader.program);
     lightingShader.setUniform3f("lightColor", lightColour);
     lightingShader.setUniform3f("lightPos", lightPos);
+    lightingShader.setUniformf("objectTransparency", 1.f);
     // global lighting
-    lightingShader.setUniform3f("lightDir", glm::normalize(glm::vec3(2.f, 4.f, 1.f)));
-    lightingShader.setUniform3f("lightDiffuse", glm::vec3(0.8f, 0.1f, 0.1f));
-    lightingShader.setUniform3f("sceneAmbient", glm::vec3(0.1f, 0.1f, 0.1f));
+    lightingShader.setUniform3f("lightDir", glm::normalize(glm::vec3(-1.f, -1.f, -1.f)));
+    lightingShader.setUniform3f("lightDiffuse", glm::vec3(0.2f, 0.2f, 0.2f));
+    lightingShader.setUniform3f("sceneAmbient", glm::vec3(0.4f, 0.4f, 0.4f));
+    // lighting setup 
+    //lightingShader.setUniform3f("ambientLightColour", colourWhite);
+    //lightingShader.setUniformf("ambientLightStrength", 0.4f);
+    //lightingShader.setUniform3f("diffuseLightColour", colourWhite);
+    //lightingShader.setUniformf("diffuseLightStrength", 0.2f);
+    //lightingShader.setUniform3f("diffuseLightDirection", glm::normalize(glm::vec3(-1.f, -1.f, -1.f)));
 
     // setup static uniforms for the light cube shader
     // glUseProgram(lightCubeShader.program);
@@ -196,12 +207,20 @@ int main() {
 
         // switch to general lighting shader
         glUseProgram(lightingShader.program);
+        // update lighting uniforms
+        lightingShader.setUniform3f("ambientLightColour", state.ambientLightColour);
+        lightingShader.setUniformf("ambientLightStrength", state.ambientLightStrength);
+        lightingShader.setUniform3f("diffuseLightColour", state.diffuseLightColour);
+        lightingShader.setUniformf("diffuseLightStrength", state.diffuseLightStrength);
+        lightingShader.setUniform3f("diffuseLightDirection", glm::normalize(state.diffuseLightDirection));
+        // update camera position
         lightingShader.setUniform3f("viewPos", state.cam.getPos());
         lightingShader.setUniformMat4f("projection", &proj);
         lightingShader.setUniformMat4f("view", &view);
         lightingShader.setUniform3f("lightPos", lightPos);
 
         //render the pixels
+        lightingShader.setUniformf("objectTransparency", 1.f);
         for (int pixel = 0; pixel < pixels.size(); ++pixel) {
             if (coordinateGrid[pixel][3] > 2) lightingShader.setUniform3f("objectColor", colourRed);
             else lightingShader.setUniform3f("objectColor", colourGreen);
@@ -218,30 +237,43 @@ int main() {
             glDrawArrays(GL_TRIANGLES, 0, surface.vertices.size());
         }
 
-        if (state.levelSetGenerated) {
-            if (state.levelSetVAO == 0) state.levelSetVAO = createVAO(state.levelSetVertices.data(), state.levelSetVertices.size()*sizeof(float));
-            lightingShader.setUniform3f("objectColor", colourTurquoise);
+        if (state.levelSets.size() > 0) {
             lightingShader.setUniformMat4f("model", &defaultModel);
-            glBindVertexArray(state.levelSetVAO);
-            glDrawArrays(GL_TRIANGLES, 0, state.levelSetVertices.size());
+            for (auto & levelSet : state.levelSets) {
+                if (levelSet.active) {
+                    if (levelSet.VAO == 0) levelSet.VAO = createVAO(levelSet.surfaceVertices.data(), levelSet.surfaceVertices.size()*sizeof(float));
+                    lightingShader.setUniform3f("objectColor", levelSet.colour);
+                    lightingShader.setUniformf("objectTransparency", levelSet.transparency);
+                    if (levelSet.transparency < 1.f) glDepthMask(GL_FALSE);
+                    else glDepthMask(GL_TRUE);
+                    glBindVertexArray(levelSet.VAO);
+                    glDrawArrays(GL_TRIANGLES, 0, levelSet.surfaceVertices.size());
+                }
+            }
+            glDepthMask(GL_TRUE);
+            // if (state.levelSetVAO == 0) state.levelSetVAO = createVAO(state.levelSetVertices.data(), state.levelSetVertices.size()*sizeof(float));
+            // lightingShader.setUniform3f("objectColor", colourTurquoise);
+            // lightingShader.setUniformMat4f("model", &defaultModel);
+            // glBindVertexArray(state.levelSetVAO);
+            // glDrawArrays(GL_TRIANGLES, 0, state.levelSetVertices.size());
             // state.activeVertices has a list of vertices where I want a single green point to be rendered
-            glBindVertexArray(cubeVAO);
+            //glBindVertexArray(cubeVAO);
             //std::cout << "Active vertices: " << state.activeVertices.size() << "\n";
-            lightingShader.setUniform3f("objectColor", colourGreen);
+            // lightingShader.setUniform3f("objectColor", colourGreen);
 
-            for (auto & vertex : state.activeVertices) {
-                //std::cout << "Active vertex: " << vertex.x << " " << vertex.y << " " << vertex.z << "\n";
-                glm::mat4 cubeModel = glm::scale(glm::translate(glm::mat4(1.f), vertex), glm::vec3(0.1f));
-                lightingShader.setUniformMat4f("model", &cubeModel);
-                glDrawArrays(GL_TRIANGLES, 0, 6*2*3);
-            }
-            lightingShader.setUniform3f("objectColor", colourRed);
-            for (auto & vertex : state.inactiveVertices) {
-                //std::cout << "Active vertex: " << vertex.x << " " << vertex.y << " " << vertex.z << "\n";
-                glm::mat4 cubeModel = glm::scale(glm::translate(glm::mat4(1.f), vertex), glm::vec3(0.1f));
-                lightingShader.setUniformMat4f("model", &cubeModel);
-                glDrawArrays(GL_TRIANGLES, 0, 6*2*3);
-            }
+            // for (auto & vertex : state.activeVertices) {
+            //     //std::cout << "Active vertex: " << vertex.x << " " << vertex.y << " " << vertex.z << "\n";
+            //     glm::mat4 cubeModel = glm::scale(glm::translate(glm::mat4(1.f), vertex), glm::vec3(0.1f));
+            //     lightingShader.setUniformMat4f("model", &cubeModel);
+            //     glDrawArrays(GL_TRIANGLES, 0, 6*2*3);
+            // }
+            // lightingShader.setUniform3f("objectColor", colourRed);
+            // for (auto & vertex : state.inactiveVertices) {
+            //     //std::cout << "Active vertex: " << vertex.x << " " << vertex.y << " " << vertex.z << "\n";
+            //     glm::mat4 cubeModel = glm::scale(glm::translate(glm::mat4(1.f), vertex), glm::vec3(0.1f));
+            //     lightingShader.setUniformMat4f("model", &cubeModel);
+            //     glDrawArrays(GL_TRIANGLES, 0, 6*2*3);
+            // }
         }
 
         // swap to simple light cube shader
@@ -255,12 +287,14 @@ int main() {
         // glDrawArrays(GL_TRIANGLES, 0, 6*2*3);
 
         // draw ui 
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
         gui.render();
-
-        // Render ImGui
+        gui.renderLightingControls();
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        
+
         // check and call events and swap the buffers
         glfwSwapBuffers(window);
     }

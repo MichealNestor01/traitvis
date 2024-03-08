@@ -17,7 +17,8 @@ class ShaderProgram {
         ShaderProgram(std::vector<ShaderSource> = {});
         ~ShaderProgram();
         GLuint program;
-        void setUniform3f(std::string name, float f1, float f2, float f3);
+        void setUniformf(std::string name, GLfloat f);
+        void setUniform3f(std::string name, GLfloat f1, GLfloat f2, GLfloat f3);
         void setUniform3f(std::string name, glm::vec3 f);
         void setUniformMat4f(std::string name, glm::mat4 *mat);
 };
