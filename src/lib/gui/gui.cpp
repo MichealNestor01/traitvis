@@ -85,8 +85,8 @@ void GUI::render() {
             i++;
         }
 
-        ImGui::Text("Select Euclidian distance for level set: ");
-        ImGui::SliderFloat("##distance", &levelSetDistance, 0, 100, "%.0f");
+        ImGui::Text("Normalised Euclidean distance for level set: ");
+        ImGui::SliderFloat("##distance", &levelSetDistance, 0, 100, "%.2f");
         ImGui::Text("Select level set colour: ");
         ImGui::SliderFloat("R", &levelSetRed, 0, 255, "%.0f");
         ImGui::SliderFloat("G", &levelSetGreen, 0, 255, "%.0f");
@@ -107,7 +107,7 @@ void GUI::render() {
             if (not uniqueId) {
                 ImGui::Text("Level set id must be unique.");
             } else {
-                FeatureLevelSet newLevelSet(programState.attributeSpaceVerticesBuffer, programState.dataset, levelSetDistance, glm::vec3(levelSetRed/255.f, levelSetGreen/255.f, levelSetBlue/255.f), std::string(levelSetIdBuffer));
+                FeatureLevelSet newLevelSet(programState.attributeSpaceVerticesBuffer, programState.dataset, levelSetDistance/100, glm::vec3(levelSetRed/255.f, levelSetGreen/255.f, levelSetBlue/255.f), std::string(levelSetIdBuffer));
                 programState.levelSets.push_back(newLevelSet);
             }
         }
@@ -124,7 +124,7 @@ void GUI::render() {
     for (auto &levelSet : programState.levelSets) {
         ImGui::Text(levelSet.id.c_str());
         ImGui::SameLine();
-        ImGui::Checkbox((std::string("##Show") + levelSet.id).c_str(), &levelSet.active);
+        ImGui::Checkbox((std::string("##show") + levelSet.id).c_str(), &levelSet.active);
         ImGui::SameLine();
         if (ImGui::Button(std::string("Remove " + levelSet.id).c_str())) 
             programState.levelSets.erase(programState.levelSets.begin() + i);
@@ -134,6 +134,8 @@ void GUI::render() {
         ImGui::Text("Render depth: ");
         ImGui::SameLine();
         ImGui::SliderFloat((std::string("##Render Depth") + levelSet.id).c_str(), &levelSet.renderDepth, 0, 1, "%.02f");
+        ImGui::Checkbox((std::string("Show boundary vertices##") + levelSet.id).c_str(), &levelSet.showActiveInactivePixels);
+        ImGui::Text(" ");
         i++;
     }
 

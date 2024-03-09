@@ -1,10 +1,15 @@
 #include "featureLevelSet.hpp"
+#include <iostream>
 
 FeatureLevelSet::FeatureLevelSet(std::vector<AttributeVertex> vertices, MultiField & dataset, float euclidianDistance, glm::vec3 colour, std::string id) {
-    this->vertices = vertices;
     this->colour = colour;
     this->id = id;
-    float ** distanceField = generateDistanceField(vertices, dataset);
+    this->vertices = vertices;
+    // first normalise the values of the vertices chosen
+    for (AttributeVertex & vertex : this->vertices) vertex.normalise();
+    // create the distance field
+    float ** distanceField = generateDistanceField(this->vertices, dataset);
+    // extract the surface given the normalised eucliean distance
     surface = extractTrianglesWithInterpolation(distanceField, {dataset.xVals, dataset.yVals, dataset.zVals}, euclidianDistance);
     surfaceVertices = surface.getVertices();
     // free distanceField
@@ -15,6 +20,9 @@ FeatureLevelSet::FeatureLevelSet(std::vector<AttributeVertex> vertices, MultiFie
 float ** FeatureLevelSet::generateDistanceField(const std::vector<AttributeVertex> & vertices, const MultiField & mulitifield) {
     float ** distanceField = (float**)malloc(sizeof(float*) * mulitifield.xVals * mulitifield.yVals * mulitifield.zVals);
     int index = 0;
+
+    bool bogo = false;
+
     for (int x = 0; x < mulitifield.xVals; ++x) {
     for (int y = 0; y < mulitifield.yVals; ++y) {
     for (int z = 0; z < mulitifield.zVals; ++z) {
@@ -30,13 +38,24 @@ float ** FeatureLevelSet::generateDistanceField(const std::vector<AttributeVerte
             // calcuate distance from current vertex
             float euclidianDistanceSum = 0;
             for (const AttributeVertexValue & value : vertex.values) {
+                if (false and value.attribute->values[indexInDataset] >= value.attribute->bounds.lower and value.attribute->values[indexInDataset] <= value.attribute->bounds.upper)  {
+                    std::cout << "Value: " << value.attribute->values[indexInDataset] << " is within bounds: " << value.attribute->bounds.lower << " and " << value.attribute->bounds.upper << std::endl;
+                    bogo = true;
+                }
                 float component = value.attribute->values[indexInDataset] - value.value;
-                euclidianDistanceSum = component * component;
+                euclidianDistanceSum += component * component;
             }
             float euclidianDistance = sqrt(euclidianDistanceSum);
             if (euclidianDistance < distance) distance = euclidianDistance;
         }
         distanceField[index][3] = distance;
+
+        if (bogo and false) {
+            std::cout << "Point: " << x << ", " << y << ", " << z << std::endl;
+            std::cout << "Distance: " << distance << std::endl;
+            exit(0);
+        }
+
         index++;
     }}}
     return distanceField;

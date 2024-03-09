@@ -31,6 +31,10 @@ MultiField readAttributePerFileDataset(const DatasetDirConfig& config) {
         }
         multiField.attributeDomain.push_back({file.name, {file.lowerBound, file.upperBound}, vals});
     }
+
+    // normalise the attributes
+    multiField.normaliseAttributes();
+
     multiField.readError = false;
     return multiField;
 }

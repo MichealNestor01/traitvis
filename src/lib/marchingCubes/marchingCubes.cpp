@@ -109,7 +109,7 @@ Triangles extractTriangles(int **grid, const GridLayout &layout) {
     return triangles;
 }
 
-void examineCubeWithInterpolation(Triangles &triangles, const GridLayout &layout, float ** grid, int vertex0, float isoValue, std::map<float, int> &zDistribution) {
+void examineCubeWithInterpolation(Triangles &triangles, const GridLayout &layout, float ** grid, int vertex0, float isoValue) {
     int vertices[8];
     // find the index in the coordinate grid of each vertex of the cube
     vertices[0] = vertex0;
@@ -179,18 +179,17 @@ void examineCubeWithInterpolation(Triangles &triangles, const GridLayout &layout
             if (endPoint0[3] < isoValue) {
                 //std::cout << "Active vertex endpoint0: " << endPoint0[0] << " " << endPoint0[1] << " " << endPoint0[2] << " " << endPoint0[3] << std::endl;
                 //std::cout  << "Inactive vertex endpoint1: " << endPoint1[0] << " " << endPoint1[1] << " " << endPoint1[2] << " " << endPoint1[3] << std::endl;
-                //triangles.activeVertices.insert({endPoint0[0], endPoint0[1], endPoint0[2]});
-                //triangles.inactiveVertices.insert({endPoint1[0], endPoint1[1], endPoint1[2]});
+                triangles.activeVertices.insert({endPoint0[0], endPoint0[1], endPoint0[2]});
+                triangles.inactiveVertices.insert({endPoint1[0], endPoint1[1], endPoint1[2]});
 
             } else {
                 //std::cout << "Active vertex endpoint1: " << endPoint1[0] << " " << endPoint1[1] << " " << endPoint1[2] << " " << endPoint1[3] << std::endl;
                 //std::cout << "inactive vertex endpoint0: " << endPoint0[0] << " " << endPoint0[1] << " " << endPoint0[2] << " " << endPoint0[3] <<std::endl;
-                //triangles.inactiveVertices.insert({endPoint0[0], endPoint0[1], endPoint0[2]});
-               // triangles.activeVertices.insert({endPoint1[0], endPoint1[1], endPoint1[2]});
+                triangles.inactiveVertices.insert({endPoint0[0], endPoint0[1], endPoint0[2]});
+                triangles.activeVertices.insert({endPoint1[0], endPoint1[1], endPoint1[2]});
             }
         }
-            
-        
+
         glm::vec3 vertex1 = triangles.vertices.at(triangles.vertices.size() - 3);
         glm::vec3 vertex2 = triangles.vertices.at(triangles.vertices.size() - 2);
         glm::vec3 vertex3 = triangles.vertices.at(triangles.vertices.size() - 1);
@@ -199,42 +198,35 @@ void examineCubeWithInterpolation(Triangles &triangles, const GridLayout &layout
         triangles.normals.push_back(normal);
         triangles.normals.push_back(normal);
     }
-
-    //exit(0);
-
 }
 
 Triangles extractTrianglesWithInterpolation(float **grid, const GridLayout &layout, float isoValue) {
     Triangles triangles;
-    std::map<float, int> zDistribution;
-    for (int z = 0; z < layout.z; ++z) {
-        zDistribution[z] = 0;
-    }
+    // std::map<float, int> zDistribution;
+    // for (int z = 0; z < layout.z; ++z) {
+    //     zDistribution[z] = 0;
+    // }
 
     for (int x = 0; x < layout.x - 1; ++x) {
     for (int y = 0; y < layout.y - 1; ++y) {
     for (int z = 0; z < layout.z - 1; ++z) {
-        examineCubeWithInterpolation(triangles, layout, grid, (x*layout.z*layout.y) + (y*layout.z) + z, isoValue, zDistribution);
+        examineCubeWithInterpolation(triangles, layout, grid, (x*layout.z*layout.y) + (y*layout.z) + z, isoValue);
     }}}
 
-    // remove duplicates in the active vertices
-    //std::cout << "Removing duplicates from active vertices: total: " << triangles.activeVertices.size() << std::endl;
-
-    // remove diplicates from active vertices jsut using a simmple for loop 
     
-    
+    std::cout << "Generated Surface:" << std::endl;
     std::cout << "Active Vertices: " << triangles.activeVertices.size() << std::endl;
     std::cout << "Inactive Vertices: " << triangles.inactiveVertices.size() << std::endl;
-    for (auto & vertex : triangles.activeVertices) {
-        zDistribution[vertex.z] += 1;
-    }
+    // for (auto & vertex : triangles.activeVertices) {
+    //     zDistribution[vertex.z] += 1;
+    // }
 
-    std::ofstream outFile("z_distribution.csv");
-    outFile << "zpos,number_of_coords\n";
-    for (const auto &pair : zDistribution) {
-        outFile << pair.first << "," << pair.second << "\n";
-    }
-    outFile.close();
+    // std::ofstream outFile("z_distribution.csv");
+    // outFile << "zpos,number_of_coords\n";
+    // for (const auto &pair : zDistribution) {
+    //     outFile << pair.first << "," << pair.second << "\n";
+    // }
+    // outFile.close();
 
     return triangles;
 }

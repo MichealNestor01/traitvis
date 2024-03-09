@@ -10,6 +10,7 @@
 #include <iostream>
 #include <math.h>
 #include <set>
+#include <algorithm>
 
 // my includes
 #include "state.hpp"
@@ -90,7 +91,7 @@ int main() {
     glm::vec3 lightColour(1.f, 1.f, 1.f);
     // global colour variables
     glm::vec3 colourCoral(1.f, 0.5f, 0.31f);
-    glm::vec3 colourRed(1.f, 1.f, 0.f);
+    glm::vec3 colourRed(1.f, 0.f, 0.f);
     glm::vec3 colourGreen(0.f, 1.f, 0.f);
     glm::vec3 colourTurquoise(0.02f, 1.f, 0.8f);
     glm::vec3 colourWhite(1.f, 1.f, 1.f);
@@ -188,7 +189,6 @@ int main() {
             state.cam.updateDirection(xpos, ypos);
         }
 
-
         glViewport(state.windowWidth * (1-state.renderWidthPercentage), 0, state.windowWidth  * state.renderWidthPercentage, state.windowHeight);
 
         // get update projection and view matrix
@@ -219,7 +219,7 @@ int main() {
         lightingShader.setUniformMat4f("view", &view);
         lightingShader.setUniform3f("lightPos", lightPos);
 
-        //render the pixels
+        //render test pixels and test surface
         lightingShader.setUniformf("objectTransparency", 1.f);
         for (int pixel = 0; pixel < pixels.size(); ++pixel) {
             if (coordinateGrid[pixel][3] > 2) lightingShader.setUniform3f("objectColor", colourRed);
@@ -228,15 +228,16 @@ int main() {
             glBindVertexArray(cubeVAO);
             glDrawArrays(GL_TRIANGLES, 0, 6*2*3);
         }
-
-        // draw surface 
         if (surface.vertices.size()) {
             lightingShader.setUniform3f("objectColor", colourGreen);
             lightingShader.setUniformMat4f("model", &defaultModel);
             glBindVertexArray(surfaceVAO);
             glDrawArrays(GL_TRIANGLES, 0, surface.vertices.size());
         }
-
+        
+        // sort level sets by render depth
+        std::sort(state.levelSets.begin(), state.levelSets.end());
+        // render level sets
         if (state.levelSets.size() > 0) {
             lightingShader.setUniformMat4f("model", &defaultModel);
             for (auto & levelSet : state.levelSets) {
@@ -248,43 +249,29 @@ int main() {
                     else glDepthMask(GL_TRUE);
                     glBindVertexArray(levelSet.VAO);
                     glDrawArrays(GL_TRIANGLES, 0, levelSet.surfaceVertices.size());
+                    
+                    if (levelSet.showActiveInactivePixels) {
+                        // generate boundary vertices
+                        glBindVertexArray(cubeVAO);
+                        lightingShader.setUniform3f("objectColor", colourGreen);
+                        for (auto & vertex : levelSet.surface.activeVertices) {
+                            //std::cout << "Active vertex: " << vertex.x << " " << vertex.y << " " << vertex.z << "\n";
+                            glm::mat4 cubeModel = glm::scale(glm::translate(glm::mat4(1.f), vertex), glm::vec3(0.1f));
+                            lightingShader.setUniformMat4f("model", &cubeModel);
+                            glDrawArrays(GL_TRIANGLES, 0, 6*2*3);
+                        }
+                        lightingShader.setUniform3f("objectColor", colourRed);
+                        for (auto & vertex : levelSet.surface.inactiveVertices) {
+                            //std::cout << "Active vertex: " << vertex.x << " " << vertex.y << " " << vertex.z << "\n";
+                            glm::mat4 cubeModel = glm::scale(glm::translate(glm::mat4(1.f), vertex), glm::vec3(0.1f));
+                            lightingShader.setUniformMat4f("model", &cubeModel);
+                            glDrawArrays(GL_TRIANGLES, 0, 6*2*3);
+                        }
+                    }
                 }
             }
-            glDepthMask(GL_TRUE);
-            // if (state.levelSetVAO == 0) state.levelSetVAO = createVAO(state.levelSetVertices.data(), state.levelSetVertices.size()*sizeof(float));
-            // lightingShader.setUniform3f("objectColor", colourTurquoise);
-            // lightingShader.setUniformMat4f("model", &defaultModel);
-            // glBindVertexArray(state.levelSetVAO);
-            // glDrawArrays(GL_TRIANGLES, 0, state.levelSetVertices.size());
-            // state.activeVertices has a list of vertices where I want a single green point to be rendered
-            //glBindVertexArray(cubeVAO);
-            //std::cout << "Active vertices: " << state.activeVertices.size() << "\n";
-            // lightingShader.setUniform3f("objectColor", colourGreen);
-
-            // for (auto & vertex : state.activeVertices) {
-            //     //std::cout << "Active vertex: " << vertex.x << " " << vertex.y << " " << vertex.z << "\n";
-            //     glm::mat4 cubeModel = glm::scale(glm::translate(glm::mat4(1.f), vertex), glm::vec3(0.1f));
-            //     lightingShader.setUniformMat4f("model", &cubeModel);
-            //     glDrawArrays(GL_TRIANGLES, 0, 6*2*3);
-            // }
-            // lightingShader.setUniform3f("objectColor", colourRed);
-            // for (auto & vertex : state.inactiveVertices) {
-            //     //std::cout << "Active vertex: " << vertex.x << " " << vertex.y << " " << vertex.z << "\n";
-            //     glm::mat4 cubeModel = glm::scale(glm::translate(glm::mat4(1.f), vertex), glm::vec3(0.1f));
-            //     lightingShader.setUniformMat4f("model", &cubeModel);
-            //     glDrawArrays(GL_TRIANGLES, 0, 6*2*3);
-            // }
         }
-
-        // swap to simple light cube shader
-        // glUseProgram(lightCubeShader.program);
-        // lightCubeShader.setUniformMat4f("model", &lightCubeModel);
-        // lightCubeShader.setUniformMat4f("projection", &proj);
-        // lightCubeShader.setUniformMat4f("view", &view);
-
-        // // render the light cube
-        // glBindVertexArray(cubeVAO);
-        // glDrawArrays(GL_TRIANGLES, 0, 6*2*3);
+        glDepthMask(GL_TRUE);
 
         // draw ui 
         ImGui_ImplOpenGL3_NewFrame();
