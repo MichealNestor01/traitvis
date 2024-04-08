@@ -17,31 +17,30 @@ FeatureLevelSet::FeatureLevelSet(std::vector<AttributeVertex> vertices, MultiFie
     free(distanceField);
 }   
 
-float ** FeatureLevelSet::generateDistanceField(const std::vector<AttributeVertex> & vertices, const MultiField & mulitifield) {
-    float ** distanceField = (float**)malloc(sizeof(float*) * mulitifield.xVals * mulitifield.yVals * mulitifield.zVals);
+float ** FeatureLevelSet::generateDistanceField(const std::vector<AttributeVertex> & vertices, const MultiField & multifield) {
+    float ** distanceField = (float**)malloc(sizeof(float*) * multifield.xVals * multifield.yVals * multifield.zVals);
     int index = 0;
 
     bool bogo = false;
-
-    for (int x = 0; x < mulitifield.xVals; ++x) {
-    for (int y = 0; y < mulitifield.yVals; ++y) {
-    for (int z = 0; z < mulitifield.zVals; ++z) {
+    for (int x = 0; x < multifield.xVals; ++x) {
+    for (int z = 0; z < multifield.zVals; ++z) {
+    for (int y = 0; y < multifield.yVals; ++y) {
         distanceField[index] = (float*)malloc(sizeof(float) * 4);
         distanceField[index][0] = static_cast<float>(x);
         distanceField[index][1] = static_cast<float>(y);
         distanceField[index][2] = static_cast<float>(z);
         distanceField[index][3] = -1.f;
-        int indexInDataset = x+(mulitifield.xVals*(z+(mulitifield.zVals * y)));
+        int indexInDataset2 = multifield.getIndexInDataset(x, y, z);
         // calculate the distance form the current point ot the closest attribute vertex
         float distance = std::numeric_limits<float>::max();
         for (const AttributeVertex & vertex : vertices) {
             // calcuate distance from current vertex
             float euclidianDistanceSum = 0;
             for (const AttributeVertexValue & value : vertex.values) {
-                if (false and value.attribute->values[indexInDataset] >= value.attribute->bounds.lower and value.attribute->values[indexInDataset] <= value.attribute->bounds.upper)  {
-                    std::cout << "Value: " << value.attribute->values[indexInDataset] << " is within bounds: " << value.attribute->bounds.lower << " and " << value.attribute->bounds.upper << std::endl;
-                    bogo = true;
-                }
+                // if (false and value.attribute->values[indexInDataset] >= value.attribute->bounds.lower and value.attribute->values[indexInDataset] <= value.attribute->bounds.upper)  {
+                //     std::cout << "Value: " << value.attribute->values[indexInDataset] << " is within bounds: " << value.attribute->bounds.lower << " and " << value.attribute->bounds.upper << std::endl;
+                //     bogo = true;
+                // }
                 float component = value.attribute->values[indexInDataset] - value.value;
                 euclidianDistanceSum += component * component;
             }
@@ -50,11 +49,11 @@ float ** FeatureLevelSet::generateDistanceField(const std::vector<AttributeVerte
         }
         distanceField[index][3] = distance;
 
-        if (bogo and false) {
-            std::cout << "Point: " << x << ", " << y << ", " << z << std::endl;
-            std::cout << "Distance: " << distance << std::endl;
-            exit(0);
-        }
+        // if (bogo and false) {
+        //     std::cout << "Point: " << x << ", " << y << ", " << z << std::endl;
+        //     std::cout << "Distance: " << distance << std::endl;
+        //     exit(0);
+        // }
 
         index++;
     }}}
