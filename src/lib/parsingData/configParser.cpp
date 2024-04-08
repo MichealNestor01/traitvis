@@ -12,6 +12,13 @@ std::optional<IndexScheme> stringToIndexScheme(const std::string& str) {
     return std::nullopt;
 }
 
+std::optional<DimensionOrder> stringToDimensionOrder(const std::string& str) {
+    if (str == "WIDTH_HEIGHT_DEPTH") return WIDTH_HEIGHT_DEPTH;
+    if (str == "WIDTH_DEPTH_HEIGHT") return WIDTH_DEPTH_HEIGHT;
+    return std::nullopt;
+}
+
+
 DatasetDirConfig parseConfig(std::string filepath) {
     std::ifstream configFile(filepath);
     DatasetDirConfig config;
@@ -81,6 +88,27 @@ DatasetDirConfig parseConfig(std::string filepath) {
         return config;
     }
 
+    DimensionOrder dimOrder;
+    std::getline(configFile, line);
+    if (line.substr(0,15) == "DIMENSIONORDER:") {
+        try {
+            std::string dimensionOrder = line.substr(15);
+            auto orderOpt = stringToDimensionOrder(dimensionOrder);
+            if (orderOpt) {
+                dimOrder = orderOpt.value();
+            } else {
+                std::cerr << "Error: DIMENSIONORDER option \"" << dimOrder << "\" is not supported" << std::endl;
+                return config;
+            }
+        } catch (const std::out_of_range& err) {
+            std::cerr << "Failed to parse DIMENSIONORDER in \"" << filepath << "\"" << std::endl;
+            return config;
+        }
+    } else {
+        std::cerr << "Failed to find DIMENSIONORDER in \"" << filepath << "\"" << std::endl;
+        return config;
+    }
+    
     IndexScheme scheme;
     std::getline(configFile, line);
     if (line.substr(0,12) == "INDEXSCHEME:") {
@@ -123,7 +151,7 @@ DatasetDirConfig parseConfig(std::string filepath) {
     if (datasetType == "ATTRIBUTEPERFILE") {
         try {
             int valuesPerFile = std::stoi(datasetStructure.substr(datasetStructure.find(":")+1));
-            config.dataset = new AttributePerFileDataset(valuesPerFile, xVals, yVals, zVals, scheme);
+            config.dataset = new AttributePerFileDataset(valuesPerFile, xVals, yVals, zVals, dimOrder, scheme);
 
             // attributes will be listed as such in the file: ATTRIBUTE:filename:attributename:minfloatval:maxfloatval
             while (std::getline(configFile, line)) {
@@ -159,7 +187,7 @@ DatasetDirConfig parseConfig(std::string filepath) {
             return config;
         }
     } else if (datasetType == "BLOCK") {
-        config.dataset = new BlockDataset(xVals, yVals, zVals, scheme);
+        config.dataset = new BlockDataset(xVals, yVals, zVals, dimOrder, scheme);
     } else {
         std::cerr << "Invalid dataset type \"" << datasetType << "\" in \"" << filepath << "\"" << std::endl;
         return config;
