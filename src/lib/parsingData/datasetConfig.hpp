@@ -4,17 +4,37 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <optional>
 
 enum DatasetFormat {BLOCK, ATTRIBUTEPERFILE};
+enum IndexScheme {ROWMAJOR, COLUMNMAJOR};
+
+std::string indexSchemeToString(IndexScheme scheme) {
+    switch (scheme) {
+        case ROWMAJOR: return "ROWMAJOR";
+        case COLUMNMAJOR: return "COLUMNMAJOR";
+    }
+}
 
 class Dataset {
 public:
     DatasetFormat format;
     int xVals, yVals, zVals;
+    IndexScheme scheme;
     // Constructor to initialize format
-    Dataset(DatasetFormat fmt, int xVals, int yVals, int zVals) : format(fmt), xVals(xVals), yVals(yVals), zVals(zVals) {}
+    Dataset(DatasetFormat fmt, int xVals, int yVals, int zVals, IndexScheme scheme) : format(fmt), xVals(xVals), yVals(yVals), zVals(zVals), scheme(scheme) {}
     ~Dataset() {}
     void virtual printDataset() const = 0;
+    std::function<int(int, int, int)> getIndexFunction() const {
+        switch (scheme) {
+            case ROWMAJOR:
+                return [this](int x, int y, int z) { return x + y * xVals + z * xVals * yVals; };
+            case COLUMNMAJOR:
+                return [this](int x, int y, int z) { return z + zVals * (y + yVals * x); };
+            default:
+                throw std::invalid_argument("Unknown index scheme");
+        }
+    }
 };
 
 class AttributePerFileDataset : public Dataset {
@@ -29,7 +49,7 @@ private:
     std::vector<AttributeFile> files; 
 
 public:
-    AttributePerFileDataset(int valuesPerFile, int xVals, int yVals, int zVals) : Dataset(ATTRIBUTEPERFILE, xVals, yVals, zVals), valuesPerFile(valuesPerFile) {}
+    AttributePerFileDataset(int valuesPerFile, int xVals, int yVals, int zVals, IndexScheme scheme) : Dataset(ATTRIBUTEPERFILE, xVals, yVals, zVals, scheme), valuesPerFile(valuesPerFile) {}
     void addFile(std::string filename, std::string name, float lowerBound, float upperBound) {
         AttributeFile file;
         file.filename = filename;
@@ -50,6 +70,7 @@ public:
     void printDataset() const {
         std::cout << "AttributePerFileDataset" << std::endl;
         std::cout << "xVals: " << xVals << "; yVals: " << yVals << "; zVals: " << zVals << std::endl;
+        std::cout << "indexingScheme: " << indexSchemeToString(scheme) << std::endl;
         std::cout << "valuesPerFile: " << valuesPerFile << std::endl;
         for (auto file : files) {
             std::cout << "filename: " << file.filename << "; name: " << file.name << "; lowerBound: " << file.lowerBound << "; upperBound: " << file.upperBound << std::endl;
@@ -66,9 +87,10 @@ private:
         float upperBound; 
     };
 public:
-    BlockDataset(int xVals, int yVals, int zVals) : Dataset(BLOCK, xVals, yVals, zVals) {}
+    BlockDataset(int xVals, int yVals, int zVals, IndexScheme scheme) : Dataset(BLOCK, xVals, yVals, zVals, scheme) {}
     void printDataset() const {
         std::cout << "BlockDataset" << std::endl;
+        std::cout << "indexingScheme: " << indexSchemeToString(scheme) << std::endl;
         std::cout << "xVals: " << xVals << "; yVals: " << yVals << "; zVals: " << zVals << std::endl;
     }
 };
