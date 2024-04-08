@@ -19,6 +19,7 @@ MultiField readAttributePerFileDataset(const DatasetDirConfig& config) {
     multiField.xVals = dataset->xVals;
     multiField.yVals = dataset->yVals;
     multiField.zVals = dataset->zVals;
+    multiField.indexFunction = dataset->getIndexFunction();
 
     int valuesPerFile = dataset->getValuesPerFile();
     // setup the attributes
