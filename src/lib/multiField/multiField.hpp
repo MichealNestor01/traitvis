@@ -1,6 +1,7 @@
 #pragma once 
 #include <vector>
 #include <string>
+#include <functional>
 
 struct FloatRange {
     float lower;
@@ -39,6 +40,7 @@ struct MultiField {
     std::string name;
     int xVals, yVals, zVals;
     std::vector<Attribute> attributeDomain; 
+    std::function<int(int, int, int, int, int, int)> indexFunction;
 
     void normaliseAttributes() {
         for (auto &attribute : attributeDomain) {
@@ -46,5 +48,9 @@ struct MultiField {
             for (float &value : attribute.values) 
                 value = (value - attribute.bounds.lower) / range;
         }
+    }
+
+    int getIndexInDataset(int x, int y, int z) const {
+        return indexFunction(x, y, z, xVals, yVals, zVals);
     }
 };
