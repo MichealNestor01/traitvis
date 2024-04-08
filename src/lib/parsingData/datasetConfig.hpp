@@ -4,16 +4,17 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include <optional>
+#include <functional>
 
 enum DatasetFormat {BLOCK, ATTRIBUTEPERFILE};
 enum IndexScheme {ROWMAJOR, COLUMNMAJOR};
 
-std::string indexSchemeToString(IndexScheme scheme) {
+inline std::string indexSchemeToString(IndexScheme scheme) {
     switch (scheme) {
         case ROWMAJOR: return "ROWMAJOR";
         case COLUMNMAJOR: return "COLUMNMAJOR";
     }
+    return "";
 }
 
 class Dataset {
@@ -25,12 +26,12 @@ public:
     Dataset(DatasetFormat fmt, int xVals, int yVals, int zVals, IndexScheme scheme) : format(fmt), xVals(xVals), yVals(yVals), zVals(zVals), scheme(scheme) {}
     ~Dataset() {}
     void virtual printDataset() const = 0;
-    std::function<int(int, int, int)> getIndexFunction() const {
+    std::function<int(int, int, int, int, int, int)> getIndexFunction() const {
         switch (scheme) {
             case ROWMAJOR:
-                return [this](int x, int y, int z) { return x + y * xVals + z * xVals * yVals; };
+                return [this](int x, int y, int z, int xVals, int yVals, int zVals) { return x + (z * xVals) + (y * xVals * zVals); };
             case COLUMNMAJOR:
-                return [this](int x, int y, int z) { return z + zVals * (y + yVals * x); };
+                return [this](int x, int y, int z, int xVals, int yVals, int zVals) { return z + zVals * (y + yVals * x); };
             default:
                 throw std::invalid_argument("Unknown index scheme");
         }
