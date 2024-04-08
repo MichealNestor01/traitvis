@@ -8,6 +8,7 @@
 
 enum DatasetFormat {BLOCK, ATTRIBUTEPERFILE};
 enum IndexScheme {ROWMAJOR, COLUMNMAJOR};
+enum DimensionOrder {WIDTH_HEIGHT_DEPTH, WIDTH_DEPTH_HEIGHT};
 
 inline std::string indexSchemeToString(IndexScheme scheme) {
     switch (scheme) {
@@ -17,21 +18,44 @@ inline std::string indexSchemeToString(IndexScheme scheme) {
     return "";
 }
 
+inline std::string dimensionOrderToString(DimensionOrder order) {
+    switch (order) {
+        case WIDTH_HEIGHT_DEPTH: return "WIDTH_HEIGHT_DEPTH";
+        case WIDTH_DEPTH_HEIGHT: return "WIDTH_DEPTH_HEIGHT";
+    }
+    return "";
+}
+
 class Dataset {
 public:
     DatasetFormat format;
     int xVals, yVals, zVals;
+    DimensionOrder dimOrder;
     IndexScheme scheme;
     // Constructor to initialize format
-    Dataset(DatasetFormat fmt, int xVals, int yVals, int zVals, IndexScheme scheme) : format(fmt), xVals(xVals), yVals(yVals), zVals(zVals), scheme(scheme) {}
+    Dataset(DatasetFormat fmt, int xVals, int yVals, int zVals, DimensionOrder order, IndexScheme scheme) : format(fmt), xVals(xVals), yVals(yVals), zVals(zVals), scheme(scheme), dimOrder(order) {}
     ~Dataset() {}
     void virtual printDataset() const = 0;
     std::function<int(int, int, int, int, int, int)> getIndexFunction() const {
         switch (scheme) {
             case ROWMAJOR:
-                return [this](int x, int y, int z, int xVals, int yVals, int zVals) { return x + (z * xVals) + (y * xVals * zVals); };
+                switch (dimOrder) {
+                    case WIDTH_HEIGHT_DEPTH:
+                        return [this](int x, int y, int z, int xVals, int yVals, int zVals) { return x + (y * xVals) + (z * xVals * yVals); };
+                    case WIDTH_DEPTH_HEIGHT:
+                        return [this](int x, int y, int z, int xVals, int yVals, int zVals) { return x + (z * xVals) + (y * xVals * zVals); };
+                    default:
+                        throw std::invalid_argument("Unknown dimension order");
+                }
             case COLUMNMAJOR:
-                return [this](int x, int y, int z, int xVals, int yVals, int zVals) { return z + zVals * (y + yVals * x); };
+                switch (dimOrder) {
+                    case WIDTH_HEIGHT_DEPTH:
+                        return [this](int x, int y, int z, int xVals, int yVals, int zVals) { return z + zVals * (y + yVals * x); };
+                    case WIDTH_DEPTH_HEIGHT:
+                        return [this](int x, int y, int z, int xVals, int yVals, int zVals) { return y + yVals * (z + zVals * x); };
+                    default:
+                        throw std::invalid_argument("Unknown dimension order");
+                }
             default:
                 throw std::invalid_argument("Unknown index scheme");
         }
@@ -50,7 +74,7 @@ private:
     std::vector<AttributeFile> files; 
 
 public:
-    AttributePerFileDataset(int valuesPerFile, int xVals, int yVals, int zVals, IndexScheme scheme) : Dataset(ATTRIBUTEPERFILE, xVals, yVals, zVals, scheme), valuesPerFile(valuesPerFile) {}
+    AttributePerFileDataset(int valuesPerFile, int xVals, int yVals, int zVals, DimensionOrder order, IndexScheme scheme) : Dataset(ATTRIBUTEPERFILE, xVals, yVals, zVals, order, scheme), valuesPerFile(valuesPerFile) {}
     void addFile(std::string filename, std::string name, float lowerBound, float upperBound) {
         AttributeFile file;
         file.filename = filename;
@@ -71,6 +95,7 @@ public:
     void printDataset() const {
         std::cout << "AttributePerFileDataset" << std::endl;
         std::cout << "xVals: " << xVals << "; yVals: " << yVals << "; zVals: " << zVals << std::endl;
+        std::cout << "demsionOrder: " << dimensionOrderToString(dimOrder) << std::endl;
         std::cout << "indexingScheme: " << indexSchemeToString(scheme) << std::endl;
         std::cout << "valuesPerFile: " << valuesPerFile << std::endl;
         for (auto file : files) {
@@ -88,9 +113,10 @@ private:
         float upperBound; 
     };
 public:
-    BlockDataset(int xVals, int yVals, int zVals, IndexScheme scheme) : Dataset(BLOCK, xVals, yVals, zVals, scheme) {}
+    BlockDataset(int xVals, int yVals, int zVals, DimensionOrder order, IndexScheme scheme) : Dataset(BLOCK, xVals, yVals, zVals, order, scheme) {}
     void printDataset() const {
         std::cout << "BlockDataset" << std::endl;
+        std::cout << "demsionOrder: " << dimensionOrderToString(dimOrder) << std::endl;
         std::cout << "indexingScheme: " << indexSchemeToString(scheme) << std::endl;
         std::cout << "xVals: " << xVals << "; yVals: " << yVals << "; zVals: " << zVals << std::endl;
     }
