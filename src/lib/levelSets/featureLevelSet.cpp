@@ -30,7 +30,7 @@ float ** FeatureLevelSet::generateDistanceField(const std::vector<AttributeVerte
         distanceField[index][1] = static_cast<float>(y);
         distanceField[index][2] = static_cast<float>(z);
         distanceField[index][3] = -1.f;
-        int indexInDataset2 = multifield.getIndexInDataset(x, y, z);
+        int indexInDataset = multifield.getIndexInDataset(x, y, z);
         // calculate the distance form the current point ot the closest attribute vertex
         float distance = std::numeric_limits<float>::max();
         for (const AttributeVertex & vertex : vertices) {
