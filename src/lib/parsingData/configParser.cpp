@@ -4,11 +4,11 @@
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
+#include <optional>
 
 std::optional<IndexScheme> stringToIndexScheme(const std::string& str) {
     if (str == "ROWMAJOR") return ROWMAJOR;
     if (str == "COLUMNMAJOR") return COLUMNMAJOR;
-    if (str == "MORTONORDER") return MORTONORDER;
     return std::nullopt;
 }
 
