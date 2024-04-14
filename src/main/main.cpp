@@ -81,10 +81,6 @@ int main() {
         {GL_VERTEX_SHADER, "assets/colours.vert"},
         {GL_FRAGMENT_SHADER, "assets/colours.frag"}
     });
-    // ShaderProgram lightCubeShader({
-    //     {GL_VERTEX_SHADER, "assets/light_cube.vert"},
-    //     {GL_FRAGMENT_SHADER, "assets/light_cube.frag"}
-    // });
     
     // global lighting variables
     glm::vec3 lightPos(0.5f, -3.f, -3.f);
@@ -146,9 +142,6 @@ int main() {
     for (int pixel = 0; pixel < layout.total; ++pixel) 
        pixels.push_back(glm::scale(glm::translate(glm::mat4(1.f), glm::vec3({coordinateGrid[pixel][0], coordinateGrid[pixel][1], coordinateGrid[pixel][2]})), glm::vec3(0.1f)));
 
-    // create model matrix for the point light
-    // glm::mat4 lightCubeModel = glm::scale(glm::translate(glm::mat4(1.f), lightPos), glm::vec3(0.2f));
-
     // setup static uniforms for the lighting shader that don't change
     glUseProgram(lightingShader.program);
     lightingShader.setUniform3f("lightColor", lightColour);
@@ -158,16 +151,6 @@ int main() {
     lightingShader.setUniform3f("lightDir", glm::normalize(glm::vec3(-1.f, -1.f, -1.f)));
     lightingShader.setUniform3f("lightDiffuse", glm::vec3(0.2f, 0.2f, 0.2f));
     lightingShader.setUniform3f("sceneAmbient", glm::vec3(0.4f, 0.4f, 0.4f));
-    // lighting setup 
-    //lightingShader.setUniform3f("ambientLightColour", colourWhite);
-    //lightingShader.setUniformf("ambientLightStrength", 0.4f);
-    //lightingShader.setUniform3f("diffuseLightColour", colourWhite);
-    //lightingShader.setUniformf("diffuseLightStrength", 0.2f);
-    //lightingShader.setUniform3f("diffuseLightDirection", glm::normalize(glm::vec3(-1.f, -1.f, -1.f)));
-
-    // setup static uniforms for the light cube shader
-    // glUseProgram(lightCubeShader.program);
-    // lightCubeShader.setUniformMat4f("model", &lightCubeModel);
 
     float lightAngle = 0.0f;
     float lightRadius = 7.0f;
@@ -194,13 +177,6 @@ int main() {
         // get update projection and view matrix
         glm::mat4 proj = state.getProjectionMatrix();
         glm::mat4 view = state.cam.getViewMatrix();
-        // update light position
-        //lightAngle += 0.02f; // Adjust speed as needed
-        //lightPos.x = rotationCenter.x + cos(lightAngle) * lightRadius;
-        //lightPos.y = rotationCenter.y + sin(lightAngle/2) * lightRadius * 0.5f;
-        //lightPos.z = rotationCenter.z + sin(lightAngle) * lightRadius;
-        //lightCubeModel = glm::scale(glm::translate(glm::mat4(1.f), lightPos), glm::vec3(0.2f));
-
         // rendering 
         glClear(GL_COLOR_BUFFER_BIT);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
