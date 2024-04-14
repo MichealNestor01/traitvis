@@ -3,13 +3,6 @@ out vec4 FragColor;
   
 uniform vec3 objectColor;
 uniform float objectTransparency; 
-uniform vec3 lightColor;
-uniform vec3 lightPos;
-uniform vec3 viewPos;
-// global lighting
-uniform vec3 lightDir; // should be normalised 
-uniform vec3 lightDiffuse;
-uniform vec3 sceneAmbient;
 // New lighting variabels 
 uniform vec3 ambientLightColour;
 uniform float ambientLightStrength;
@@ -22,24 +15,6 @@ in vec3 FragPos;
 
 void main()
 {
-    /*
-    float ambientStrength = 1.0;
-    vec3 ambient = ambientStrength * lightColor;
-
-    
-    vec3 norm = normalize(Normal);
-    vec3 pointLightDir = normalize(lightPos-FragPos);
-    float diff = max(dot(norm, pointLightDir), 0.0);
-    vec3 diffuse = diff * lightColor;
-
-    float specularStrength = 0.2;
-    vec3 viewDir = normalize(viewPos - FragPos);
-    vec3 reflectDir = reflect(-pointLightDir, norm);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32); // last val is shininess
-    vec3 specular = specularStrength * spec * lightColor;
-
-    vec3 resultPointLight = (ambient+diffuse+specular) * objectColor; 
-    */
     vec3 ambient = ambientLightStrength * ambientLightColour;
     vec3 diffuse = diffuseLightStrength * diffuseLightColour;
 
