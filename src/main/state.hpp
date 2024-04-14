@@ -36,12 +36,6 @@ struct ProgramState {
     // levelset variables
     std::vector<AttributeVertex> attributeSpaceVerticesBuffer;
     std::vector<FeatureLevelSet> levelSets;
-    //float **grid;
-    //std::vector<float> levelSetVertices;
-    //std::set<glm::vec3, Vec3Comparator> activeVertices;
-    //std::set<glm::vec3, Vec3Comparator> inactiveVertices;
-    //unsigned int levelSetVAO = 0;
-    //bool levelSetGenerated = false;
     
     // lighting controls
     glm::vec3 ambientLightColour = glm::vec3(1.f, 1.f, 1.f);
@@ -93,21 +87,5 @@ struct ProgramState {
 
     glm::mat4 getProjectionMatrix() {
         return glm::perspective(glm::radians(fov), aspectRatio, nearPlane, farPlane);
-    }
-
-    void generateLevelSet(float euclidianDistance, glm::vec3 colour) {
-
-        // identify vertices which map to the level set
-        // geneerateLevelset...
-        //float ** distanceField = generateDistanceField(attributeSpaceVerticesBuffer, dataset);
-        //Triangles surface = extractTrianglesWithInterpolation(distanceField, {dataset.xVals, dataset.yVals, dataset.zVals}, euclidianDistance);
-        // render the levelset 
-        // clear the grid
-        //for (int i = 0; i < dataset.xVals * dataset.yVals * dataset.zVals; ++i) grid[i][3] = grid[i][2] == 200;
-        //Triangles surface = extractTriangles(grid, {dataset.xVals, dataset.yVals, dataset.zVals});
-        //activeVertices = surface.activeVertices;
-        //inactiveVertices = surface.inactiveVertices;
-        //levelSetVertices = surface.getVertices();
-        //levelSetGenerated = true;
     }
 };
