@@ -134,19 +134,8 @@ void examineCubeWithInterpolation(Triangles &triangles, const GridLayout &layout
 
     // No triangles found
     if (cubeIndex == 0 or cubeIndex == 255) return;
-    // for (int i = 0; i < 8; ++i) {
-    //    std::cout << "\n\n" << grid[vertices[i]][0] << " " << grid[vertices[i]][1] << " " << grid[vertices[i]][2] << " " << grid[vertices[i]][3] << std::endl;
-    // }
-    
-    // std::cout << "Cube index: " << cubeIndex << std::endl;
+
     int *matchingCase = triangleTable[cubeIndex];
-
-    // std::cout << "Matching case: " << std::endl;
-    // for (int i = 0; i < 16; ++i) {
-    //     std::cout << matchingCase[i] << " ";
-    // }
-    // std::cout << std::endl; 
-
     // loop through the edges bisected in the matching case
     for (int triIndex = 0; triIndex < matchingCase[0]; ++triIndex) {
         for (int vertIndex = 1; vertIndex <= 3; ++vertIndex) {
@@ -162,29 +151,12 @@ void examineCubeWithInterpolation(Triangles &triangles, const GridLayout &layout
                 endPoint0[1]+(isoDistance * (endPoint1[1]-endPoint0[1])),
                 endPoint0[2]+(isoDistance * (endPoint1[2]-endPoint0[2]))
             );
-
             triangles.vertices.push_back(vertex);
-            // workout which endpoint is active
-
-            //float *activeVertex = grid[vertices[endPoints[not endPoint0[3] < isoValue]]];
-
-            //float *inactiveVertex = grid[vertices[endPoints[not endPoint0[3] >= isoValue]]];
-
-            // triangles.normals.push_back(
-            //     glm::normalize(vertex - glm::vec3(activeVertex[0], activeVertex[1], activeVertex[2]))
-            // );
-            //std::cout << "Triangle vertex: " << vertex.x << " " << vertex.y << " " << vertex.z << "\n";
-            //std::cout << "\n" << std::endl;
-            //std::cout << "ISO VALUE: " << isoValue << std::endl;
             if (endPoint0[3] < isoValue) {
-                //std::cout << "Active vertex endpoint0: " << endPoint0[0] << " " << endPoint0[1] << " " << endPoint0[2] << " " << endPoint0[3] << std::endl;
-                //std::cout  << "Inactive vertex endpoint1: " << endPoint1[0] << " " << endPoint1[1] << " " << endPoint1[2] << " " << endPoint1[3] << std::endl;
                 triangles.activeVertices.insert({endPoint0[0], endPoint0[1], endPoint0[2]});
                 triangles.inactiveVertices.insert({endPoint1[0], endPoint1[1], endPoint1[2]});
 
             } else {
-                //std::cout << "Active vertex endpoint1: " << endPoint1[0] << " " << endPoint1[1] << " " << endPoint1[2] << " " << endPoint1[3] << std::endl;
-                //std::cout << "inactive vertex endpoint0: " << endPoint0[0] << " " << endPoint0[1] << " " << endPoint0[2] << " " << endPoint0[3] <<std::endl;
                 triangles.inactiveVertices.insert({endPoint0[0], endPoint0[1], endPoint0[2]});
                 triangles.activeVertices.insert({endPoint1[0], endPoint1[1], endPoint1[2]});
             }
@@ -202,10 +174,6 @@ void examineCubeWithInterpolation(Triangles &triangles, const GridLayout &layout
 
 Triangles extractTrianglesWithInterpolation(float **grid, const GridLayout &layout, float isoValue) {
     Triangles triangles;
-    // std::map<float, int> zDistribution;
-    // for (int z = 0; z < layout.z; ++z) {
-    //     zDistribution[z] = 0;
-    // }
 
     for (int x = 0; x < layout.x - 1; ++x) {
     for (int y = 0; y < layout.y - 1; ++y) {
@@ -213,20 +181,9 @@ Triangles extractTrianglesWithInterpolation(float **grid, const GridLayout &layo
         examineCubeWithInterpolation(triangles, layout, grid, (x*layout.z*layout.y) + (y*layout.z) + z, isoValue);
     }}}
 
-    
     std::cout << "Generated Surface:" << std::endl;
     std::cout << "Active Vertices: " << triangles.activeVertices.size() << std::endl;
     std::cout << "Inactive Vertices: " << triangles.inactiveVertices.size() << std::endl;
-    // for (auto & vertex : triangles.activeVertices) {
-    //     zDistribution[vertex.z] += 1;
-    // }
-
-    // std::ofstream outFile("z_distribution.csv");
-    // outFile << "zpos,number_of_coords\n";
-    // for (const auto &pair : zDistribution) {
-    //     outFile << pair.first << "," << pair.second << "\n";
-    // }
-    // outFile.close();
 
     return triangles;
 }
