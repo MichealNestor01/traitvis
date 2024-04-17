@@ -23,8 +23,8 @@ float ** FeatureLevelSet::generateDistanceField(const std::vector<AttributeVerte
 
     bool bogo = false;
     for (int x = 0; x < multifield.xVals; ++x) {
-    for (int z = 0; z < multifield.zVals; ++z) {
     for (int y = 0; y < multifield.yVals; ++y) {
+    for (int z = 0; z < multifield.zVals; ++z) {
         distanceField[index] = (float*)malloc(sizeof(float) * 4);
         distanceField[index][0] = static_cast<float>(x);
         distanceField[index][1] = static_cast<float>(y);
