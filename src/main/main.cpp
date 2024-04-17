@@ -110,16 +110,13 @@ int main() {
 
 
     // // create coordinate grid
-    GridLayout layout = {5, 5, 5};
+    GridLayout layout = {3, 5, 5};
     std::vector<glm::vec3> activeVertices = {
-        //glm::vec3(0, 0, 0),
-        //glm::vec3(2, 1, 1),
-        //glm::vec3(2, 1, 2),
-        glm::vec3(2, 1, 1),
-        //glm::vec3(2, 3, 2),
-        // glm::vec3(2, 3, 3),
-        //glm::vec3(4, 4, 4),
-        glm::vec3(249, 49, 249),
+        glm::vec3(1, 1, 1),
+        glm::vec3(1, 1, 2),
+        glm::vec3(1, 2, 2),
+        glm::vec3(1, 3, 2),
+        glm::vec3(1, 3, 3),
     };
     float ** coordinateGrid = createGrid(layout, activeVertices);
     //state.grid = coordinateGrid;

@@ -44,6 +44,11 @@ struct ProgramState {
     float diffuseLightStrength = 0.58f;
     glm::vec3 diffuseLightDirection = glm::vec3(-0.44f, -0.82f, -1.f);
 
+    void generateLevelSet(float euclidianDistance, glm::vec3 colour, std::string id) {
+        FeatureLevelSet newLevelSet(attributeSpaceVerticesBuffer, dataset, euclidianDistance, colour, id);
+        levelSets.push_back(newLevelSet);
+    }
+
     void addAttributeSpaceVertexToBuffer(AttributeVertex vertex) {
         attributeSpaceVerticesBuffer.push_back(vertex);
     }

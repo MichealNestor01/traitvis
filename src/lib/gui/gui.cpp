@@ -104,12 +104,8 @@ void GUI::render() {
                     break;
                 }
             }
-            if (not uniqueId) {
-                ImGui::Text("Level set id must be unique.");
-            } else {
-                FeatureLevelSet newLevelSet(programState.attributeSpaceVerticesBuffer, programState.dataset, levelSetDistance/100, glm::vec3(levelSetRed/255.f, levelSetGreen/255.f, levelSetBlue/255.f), std::string(levelSetIdBuffer));
-                programState.levelSets.push_back(newLevelSet);
-            }
+            if (not uniqueId) ImGui::Text("Level set id must be unique.");
+            else programState.generateLevelSet(levelSetDistance/100, glm::vec3(levelSetRed/255.f, levelSetGreen/255.f, levelSetBlue/255.f), std::string(levelSetIdBuffer));
         }
     }
 
