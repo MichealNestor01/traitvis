@@ -17,7 +17,7 @@ void main()
 {
     vec3 ambient = ambientLightStrength * ambientLightColour;
     vec3 diffuse = diffuseLightStrength * diffuseLightColour;
-    vec3 backlightDiffuse = 0.05 * diffuseLightColour;
+    vec3 backlightDiffuse = 0.1 * diffuseLightColour;
 
     vec3 normal = normalize(Normal);
     float nDotL = max(0.0, dot(normal, diffuseLightDirection));
