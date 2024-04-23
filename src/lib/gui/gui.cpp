@@ -149,7 +149,7 @@ void GUI::renderLightingControls() {
     ImGui::SetNextWindowPos(ImVec2(programState.windowWidth - 300.f, 0)); // Position at top-right corner
     ImGui::SetNextWindowSize(ImVec2(300, 530)); 
 
-    ImGui::Begin("Lighting");
+    ImGui::Begin("Rendering Parameters");
     ImGui::SetWindowFontScale(1.f);
 
     ImGui::Text("Ambient Light:");
@@ -164,10 +164,17 @@ void GUI::renderLightingControls() {
     ImGui::SliderFloat("G##2", &programState.diffuseLightColour.y, 0, 1, "%.2f");
     ImGui::SliderFloat("B##2", &programState.diffuseLightColour.z, 0, 1, "%.2f");
     ImGui::SliderFloat("Strength##2", &programState.diffuseLightStrength, 0, 1, "%.2f");
+
+    ImGui::Text(" ");
     ImGui::Text("Diffuse Light Direction:");
     ImGui::SliderFloat("X##1", &programState.diffuseLightDirection.x, -1, 1, "%.2f");    
     ImGui::SliderFloat("Y##1", &programState.diffuseLightDirection.y, -1, 1, "%.2f");    
     ImGui::SliderFloat("Z##1", &programState.diffuseLightDirection.z, -1, 1, "%.2f");    
+
+    ImGui::Text(" ");
+    ImGui::Checkbox("Back Face Culling", &programState.backFaceCulling);
+    ImGui::Text(" ");
+    ImGui::Checkbox("Draw Wireframes", &programState.drawWireframe);
 
     ImGui::End();
 }

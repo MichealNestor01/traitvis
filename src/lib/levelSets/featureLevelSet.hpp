@@ -11,7 +11,7 @@ private:
 
 public:
     std::vector<AttributeVertex> vertices;
-    Triangles surface;
+    Surface surface;
     std::vector<float> surfaceVertices;
     glm::vec3 colour;
     float transparency = 1.f;

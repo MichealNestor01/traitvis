@@ -30,19 +30,22 @@ struct ProgramState {
     // frametime variables
     float deltaTime = 0.f;
     float lastFrame = 0.f;
-    // dataset variables
-    bool loadedDataset = false;
-    MultiField dataset;
-    // levelset variables
-    std::vector<AttributeVertex> attributeSpaceVerticesBuffer;
-    std::vector<FeatureLevelSet> levelSets;
-    
     // lighting controls
     glm::vec3 ambientLightColour = glm::vec3(1.f, 1.f, 1.f);
     float ambientLightStrength = 0.28f;
     glm::vec3 diffuseLightColour = glm::vec3(1.f, 1.f, 1.f); 
     float diffuseLightStrength = 0.58f;
     glm::vec3 diffuseLightDirection = glm::vec3(-0.44f, -0.82f, -1.f);
+    // other rendering parameters
+    bool drawWireframe = false;
+    bool backFaceCulling = true;
+    // dataset variables
+    bool loadedDataset = false;
+    MultiField dataset;
+    // levelset variables
+    std::vector<AttributeVertex> attributeSpaceVerticesBuffer;
+    std::vector<FeatureLevelSet> levelSets;
+
 
     void generateLevelSet(float euclidianDistance, glm::vec3 colour, std::string id) {
         FeatureLevelSet newLevelSet(attributeSpaceVerticesBuffer, dataset, euclidianDistance, colour, id);
@@ -66,6 +69,18 @@ struct ProgramState {
             glfwSetCursorPos(window, windowWidth/2, windowHeight/2);
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
+    }
+
+    void toggleDrawWireframe() {
+        if (drawWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        else glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        drawWireframe = not drawWireframe;
+    }
+
+    void toggleBackFaceCulling() {
+        if (backFaceCulling) glEnable(GL_CULL_FACE);
+        else glDisable(GL_CULL_FACE);
+        backFaceCulling = not backFaceCulling;
     }
 
     void updateTime() {

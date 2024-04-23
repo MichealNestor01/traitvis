@@ -16,24 +16,22 @@ struct Vec3Comparator {
     }
 };
 
-typedef struct GridLayout {
+struct GridLayout {
 	int x, y, z, total;
 	GridLayout(int x, int y, int z): x(x), y(y), z(z) {
 		total = x*y*z;
 	}
-} GridLayout;
+};
 
-typedef struct Triangles {
+struct Surface {
 	std::vector<glm::vec3> vertices;
 	std::vector<glm::vec3> normals;
 
 	std::set<glm::vec3, Vec3Comparator> activeVertices;
 	std::set<glm::vec3, Vec3Comparator> inactiveVertices;
 
-	void computeNormals();
 	std::vector<float> getVertices();
-} Triangles;
+};
 
-Triangles extractTrianglesWithInterpolation(float **grid, const GridLayout &layout, float isoValue);
-void examineCubeWithInterpolation(Triangles &triangles, const GridLayout &layout, float ** grid, int vertex0, float isoValue, std::map<float, int> &zDistribution);
-
+void examineCube(Surface &triangles, const GridLayout &layout, float ** grid, int vertex0, float isoValue);
+Surface extractSurface(float **grid, const GridLayout &layout, float isoValue);

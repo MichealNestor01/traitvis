@@ -9,16 +9,7 @@
 #include <fstream>
 #include <algorithm>
 
-// function to use calculate face normals, not needed anymore
-void Triangles::computeNormals() {
-    for (int triIndex = 0; triIndex < vertices.size(); triIndex+=3) {
-        glm::vec3 U = vertices.at(triIndex + 1) - vertices.at(triIndex);
-        glm::vec3 V = vertices.at(triIndex + 2) - vertices.at(triIndex);
-        normals.push_back(glm::normalize(glm::cross(U, V)));
-    }
-}
-
-std::vector<float> Triangles::getVertices() {
+std::vector<float> Surface::getVertices() {
     std::vector<float> verticesWithNormals(vertices.size() * 6);
     for (int vertIndex = 0; vertIndex < vertices.size(); ++vertIndex) {
         verticesWithNormals[vertIndex*6] = vertices[vertIndex].x;
@@ -31,7 +22,7 @@ std::vector<float> Triangles::getVertices() {
     return verticesWithNormals;
 }
 
-void examineCubeWithInterpolation(Triangles &triangles, const GridLayout &layout, float ** grid, int vertex0, float isoValue) {
+void examineCube(Surface &triangles, const GridLayout &layout, float ** grid, int vertex0, float isoValue) {
     int vertices[8];
     // find the index in the coordinate grid of each vertex of the cube
     vertices[0] = vertex0;
@@ -94,13 +85,13 @@ void examineCubeWithInterpolation(Triangles &triangles, const GridLayout &layout
     }
 }
 
-Triangles extractTrianglesWithInterpolation(float **grid, const GridLayout &layout, float isoValue) {
-    Triangles triangles;
+Surface extractSurface(float **grid, const GridLayout &layout, float isoValue) {
+    Surface triangles;
 
     for (int x = 0; x < layout.x - 1; ++x) {
     for (int y = 0; y < layout.y - 1; ++y) {
     for (int z = 0; z < layout.z - 1; ++z) {
-        examineCubeWithInterpolation(triangles, layout, grid, (x*layout.z*layout.y) + (y*layout.z) + z, isoValue);
+        examineCube(triangles, layout, grid, (x*layout.z*layout.y) + (y*layout.z) + z, isoValue);
     }}}
 
     std::cout << "Generated Surface:" << std::endl;

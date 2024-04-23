@@ -67,7 +67,7 @@ int main() {
     // set opengl to use wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     // set cull face
-    //glEnable(GL_CULL_FACE);
+    glEnable(GL_CULL_FACE);
     // tell opengl how big the window should be 
     glViewport(0, 0, windowWidth, windowHeight);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
@@ -124,7 +124,7 @@ int main() {
 
     //create surface based on active vertices in the grid
     //if a surface exists createa a VAO for it.
-    Triangles surface = extractTrianglesWithInterpolation(coordinateGrid, layout, 2);
+    Surface surface = extractSurface(coordinateGrid, layout, 2);
     unsigned int surfaceVAO;
     if (surface.vertices.size()) {
         std::vector<float> surfaceVertices = surface.getVertices();
@@ -177,6 +177,12 @@ int main() {
         // rendering 
         glClear(GL_COLOR_BUFFER_BIT);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        if (state.drawWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        else glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+        if (state.backFaceCulling) glEnable(GL_CULL_FACE);
+        else glDisable(GL_CULL_FACE);
 
         // switch to general lighting shader
         glUseProgram(lightingShader.program);

@@ -10,7 +10,7 @@ FeatureLevelSet::FeatureLevelSet(std::vector<AttributeVertex> vertices, MultiFie
     // create the distance field
     float ** distanceField = generateDistanceField(this->vertices, dataset);
     // extract the surface given the normalised eucliean distance
-    surface = extractTrianglesWithInterpolation(distanceField, {dataset.xVals, dataset.yVals, dataset.zVals}, euclidianDistance);
+    surface = extractSurface(distanceField, {dataset.xVals, dataset.yVals, dataset.zVals}, euclidianDistance);
     surfaceVertices = surface.getVertices();
     // free distanceField
     for (int i = (dataset.xVals * dataset.yVals * dataset.zVals)-1; i >= 0; --i) free(distanceField[i]);
