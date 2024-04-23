@@ -13,7 +13,7 @@ private:
     float speed = 20.f;
     // direction controls
     float mouseSens = 0.15f;
-    float firstMouseMovement = true;
+    bool firstMouseMovement = true;
     float oldMouseX = 800.f / 2.f;
     float oldMouseY = 600.f / 2.f;
     float yaw = -90.f;
