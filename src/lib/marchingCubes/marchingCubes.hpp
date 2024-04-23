@@ -34,9 +34,6 @@ typedef struct Triangles {
 	std::vector<float> getVertices();
 } Triangles;
 
-Triangles extractTriangles(int **grid, const GridLayout &layout);
-void examineCube(Triangles &triangles, const GridLayout &layout, int **grid, int vertex0);
-
 Triangles extractTrianglesWithInterpolation(float **grid, const GridLayout &layout, float isoValue);
 void examineCubeWithInterpolation(Triangles &triangles, const GridLayout &layout, float ** grid, int vertex0, float isoValue, std::map<float, int> &zDistribution);
 
