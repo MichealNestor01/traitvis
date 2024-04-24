@@ -65,11 +65,11 @@ void GUI::render() {
         ImGui::Text("Attribute Vertices: ");
         int i = 0;
         for (auto &vertex : programState.attributeSpaceVerticesBuffer) {
-            if (ImGui::Button(std::string("Remove Attribute Vertex: " + std::to_string(i)).c_str())) {
+            if (ImGui::Button(std::string("Remove Vertex: " + std::to_string(i)).c_str())) {
                 programState.attributeSpaceVerticesBuffer.erase(programState.attributeSpaceVerticesBuffer.begin() + i);
             }
             ImGui::SameLine();
-            if (ImGui::Button(std::string("Load Attribute Vertex: " + std::to_string(i)).c_str())) {
+            if (ImGui::Button(std::string("Load Vertex: " + std::to_string(i)).c_str())) {
                 for (auto &widget : attributeWidgets) {
                     bool foundMatch = false;
                     for (auto &value : vertex.values) {
