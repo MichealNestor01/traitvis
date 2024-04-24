@@ -6,3 +6,4 @@ bin
 Makefile
 vgcore.27519
 imgui.ini
+*.make
