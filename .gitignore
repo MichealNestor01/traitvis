@@ -9,3 +9,4 @@ imgui.ini
 *.make
 obj
 test.sh
+third_party/googletest
