@@ -38,7 +38,7 @@ struct ProgramState {
     glm::vec3 diffuseLightDirection = glm::vec3(-0.44f, -0.82f, -1.f);
     // other rendering parameters
     bool drawWireframe = false;
-    bool backFaceCulling = true;
+    bool backFaceCulling = false;
     // dataset variables
     bool loadedDataset = false;
     MultiField dataset;
