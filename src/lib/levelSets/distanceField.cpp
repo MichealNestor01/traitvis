@@ -1,6 +1,5 @@
 #include <glm.hpp>
 #include <stdlib.h>
-
 #include "distanceField.hpp"
 
 std::vector<std::vector<float>> generateDistanceField(const std::vector<AttributeVertex> & vertices, const MultiField & multifield) {
