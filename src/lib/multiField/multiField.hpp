@@ -19,13 +19,13 @@ struct Attribute {
     std::vector<float> values;
 };
 
-struct AttributeVertexValue {
+struct TraitPointComponent {
     Attribute * attribute;
     float value;
 };
 
-struct AttributeVertex {
-    std::vector<AttributeVertexValue> values;
+struct TraitPoint {
+    std::vector<TraitPointComponent> values;
 
     void normalise() {
         for (auto &value : values) {

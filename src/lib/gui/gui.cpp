@@ -51,7 +51,7 @@ void GUI::render() {
     }
 
     if (ImGui::Button("Add attribute vertex")) {
-        AttributeVertex newVertex;
+        TraitPoint newVertex;
         for (auto &widget : attributeWidgets) {
             if (widget.active) {
                 newVertex.values.push_back({&widget.attribute, widget.value});

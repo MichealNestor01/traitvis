@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include "distanceField.hpp"
 
-std::vector<std::vector<float>> generateDistanceField(const std::vector<AttributeVertex> & vertices, const MultiField & multifield) {
+std::vector<std::vector<float>> generateDistanceField(const std::vector<TraitPoint> & vertices, const MultiField & multifield) {
     //float ** distanceField = (float**)malloc(sizeof(float*) * multifield.xVals * multifield.yVals * multifield.zVals);
     std::vector<std::vector<float>> distanceField(multifield.xVals * multifield.yVals * multifield.zVals, std::vector<float>(4));
     int index = 0;
@@ -16,10 +16,10 @@ std::vector<std::vector<float>> generateDistanceField(const std::vector<Attribut
         int indexInDataset = multifield.getIndexInDataset(x, y, z);
         // calculate the distance form the current point ot the closest attribute vertex
         float distance = std::numeric_limits<float>::max();
-        for (const AttributeVertex & vertex : vertices) {
+        for (const TraitPoint & vertex : vertices) {
             // calcuate distance from current vertex
             float euclidianDistanceSum = 0;
-            for (const AttributeVertexValue & value : vertex.values) {
+            for (const TraitPointComponent & value : vertex.values) {
                 float component = value.attribute->values[indexInDataset] - value.value;
                 euclidianDistanceSum += component * component;
             }

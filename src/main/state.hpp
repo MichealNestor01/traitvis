@@ -42,7 +42,7 @@ struct ProgramState {
     bool loadedDataset = false;
     MultiField dataset;
     // levelset variables
-    std::vector<AttributeVertex> attributeSpaceVerticesBuffer;
+    std::vector<TraitPoint> attributeSpaceVerticesBuffer;
     std::vector<FeatureLevelSet> levelSets;
 
 
@@ -51,7 +51,7 @@ struct ProgramState {
         levelSets.push_back(newLevelSet);
     }
 
-    void addAttributeSpaceVertexToBuffer(AttributeVertex vertex) {
+    void addAttributeSpaceVertexToBuffer(TraitPoint vertex) {
         attributeSpaceVerticesBuffer.push_back(vertex);
     }
 
