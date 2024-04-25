@@ -22,6 +22,7 @@
 #include "../lib/marchingCubes/marchingCubes.hpp"
 #include "../lib/marchingCubes/grid.hpp"
 #include "../lib/gui/gui.hpp"
+#include "../lib/marchingCubes/mc_tables.h"
 
 int main() {
     // initialise glfw and ensure opengl version is 4.6
@@ -108,37 +109,40 @@ int main() {
     // setup gui 
     GUI gui(state);
 
-
-    // // create coordinate grid
-    // GridLayout layout = {3, 5, 5};
-    // std::vector<glm::vec3> activeVertices = {
-    //     glm::vec3(1, 1, 1),
-    //     glm::vec3(1, 1, 2),
-    //     glm::vec3(1, 2, 2),
-    //     glm::vec3(1, 3, 2),
-    //     glm::vec3(1, 3, 3),
-    // };
-    // float ** coordinateGrid = createGrid(layout, activeVertices);
-    //state.grid = coordinateGrid;
-
-    // test grid 
+    // test grid
     GridLayout layout = {3, 3, 3}; 
     std::vector<std::vector<float>> grid = {
         // x layer 1
-        {0, 0, 0, 0},  {0, 0, 1, 0},  {0, 0, 2, 0}, 
-        {0, 1, 0, 0},  {0, 1, 1, 0},  {0, 1, 2, 0}, 
-        {0, 2, 0, 0},  {0, 2, 1, 0},  {0, 2, 2, 0}, 
+        {0, 0, 0, 1},  {0, 0, 1, 1},  {0, 0, 2, 1}, 
+        {0, 1, 0, 1},  {0, 1, 1, 1},  {0, 1, 2, 1}, 
+        {0, 2, 0, 1},  {0, 2, 1, 1},  {0, 2, 2, 1}, 
         // x layer 2
-        {1, 0, 0, 0},  {1, 0, 1, 0},  {1, 0, 2, 0}, 
-        {1, 1, 0, 0},  {1, 1, 1, 1},  {1, 1, 2, 0}, 
-        {1, 2, 0, 0},  {1, 2, 1, 0},  {1, 2, 2, 0}, 
+        {1, 0, 0, 1},  {1, 0, 1, 1},  {1, 0, 2, 1}, 
+        {1, 1, 0, 1},  {1, 1, 1, -1},  {1, 1, 2, 1}, 
+        {1, 2, 0, 1},  {1, 2, 1, 1},  {1, 2, 2, 1}, 
         // x layer 3
-        {2, 0, 0, 0},  {2, 0, 1, 0},  {2, 0, 2, 0}, 
-        {2, 1, 0, 0},  {2, 1, 1, 0},  {2, 1, 2, 0}, 
-        {2, 2, 0, 0},  {2, 2, 1, 0},  {2, 2, 2, 0}, 
+        {2, 0, 0, 1},  {2, 0, 1, 1},  {2, 0, 2, 1}, 
+        {2, 1, 0, 1},  {2, 1, 1, 1},  {2, 1, 2, 1}, 
+        {2, 2, 0, 1},  {2, 2, 1, 1},  {2, 2, 2, 1}, 
     };
-    float isoValue = 0.5;
+    float isoValue = 0;
 
+    // code to display specific marching cubes case
+    // GridLayout layout = {2, 2, 2};
+    // float isoValue = 0; 
+    // int caseNum = 6;
+    // std::vector<std::vector<float>> grid = {
+    //     // Layer 1
+    //     {0, 0, 0, static_cast<float>((caseNum & 1) ? 1 : -1)},
+    //     {0, 0, 1, static_cast<float>((caseNum & 2) ? 1 : -1)},
+    //     {0, 1, 0, static_cast<float>((caseNum & 4) ? 1 : -1)},
+    //     {0, 1, 1, static_cast<float>((caseNum & 8) ? 1 : -1)},
+    //     // Layer 2
+    //     {1, 0, 0, static_cast<float>((caseNum & 16) ? 1 : -1)},
+    //     {1, 0, 1, static_cast<float>((caseNum & 32) ? 1 : -1)},
+    //     {1, 1, 0, static_cast<float>((caseNum & 64) ? 1 : -1)},
+    //     {1, 1, 1, static_cast<float>((caseNum & 128) ? 1 : -1)}
+    // };
 
     //create surface based on active vertices in the grid
     //if a surface exists createa a VAO for it.
@@ -219,7 +223,7 @@ int main() {
         //render test pixels and test surface
         lightingShader.setUniformf("objectTransparency", 1.f);
         for (int pixel = 0; pixel < pixels.size(); ++pixel) {
-            if (grid[pixel][3] < isoValue) lightingShader.setUniform3f("objectColor", colourRed);
+            if (grid[pixel][3] > isoValue) lightingShader.setUniform3f("objectColor", colourRed);
             else lightingShader.setUniform3f("objectColor", colourGreen);
             lightingShader.setUniformMat4f("model", &pixels[pixel]);
             glBindVertexArray(cubeVAO);
