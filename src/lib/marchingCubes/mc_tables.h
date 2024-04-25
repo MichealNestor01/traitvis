@@ -7,7 +7,7 @@
 /** look-up tables for linearly interpolated marching cubes cases **/
 /* indices in the cube for each vertex */
 
-int vertPos[8][3] = {
+inline int vertPos[8][3] = {
 	{ 0, 0, 0 }, // 0
 	{ 0, 0, 1 }, // 1
 	{ 0, 1, 0 }, // 2
@@ -22,7 +22,7 @@ int vertPos[8][3] = {
 /* each entry is an edge of the cube, and consists of the two vertices at the end of the edge */
 /* which will be used for interpolation */
 
-int edgeTable[12][2] = {
+inline int edgeTable[12][2] = {
 	{ 0, 2 }, // 0
 	{ 2, 3 }, // 1
 	{ 1, 3 }, // 2
@@ -53,7 +53,7 @@ int edgeTable[12][2] = {
 *
 */
 
-int triangleTable[256][17] = {
+inline int triangleTable[256][17] = {
 	{ 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0 },
 	{ 1, 0, 3, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1 },
 	{ 1, 2, 11, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1 },
@@ -311,6 +311,8 @@ int triangleTable[256][17] = {
 	{ 1, 0, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1 },
 	{ 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0 }
 };
+
+/*
 
 int triangleTableBroken[256][16] = {
 	{ 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },
@@ -570,5 +572,6 @@ int triangleTableBroken[256][16] = {
 	{ 1, 0, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },
 	{ 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 }
 };
-
+*/
 #endif
+
