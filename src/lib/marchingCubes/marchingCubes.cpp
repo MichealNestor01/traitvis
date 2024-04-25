@@ -36,14 +36,14 @@ void examineCube(Surface &triangles, const GridLayout &layout, const std::vector
 
     // find the case this cube matches with
     int cubeIndex = 0;
-    if (grid[vertices[0]][3] < isoValue) cubeIndex |= 1;
-    if (grid[vertices[1]][3] < isoValue) cubeIndex |= 2;
-    if (grid[vertices[2]][3] < isoValue) cubeIndex |= 4;
-    if (grid[vertices[3]][3] < isoValue) cubeIndex |= 8;
-    if (grid[vertices[4]][3] < isoValue) cubeIndex |= 16;
-    if (grid[vertices[5]][3] < isoValue) cubeIndex |= 32;
-    if (grid[vertices[6]][3] < isoValue) cubeIndex |= 64;
-    if (grid[vertices[7]][3] < isoValue) cubeIndex |= 128;
+    if (grid[vertices[0]][3] > isoValue) cubeIndex |= 1;
+    if (grid[vertices[1]][3] > isoValue) cubeIndex |= 2;
+    if (grid[vertices[2]][3] > isoValue) cubeIndex |= 4;
+    if (grid[vertices[3]][3] > isoValue) cubeIndex |= 8;
+    if (grid[vertices[4]][3] > isoValue) cubeIndex |= 16;
+    if (grid[vertices[5]][3] > isoValue) cubeIndex |= 32;
+    if (grid[vertices[6]][3] > isoValue) cubeIndex |= 64;
+    if (grid[vertices[7]][3] > isoValue) cubeIndex |= 128;
 
     // No triangles found
     if (cubeIndex == 0 or cubeIndex == 255) return;
