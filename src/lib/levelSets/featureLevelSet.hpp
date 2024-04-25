@@ -1,14 +1,11 @@
 #pragma once
-
 #include <glm.hpp>
 #include <vector>
 #include "../multiField/multiField.hpp"
 #include "../marchingCubes/marchingCubes.hpp"
+#include "distanceField.hpp"
 
 class FeatureLevelSet {
-private:
-    std::vector<std::vector<float>> generateDistanceField(const std::vector<AttributeVertex> & vertices, const MultiField & mulitifield);
-
 public:
     std::vector<AttributeVertex> vertices;
     Surface surface;

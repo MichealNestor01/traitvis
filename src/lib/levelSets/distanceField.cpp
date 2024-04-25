@@ -1,21 +1,20 @@
-#include "generateFeatureLevelSets.hpp"
-#include "../multiField/multiField.hpp"
-#include <vector>
-#include <limits>
-#include <cmath>
+#include <glm.hpp>
+#include <stdlib.h>
 
-float ** generateDistanceField(const std::vector<AttributeVertex> & vertices, const MultiField & mulitifield) {
-    float ** distanceField = (float**)malloc(sizeof(float*) * mulitifield.xVals * mulitifield.yVals * mulitifield.zVals);
+#include "distanceField.hpp"
+
+std::vector<std::vector<float>> generateDistanceField(const std::vector<AttributeVertex> & vertices, const MultiField & multifield) {
+    //float ** distanceField = (float**)malloc(sizeof(float*) * multifield.xVals * multifield.yVals * multifield.zVals);
+    std::vector<std::vector<float>> distanceField(multifield.xVals * multifield.yVals * multifield.zVals, std::vector<float>(4));
     int index = 0;
-    for (int x = 0; x < mulitifield.xVals; ++x) {
-    for (int y = 0; y < mulitifield.yVals; ++y) {
-    for (int z = 0; z < mulitifield.zVals; ++z) {
-        distanceField[index] = (float*)malloc(sizeof(float) * 4);
+    for (int x = 0; x < multifield.xVals; ++x) {
+    for (int y = 0; y < multifield.yVals; ++y) {
+    for (int z = 0; z < multifield.zVals; ++z) {
+        // set the current points coordinates
         distanceField[index][0] = static_cast<float>(x);
         distanceField[index][1] = static_cast<float>(y);
         distanceField[index][2] = static_cast<float>(z);
-        distanceField[index][3] = -1.f;
-        int indexInDataset = x+(mulitifield.xVals*(z+(mulitifield.zVals * y)));
+        int indexInDataset = multifield.getIndexInDataset(x, y, z);
         // calculate the distance form the current point ot the closest attribute vertex
         float distance = std::numeric_limits<float>::max();
         for (const AttributeVertex & vertex : vertices) {
@@ -23,11 +22,12 @@ float ** generateDistanceField(const std::vector<AttributeVertex> & vertices, co
             float euclidianDistanceSum = 0;
             for (const AttributeVertexValue & value : vertex.values) {
                 float component = value.attribute->values[indexInDataset] - value.value;
-                euclidianDistanceSum = component * component;
+                euclidianDistanceSum += component * component;
             }
             float euclidianDistance = sqrt(euclidianDistanceSum);
             if (euclidianDistance < distance) distance = euclidianDistance;
         }
+        // finally set the current points distance
         distanceField[index][3] = distance;
         index++;
     }}}
