@@ -98,6 +98,11 @@ ShaderProgram::~ShaderProgram() {
     glDeleteProgram(program);
 }
 
+void ShaderProgram::setUniformb(std::string name, GLboolean b) {
+    int location = glGetUniformLocation(program, name.c_str());
+    glUniform1i(location, b);
+}
+
 void ShaderProgram::setUniformf(std::string name, GLfloat f) {
     int location = glGetUniformLocation(program, name.c_str());
     glUniform1f(location, f);

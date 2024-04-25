@@ -131,6 +131,7 @@ void GUI::render() {
         ImGui::SameLine();
         ImGui::SliderFloat((std::string("##Render Depth") + levelSet.id).c_str(), &levelSet.renderDepth, 0, 1, "%.02f");
         ImGui::Checkbox((std::string("Show boundary vertices##") + levelSet.id).c_str(), &levelSet.showActiveInactivePixels);
+        ImGui::Checkbox((std::string("Invert Normals##") + levelSet.id).c_str(), &levelSet.invertNormals);
         ImGui::Text(" ");
         i++;
     }

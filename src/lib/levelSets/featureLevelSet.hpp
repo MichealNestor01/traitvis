@@ -20,6 +20,7 @@ public:
     std::string id;
     unsigned int VAO = 0;
     bool showActiveInactivePixels = false;
+    bool invertNormals = false;
     
     FeatureLevelSet(std::vector<AttributeVertex> vertices, MultiField & dataset, float euclidianDistance, glm::vec3 colour, std::string id);
     

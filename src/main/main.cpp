@@ -240,6 +240,7 @@ int main() {
             for (auto & levelSet : state.levelSets) {
                 if (levelSet.active) {
                     if (levelSet.VAO == 0) levelSet.VAO = createVAO(levelSet.surfaceVertices.data(), levelSet.surfaceVertices.size()*sizeof(float));
+                    lightingShader.setUniformb("invertNormal", levelSet.invertNormals);
                     lightingShader.setUniform3f("objectColor", levelSet.colour);
                     lightingShader.setUniformf("objectTransparency", levelSet.transparency);
                     if (levelSet.transparency < 1.f) glDepthMask(GL_FALSE);
