@@ -110,21 +110,39 @@ int main() {
 
 
     // // create coordinate grid
-    GridLayout layout = {3, 5, 5};
-    std::vector<glm::vec3> activeVertices = {
-        glm::vec3(1, 1, 1),
-        glm::vec3(1, 1, 2),
-        glm::vec3(1, 2, 2),
-        glm::vec3(1, 3, 2),
-        glm::vec3(1, 3, 3),
-    };
-    float ** coordinateGrid = createGrid(layout, activeVertices);
+    // GridLayout layout = {3, 5, 5};
+    // std::vector<glm::vec3> activeVertices = {
+    //     glm::vec3(1, 1, 1),
+    //     glm::vec3(1, 1, 2),
+    //     glm::vec3(1, 2, 2),
+    //     glm::vec3(1, 3, 2),
+    //     glm::vec3(1, 3, 3),
+    // };
+    // float ** coordinateGrid = createGrid(layout, activeVertices);
     //state.grid = coordinateGrid;
+
+    // test grid 
+    GridLayout layout = {3, 3, 3}; 
+    std::vector<std::vector<float>> grid = {
+        // x layer 1
+        {0, 0, 0, 0},  {0, 0, 1, 0},  {0, 0, 2, 0}, 
+        {0, 1, 0, 0},  {0, 1, 1, 0},  {0, 1, 2, 0}, 
+        {0, 2, 0, 0},  {0, 2, 1, 0},  {0, 2, 2, 0}, 
+        // x layer 2
+        {1, 0, 0, 0},  {1, 0, 1, 0},  {1, 0, 2, 0}, 
+        {1, 1, 0, 0},  {1, 1, 1, 1},  {1, 1, 2, 0}, 
+        {1, 2, 0, 0},  {1, 2, 1, 0},  {1, 2, 2, 0}, 
+        // x layer 3
+        {2, 0, 0, 0},  {2, 0, 1, 0},  {2, 0, 2, 0}, 
+        {2, 1, 0, 0},  {2, 1, 1, 0},  {2, 1, 2, 0}, 
+        {2, 2, 0, 0},  {2, 2, 1, 0},  {2, 2, 2, 0}, 
+    };
+    float isoValue = 0.5;
 
 
     //create surface based on active vertices in the grid
     //if a surface exists createa a VAO for it.
-    Surface surface = extractSurface(coordinateGrid, layout, 2);
+    Surface surface = extractSurface(grid, layout, isoValue);
     unsigned int surfaceVAO;
     if (surface.vertices.size()) {
         std::vector<float> surfaceVertices = surface.getVertices();
@@ -137,7 +155,7 @@ int main() {
     // // create model matrices to place small cubes at each point on the coordinate grid 
     std::vector<glm::mat4> pixels;
     for (int pixel = 0; pixel < layout.total; ++pixel) 
-       pixels.push_back(glm::scale(glm::translate(glm::mat4(1.f), glm::vec3({coordinateGrid[pixel][0], coordinateGrid[pixel][1], coordinateGrid[pixel][2]})), glm::vec3(0.1f)));
+       pixels.push_back(glm::scale(glm::translate(glm::mat4(1.f), glm::vec3({grid[pixel][0], grid[pixel][1], grid[pixel][2]})), glm::vec3(0.1f)));
 
     // setup static uniforms for the lighting shader that don't change
     glUseProgram(lightingShader.program);
@@ -201,7 +219,7 @@ int main() {
         //render test pixels and test surface
         lightingShader.setUniformf("objectTransparency", 1.f);
         for (int pixel = 0; pixel < pixels.size(); ++pixel) {
-            if (coordinateGrid[pixel][3] > 2) lightingShader.setUniform3f("objectColor", colourRed);
+            if (grid[pixel][3] < isoValue) lightingShader.setUniform3f("objectColor", colourRed);
             else lightingShader.setUniform3f("objectColor", colourGreen);
             lightingShader.setUniformMat4f("model", &pixels[pixel]);
             glBindVertexArray(cubeVAO);

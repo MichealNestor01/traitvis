@@ -22,7 +22,7 @@ std::vector<float> Surface::getVertices() {
     return verticesWithNormals;
 }
 
-void examineCube(Surface &triangles, const GridLayout &layout, float ** grid, int vertex0, float isoValue) {
+void examineCube(Surface &triangles, const GridLayout &layout, const std::vector<std::vector<float>> &grid, int vertex0, float isoValue) {
     int vertices[8];
     // find the index in the coordinate grid of each vertex of the cube
     vertices[0] = vertex0;
@@ -56,8 +56,8 @@ void examineCube(Surface &triangles, const GridLayout &layout, float ** grid, in
             // and add that to the list of vertices
             int edge = matchingCase[triIndex*3+vertIndex];
             int *endPoints = edgeTable[edge];
-            float *endPoint0 = grid[vertices[endPoints[0]]];
-            float *endPoint1 = grid[vertices[endPoints[1]]];
+            std::vector<float> endPoint0 = grid[vertices[endPoints[0]]];
+            std::vector<float> endPoint1 = grid[vertices[endPoints[1]]];
             float isoDistance = (isoValue-endPoint0[3])/(endPoint1[3] - endPoint0[3]); 
             glm::vec3 vertex(
                 endPoint0[0]+(isoDistance * (endPoint1[0]-endPoint0[0])),
@@ -74,7 +74,7 @@ void examineCube(Surface &triangles, const GridLayout &layout, float ** grid, in
                 triangles.activeVertices.insert({endPoint1[0], endPoint1[1], endPoint1[2]});
             }
         }
-
+        // calculate surface normal for the traingle and assign it to the triangle's three vertices
         glm::vec3 vertex1 = triangles.vertices.at(triangles.vertices.size() - 3);
         glm::vec3 vertex2 = triangles.vertices.at(triangles.vertices.size() - 2);
         glm::vec3 vertex3 = triangles.vertices.at(triangles.vertices.size() - 1);
@@ -85,18 +85,18 @@ void examineCube(Surface &triangles, const GridLayout &layout, float ** grid, in
     }
 }
 
-Surface extractSurface(float **grid, const GridLayout &layout, float isoValue) {
-    Surface triangles;
+Surface extractSurface(const std::vector<std::vector<float>> &grid, const GridLayout &layout, float isoValue) {
+    Surface surface;
 
     for (int x = 0; x < layout.x - 1; ++x) {
     for (int y = 0; y < layout.y - 1; ++y) {
     for (int z = 0; z < layout.z - 1; ++z) {
-        examineCube(triangles, layout, grid, (x*layout.z*layout.y) + (y*layout.z) + z, isoValue);
+        examineCube(surface, layout, grid, (x*layout.z*layout.y) + (y*layout.z) + z, isoValue);
     }}}
 
     std::cout << "Generated Surface:" << std::endl;
-    std::cout << "Active Vertices: " << triangles.activeVertices.size() << std::endl;
-    std::cout << "Inactive Vertices: " << triangles.inactiveVertices.size() << std::endl;
+    std::cout << "Active Vertices: " << surface.activeVertices.size() << std::endl;
+    std::cout << "Inactive Vertices: " << surface.inactiveVertices.size() << std::endl;
 
-    return triangles;
+    return surface;
 }

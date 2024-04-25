@@ -6,8 +6,21 @@
 
 TEST(MarchingCubesTests, TestNoActiveVertices) {
     // Setup test grid and layout
-    GridLayout layout = {10, 10, 10}; // Example dimensions
-    float** grid = createGrid(layout, {});
+    GridLayout layout = {3, 3, 3}; // Example dimensions
+    std::vector<std::vector<float>> grid = {
+        // x layer 1
+        {0, 0, 0, 0},  {0, 0, 1, 0},  {0, 0, 2, 0}, 
+        {0, 1, 0, 0},  {0, 1, 1, 0},  {0, 1, 2, 0}, 
+        {0, 2, 0, 0},  {0, 2, 1, 0},  {0, 2, 2, 0}, 
+        // x layer 2
+        {1, 0, 0, 0},  {1, 0, 1, 0},  {1, 0, 2, 0}, 
+        {1, 1, 0, 0},  {1, 1, 1, 0},  {1, 1, 2, 0}, 
+        {1, 2, 0, 0},  {1, 2, 1, 0},  {1, 2, 2, 0}, 
+        // x layer 3
+        {2, 0, 0, 0},  {2, 0, 1, 0},  {2, 0, 2, 0}, 
+        {2, 1, 0, 0},  {2, 1, 1, 0},  {2, 1, 2, 0}, 
+        {2, 2, 0, 0},  {2, 2, 1, 0},  {2, 2, 2, 0}, 
+    };
     float isoValue = 0.5; // Example isoValue
 
     // Redirect std::cout

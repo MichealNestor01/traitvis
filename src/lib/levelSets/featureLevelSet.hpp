@@ -7,7 +7,7 @@
 
 class FeatureLevelSet {
 private:
-    float ** generateDistanceField(const std::vector<AttributeVertex> & vertices, const MultiField & mulitifield);
+    std::vector<std::vector<float>> generateDistanceField(const std::vector<AttributeVertex> & vertices, const MultiField & mulitifield);
 
 public:
     std::vector<AttributeVertex> vertices;

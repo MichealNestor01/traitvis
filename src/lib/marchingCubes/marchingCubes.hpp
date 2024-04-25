@@ -33,5 +33,5 @@ struct Surface {
 	std::vector<float> getVertices();
 };
 
-void examineCube(Surface &triangles, const GridLayout &layout, float ** grid, int vertex0, float isoValue);
-Surface extractSurface(float **grid, const GridLayout &layout, float isoValue);
+void examineCube(Surface &triangles, const GridLayout &layout, const  std::vector<std::vector<float>> &grid, int vertex0, float isoValue);
+Surface extractSurface(const std::vector<std::vector<float>> &grid, const GridLayout &layout, float isoValue);
