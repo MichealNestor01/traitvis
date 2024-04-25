@@ -2,6 +2,30 @@
 workspace "TraitVis"
     configurations { "Debug", "Release" }
 
+project "GoogleTest"
+    location "_build_/googletest"
+    kind "StaticLib"
+    language "C++"
+    targetdir "bin/%{cfg.buildcfg}"
+
+    files { 
+        "third_party/googletest/googletest/src/gtest-all.cc",
+        "third_party/googletest/googletest/src/gtest_main.cc"
+    }
+
+    includedirs {
+        "third_party/googletest/googletest",
+        "third_party/googletest/googletest/include"
+    }
+
+    filter "configurations:Debug"
+        defines {"DEBUG"}
+        symbols "On"
+
+    filter "configurations:Release"
+        defines {"NDEBUG"}
+        optimize "On"
+
 project "main"
     location "_build_/main"
     kind "ConsoleApp"
@@ -32,6 +56,7 @@ project "main"
         "pthread", 
         "dl",
         "GL",
+        "GoogleTest",
     }
 
     files {
@@ -52,6 +77,40 @@ project "main"
     filter "configurations:Release"
         defines {"NDEBUG"}
         optimize "On"
+
+project "tests"
+        location "_build_/tests"
+        kind "ConsoleApp"
+        language "C++"
+        targetdir "bin/%{cfg.buildcfg}"
+
+        files {
+            "tests/**.cpp",
+            "src/lib/marchingCubes/**",
+        }
+
+        links {
+            "GoogleTest",
+            "main",
+        }
+    
+        includedirs {
+            "third_party/googletest/googletest/include",
+            "third_party/glm",
+            "src/**",
+        }
+
+        libdirs {
+            "third_party/glfw/src"
+        }
+
+        filter "configurations:Debug"
+            defines {"DEBUG"}
+            symbols "On"
+
+        filter "configurations:Release"
+            defines {"NDEBUG"}
+            optimize "On"
 
 project "read_binary"
     location "_build_/read_binary"
