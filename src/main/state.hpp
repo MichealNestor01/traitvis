@@ -11,7 +11,6 @@
 #include "../lib/parsingData/datasetReader.hpp"
 #include "../lib/multiField/multiField.hpp"
 #include "../lib/marchingCubes/marchingCubes.hpp"
-#include "../lib/levelSets/generateFeatureLevelSets.hpp"
 #include "../lib/levelSets/featureLevelSet.hpp"
 
 struct ProgramState {
