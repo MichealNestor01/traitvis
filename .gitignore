@@ -8,3 +8,4 @@ vgcore.27519
 imgui.ini
 *.make
 obj
+test.sh
