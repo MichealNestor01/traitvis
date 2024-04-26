@@ -87,6 +87,7 @@ project "tests"
         files {
             "tests/**.cpp",
             "src/lib/marchingCubes/**",
+            "src/lib/parsingData/**",
         }
 
         links {

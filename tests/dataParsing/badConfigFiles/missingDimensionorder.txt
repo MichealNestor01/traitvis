@@ -1,0 +1,19 @@
+NAME:isabel-timestep-02
+FILEPATH:/home/michealnestor/University/final-project/dataset/timestep02/
+SPACIALDOMAIN:500:100:500
+:WIDTH_DEPTH_HEIGHT
+INDEXSCHEME:ROWMAJOR
+DATASETSTRUCTURE:ATTRIBUTEPERFILE:25000000
+ATTRIBUTE:CLOUDf02.bin:Total cloud:0:0.0032
+ATTRIBUTE:Pf02.bin:Pressure:-5471.85791:3225.42578
+ATTRIBUTE:PRECIPf02.bin:Precipitation:0:0.01672
+ATTRIBUTE:QCLOUDf02.bin:Cloud moisture mixing ratio:0:0.00332
+ATTRIBUTE:QGRAUPf02.bin:Graupel mixing ratio:0:0.01638
+ATTRIBUTE:QICEf02.bin:Cloud ice mixing ratio:0:0.00099
+ATTRIBUTE:QRAINf02.bin:Rain mixing ratio:0:0.01132
+ATTRIBUTE:QSNOWf02.bin:Snow mixing ratio:0:0.00135
+ATTRIBUTE:QVAPORf02.bin:Water vapor mixing ratio:0:0.02368
+ATTRIBUTE:TCf02.bin:Temperature (Celsius):-83.00402:31.51576
+ATTRIBUTE:Uf02.bin:X wind speed:-79.47297:85.17703
+ATTRIBUTE:Wf02.bin:Y wind speed:-9.06026:28.61434
+ATTRIBUTE:Vf02.bin:Z wind speed:-76.03391:82.95293
