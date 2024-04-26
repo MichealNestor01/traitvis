@@ -10,3 +10,4 @@ imgui.ini
 obj
 test.sh
 third_party/googletest
+tests/dataParsing/testBinaryFiles/*.bin
