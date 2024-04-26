@@ -88,6 +88,7 @@ project "tests"
             "tests/**.cpp",
             "src/lib/marchingCubes/**",
             "src/lib/parsingData/**",
+            "src/lib/multiFields/**",
         }
 
         links {

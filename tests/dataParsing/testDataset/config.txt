@@ -1,0 +1,7 @@
+NAME:testDataset
+FILEPATH:/home/michealnestor/University/final-project/tests/dataParsing/testDataset/
+SPACIALDOMAIN:2:2:2
+DIMENSIONORDER:WIDTH_DEPTH_HEIGHT
+INDEXSCHEME:ROWMAJOR
+DATASETSTRUCTURE:ATTRIBUTEPERFILE:8
+ATTRIBUTE:test.bin:testAttribute:-1:1
