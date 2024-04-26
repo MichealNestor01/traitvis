@@ -143,8 +143,7 @@ DatasetDirConfig parseConfig(std::string filepath) {
             return config;
         }
     } else {
-        std::cout << line << std::endl;
-        std::cerr << "Failed to parse DATASETSTRUCTURE from \"" << filepath << "\"" << std::endl;
+        std::cerr << "Failed to find DATASETSTRUCTURE in \"" << filepath << "\"" << std::endl;
         return config;
     }
 
@@ -162,6 +161,11 @@ DatasetDirConfig parseConfig(std::string filepath) {
                         attribute = attribute.substr(attribute.find(":")+1);
                         std::string name = attribute.substr(0, attribute.find(":"));
                         attribute = attribute.substr(attribute.find(":")+1);
+                        // throw an error if any of the strings are empty
+                        if (filename.empty() || name.empty() || attribute.empty()) {
+                            std::cerr << "Attribute miss formatted in \"" << filepath << "\": " << line << std::endl;
+                            return config;
+                        }
                         try {
                             float lowerBound = std::stof(attribute.substr(0, attribute.find(":")));
                             float upperBound = std::stof(attribute.substr(attribute.find(":")+1));
@@ -177,6 +181,9 @@ DatasetDirConfig parseConfig(std::string filepath) {
                         std::cerr << "Attribute miss formatted in \"" << filepath << "\": " << line << std::endl;
                         return config;
                     }
+                } else {
+                    std::cerr << "Failed to find ATTRIBUTE where expected in \"" << filepath << "\"" << std::endl;
+                    return config;
                 }
             }
         } catch (const std::invalid_argument& err) {
