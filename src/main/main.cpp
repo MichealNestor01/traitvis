@@ -24,11 +24,21 @@
 #include "../lib/gui/gui.hpp"
 #include "../lib/marchingCubes/mc_tables.h"
 
+// Define the error callback function
+void error_callback(int error, const char* description) {
+    std::cerr << "GLFW Error (" << error << "): " << description << std::endl;
+}
+
 int main() {
+    glfwSetErrorCallback(error_callback);
+
     // initialise glfw and ensure opengl version is 4.6
-    glfwInit();
+    if (!glfwInit()) {
+        std::cerr << "Failed to initialize GLFW" << std::endl;
+        return -1;
+    }
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // create the window
