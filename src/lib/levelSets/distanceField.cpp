@@ -18,13 +18,13 @@ std::vector<std::vector<float>> generateDistanceField(const std::vector<TraitPoi
         float distance = std::numeric_limits<float>::max();
         for (const TraitPoint & vertex : vertices) {
             // calcuate distance from current vertex
-            float euclidianDistanceSum = 0;
+            float euclideanDistanceSum = 0;
             for (const TraitPointComponent & value : vertex.values) {
                 float component = value.attribute->values[indexInDataset] - value.value;
-                euclidianDistanceSum += component * component;
+                euclideanDistanceSum += component * component;
             }
-            float euclidianDistance = sqrt(euclidianDistanceSum);
-            if (euclidianDistance < distance) distance = euclidianDistance;
+            float euclideanDistance = sqrt(euclideanDistanceSum);
+            if (euclideanDistance < distance) distance = euclideanDistance;
         }
         // finally set the current points distance
         distanceField[index][3] = distance;

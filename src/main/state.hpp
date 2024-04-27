@@ -46,8 +46,8 @@ struct ProgramState {
     std::vector<FeatureLevelSet> levelSets;
 
 
-    void generateLevelSet(float euclidianDistance, glm::vec3 colour, std::string id) {
-        FeatureLevelSet newLevelSet(attributeSpaceVerticesBuffer, dataset, euclidianDistance, colour, id);
+    void generateLevelSet(float euclideanDistance, glm::vec3 colour, std::string id) {
+        FeatureLevelSet newLevelSet(attributeSpaceVerticesBuffer, dataset, euclideanDistance, colour, id);
         levelSets.push_back(newLevelSet);
     }
 
