@@ -15,7 +15,7 @@ TEST(DatasetReaderTests, TestDataset) {
     std::ostringstream redirectedCout;
     std::cout.rdbuf(redirectedCout.rdbuf());
 
-    MultiField result = readDataset("tests/dataParsing/testDataset/config.txt");
+    MultiField result = readDataset("tests/parsingData/testDataset/config.txt");
 
     // Restore std::cout to its original buffer
     std::cout.rdbuf(originalCoutBuffer);
