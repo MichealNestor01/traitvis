@@ -6,11 +6,8 @@
 
 class Camera {
 private:
-    // translation controls 
-    glm::vec3 pos;
-    glm::vec3 front;
+    // translation controls
     glm::vec3 up;
-    float speed = 20.f;
     // direction controls
     float mouseSens = 0.15f;
     bool firstMouseMovement = true;
@@ -24,6 +21,12 @@ private:
     }
 
 public:
+    // speed
+    float speed = 20.f;
+    // translation controls 
+    glm::vec3 pos;
+    glm::vec3 front;
+
     Camera(glm::vec3 pos, glm::vec3 front, glm::vec3 up) : pos(pos), front(front), up(up) {} 
 
     void updateDirection(double x, double y) {

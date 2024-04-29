@@ -86,7 +86,7 @@ void GUI::render() {
         }
 
         ImGui::Text("Normalised Euclidean distance for level set: ");
-        ImGui::SliderFloat("##distance", &levelSetDistance, 0, 100, "%.2f");
+        ImGui::SliderFloat("##distance", &levelSetDistance, 0, 100, "%.4f");
         ImGui::Text("Select level set colour: ");
         ImGui::SliderFloat("R", &levelSetRed, 0, 255, "%.0f");
         ImGui::SliderFloat("G", &levelSetGreen, 0, 255, "%.0f");
@@ -126,10 +126,19 @@ void GUI::render() {
             programState.levelSets.erase(programState.levelSets.begin() + i);
         ImGui::Text("Transparency: ");
         ImGui::SameLine();
-        ImGui::SliderFloat((std::string("##Transparency") + levelSet.id).c_str(), &levelSet.transparency, 0, 1, "%.02f");
+        ImGui::SliderFloat((std::string("##Transparency") + levelSet.id).c_str(), &levelSet.transparency, 0, 1, "%.4f");
         ImGui::Text("Render depth: ");
         ImGui::SameLine();
-        ImGui::SliderFloat((std::string("##Render Depth") + levelSet.id).c_str(), &levelSet.renderDepth, 0, 1, "%.02f");
+        ImGui::SliderFloat((std::string("##Render Depth") + levelSet.id).c_str(), &levelSet.renderDepth, 0, 1, "%.4f");
+        ImGui::Text("Red: ");
+        ImGui::SameLine();
+        ImGui::SliderFloat((std::string("##Red") + levelSet.id).c_str(), &levelSet.colour.x, 0, 1, "%.4f");
+        ImGui::Text("Green: ");
+        ImGui::SameLine();
+        ImGui::SliderFloat((std::string("##Blue") + levelSet.id).c_str(), &levelSet.colour.y, 0, 1, "%.4f");
+        ImGui::Text("Blue: ");
+        ImGui::SameLine();
+        ImGui::SliderFloat((std::string("##Green") + levelSet.id).c_str(), &levelSet.colour.z, 0, 1, "%.4f");
         ImGui::Checkbox((std::string("Show boundary vertices##") + levelSet.id).c_str(), &levelSet.showActiveInactivePixels);
         ImGui::Checkbox((std::string("Invert Normals##") + levelSet.id).c_str(), &levelSet.invertNormals);
         ImGui::Text(" ");
@@ -176,6 +185,15 @@ void GUI::renderLightingControls() {
     ImGui::Checkbox("Back Face Culling", &programState.backFaceCulling);
     ImGui::Text(" ");
     ImGui::Checkbox("Draw Wireframes", &programState.drawWireframe);
+    ImGui::Text(" ");
+    ImGui::Text("Camera Controls:");
+    ImGui::SliderFloat("SPEED##1", &programState.cam.speed, 0, 250, "%.0f");    
+    ImGui::SliderFloat("POS X##1", &programState.cam.pos.x, -10000, 10000, "%.0f");    
+    ImGui::SliderFloat("POS Y##1", &programState.cam.pos.y, -10000, 10000, "%.0f");    
+    ImGui::SliderFloat("POS Z##1", &programState.cam.pos.z, -10000, 10000, "%.0f");   
+    ImGui::SliderFloat("FRONT X##1", &programState.cam.front.x, -1, 1, "%.4f");    
+    ImGui::SliderFloat("FRONT Y##1", &programState.cam.front.y, sin(-89), sin(89), "%.4f");    
+    ImGui::SliderFloat("FRONT Z##1", &programState.cam.front.z, -1, 1, "%.4f"); 
 
     ImGui::End();
 }
