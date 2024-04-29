@@ -10,7 +10,7 @@ TEST(FileReaderTests, TestBrickOfFloatFiles) {
     int totalTestBinaryFiles = 20;
     for (int i = 0; i < totalTestBinaryFiles; ++i) {
         std::ostringstream oss;
-        oss << "tests/dataParsing/testBinaryFiles/binaryFile" << i << ".bin";
+        oss << "tests/parsingData/testBinaryFiles/binaryFile" << i << ".bin";
         std::vector<float> result = readFloatBinaryFile(oss.str(), pow(2,i), false);
         for (int j = 0; j < pow(2,i); ++j) {
             // test all items in the array are equal to their index
