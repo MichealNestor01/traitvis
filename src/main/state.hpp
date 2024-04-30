@@ -25,7 +25,7 @@ struct ProgramState {
     float fov = 45.f;
     float aspectRatio = (renderWidthPercentage*windowWidth)/windowHeight;
     float nearPlane = 0.1f;
-    float farPlane = 1000.f;
+    float farPlane = 3000.f;
     // frametime variables
     float deltaTime = 0.f;
     float lastFrame = 0.f;
