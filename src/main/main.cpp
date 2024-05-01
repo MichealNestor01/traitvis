@@ -68,6 +68,8 @@ int main() {
     ImFont* font = io.Fonts->AddFontFromFileTTF("assets/OpenSans-VariableFont_wdth,wght.ttf", 24.0f);
     if (font != nullptr) io.FontDefault = font;
 
+    // set vsync
+    glfwSwapInterval(1);
     // set mouse input mode + callbacks
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);  
     //glfwSetCursorPosCallback(window, mouse_callback);  
