@@ -33,11 +33,6 @@ public:
     Camera(glm::vec3 pos, glm::vec3 front, glm::vec3 up) : pos(pos), front(front), up(up) {} 
 
     void updateDirection(double x, double y) {
-        if (firstMouseMovement) {
-            firstMouseMovement = false;
-            oldMouseX = x;
-            oldMouseY = y;
-        }
         float xoffset = (x - oldMouseX)*mouseSens;
         float yoffset = (oldMouseY - y)*mouseSens;
 
@@ -47,15 +42,10 @@ public:
         yaw += xoffset;
         pitch += yoffset;
 
+
         // restrict pitch to 180 degrees infront of camera.
         if (pitch > 89.f) pitch = 89.f;
         else if (pitch < -89.f) pitch = -89.f;
-
-        // glm::vec3 direction;
-        // direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-        // direction.y = sin(glm::radians(pitch));
-        // direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-        // front = glm::normalize(direction);
     }
 
     void updateMousePos(double x, double y) {
