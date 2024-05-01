@@ -25,7 +25,7 @@ MultiField readAttributePerFileDataset(const DatasetDirConfig& config) {
     // setup the attributes
     for (auto file : dataset->getFiles()) {
         std::string path = config.filePath + file.filename;
-        std::vector<float> vals = readFloatBinaryFile(path, valuesPerFile);
+        std::vector<float> vals = readFloatBinaryFile(path, valuesPerFile, true);
         if (vals.size() == 0) {
             std::cerr << "Failed to read values from " << path << std::endl;
             return multiField;
