@@ -45,8 +45,8 @@ struct MultiField {
     void normaliseAttributes() {
         for (auto &attribute : attributeDomain) {
             float range = attribute.bounds.upper - attribute.bounds.lower;
-            for (float &value : attribute.values) 
-                value = (value - attribute.bounds.lower) / range;
+            if (range == 0) continue;
+            for (float &value : attribute.values) value = (value - attribute.bounds.lower) / range;
         }
     }
 
