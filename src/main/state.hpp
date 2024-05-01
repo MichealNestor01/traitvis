@@ -18,7 +18,7 @@ struct ProgramState {
     Camera cam;
     // window state
     int windowWidth, windowHeight;
-    float renderWidthPercentage = 0.8f;
+    float renderWidthPercentage = 1.f;
     // control toggling
     bool enableCam = false;
     // projection matrix variables
