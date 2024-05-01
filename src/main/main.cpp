@@ -73,7 +73,8 @@ int main() {
     // set mouse input mode + callbacks
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);  
     //glfwSetCursorPosCallback(window, mouse_callback);  
-    glfwSetScrollCallback(window, scroll_callback);
+    //glfwSetScrollCallback(window, scroll_callback);
+    //glfwSetKeyCallback(window, key_callback);
     // setup opengl blending
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -192,17 +193,19 @@ int main() {
         // poll glfw events 
         glfwPollEvents();
 
-        // update frame time
-        state.updateTime();
-
-        // control user inputs
-        processInput(window);
+        // update camera position
+        double xpos, ypos;
+        glfwGetCursorPos(window, &xpos, &ypos);
+        if (not io.WantCaptureKeyboard) processInput(window);
         if (not io.WantCaptureMouse and state.enableCam) {
-            double xpos, ypos;
-            glfwGetCursorPos(window, &xpos, &ypos);
             state.cam.updateDirection(xpos, ypos);
         }
+        else state.cam.updateMousePos(xpos, ypos);
 
+        // update frame time
+        state.updateTime();
+        state.cam.updateCamera(state.deltaTime);
+    
         glViewport(state.windowWidth * (1-state.renderWidthPercentage), 0, state.windowWidth  * state.renderWidthPercentage, state.windowHeight);
 
         // get update projection and view matrix
@@ -234,6 +237,7 @@ int main() {
 
         //render test pixels and test surface
         lightingShader.setUniformf("objectTransparency", 1.f);
+        lightingShader.setUniformb("invertNormal", true);
         for (int pixel = 0; pixel < pixels.size(); ++pixel) {
             if (grid[pixel][3] > isoValue) lightingShader.setUniform3f("objectColor", colourRed);
             else lightingShader.setUniform3f("objectColor", colourGreen);
@@ -241,6 +245,7 @@ int main() {
             glBindVertexArray(cubeVAO);
             glDrawArrays(GL_TRIANGLES, 0, 6*2*3);
         }
+        lightingShader.setUniformb("invertNormal", false);
         if (surface.vertices.size()) {
             lightingShader.setUniform3f("objectColor", colourGreen);
             lightingShader.setUniformMat4f("model", &defaultModel);

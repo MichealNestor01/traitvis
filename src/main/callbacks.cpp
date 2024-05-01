@@ -13,15 +13,3 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
         state->setWidthHeight(width, height);
     }
 }
-
-void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
-    if (auto* state = static_cast<ProgramState*>(glfwGetWindowUserPointer(window))) {
-        if (state->enableCam) state->cam.updateDirection(xpos, ypos);
-    }
-}
-
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
-    if (auto* state = static_cast<ProgramState*>(glfwGetWindowUserPointer(window))) {
-        if (state->enableCam) state->setFov(yoffset);
-    }
-}
