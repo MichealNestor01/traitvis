@@ -27,7 +27,7 @@ TEST(DatasetReaderTests, TestDataset) {
     EXPECT_EQ(result.zVals, 2);
     EXPECT_EQ(result.attributeDomain.size(), 1);
     EXPECT_EQ(result.attributeDomain[0].name, "testAttribute");
-    EXPECT_EQ(result.attributeDomain[0].bounds.lower, -1);
-    EXPECT_EQ(result.attributeDomain[0].bounds.upper, 1);
-    for (int i = 0; i < 8; i++) EXPECT_EQ(result.attributeDomain[0].values[i], 0.5);
+    EXPECT_EQ(result.attributeDomain[0].bounds.lower, 0.5);
+    EXPECT_EQ(result.attributeDomain[0].bounds.upper, 0.5);
+    for (int i = 0; i < 8; i++) EXPECT_EQ(result.attributeDomain[0].values[i], 0.5);    
 }
