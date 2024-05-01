@@ -30,7 +30,18 @@ MultiField readAttributePerFileDataset(const DatasetDirConfig& config) {
             std::cerr << "Failed to read values from " << path << std::endl;
             return multiField;
         }
-        multiField.attributeDomain.push_back({file.name, {file.lowerBound, file.upperBound}, vals});
+        // reinterpret the lower and upper bounds as the actual lowest and greatest value in the file
+        // values will then be normalised between these bounds
+        float lowerBound = file.upperBound;
+        float upperBound = file.lowerBound;
+        for (float val : vals) {
+            if (val != 1e35) {
+                if (val < lowerBound && val >= file.lowerBound) lowerBound = val;
+                if (val > upperBound && val <= file.upperBound) upperBound = val;
+            }
+        }
+
+        multiField.attributeDomain.push_back({file.name, {lowerBound, upperBound}, vals});
     }
 
     // normalise the attributes
