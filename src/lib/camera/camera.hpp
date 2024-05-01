@@ -10,7 +10,6 @@ private:
     glm::vec3 up;
     // direction controls
     float mouseSens = 0.15f;
-    bool firstMouseMovement = true;
     float oldMouseX = 800.f / 2.f;
     float oldMouseY = 600.f / 2.f;
     float yaw = -90.f;
@@ -26,6 +25,8 @@ public:
     // translation controls 
     glm::vec3 pos;
     glm::vec3 front;
+    // direction controls
+    bool firstMouseMovement = true;
 
     Camera(glm::vec3 pos, glm::vec3 front, glm::vec3 up) : pos(pos), front(front), up(up) {} 
 

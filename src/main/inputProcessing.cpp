@@ -22,6 +22,7 @@ void processInput(GLFWwindow* window) {
             spaceLock = true;
         } else if (spaceLock and glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE) {
             spaceLock = false;
+            state->cam.firstMouseMovement = true;
         }
 
         // camera movement controls
