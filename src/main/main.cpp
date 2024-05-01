@@ -11,6 +11,8 @@
 #include <math.h>
 #include <set>
 #include <algorithm>
+#include <thread>
+#include <chrono>
 
 // my includes
 #include "state.hpp"
@@ -184,36 +186,40 @@ int main() {
     lightingShader.setUniform3f("lightDiffuse", glm::vec3(0.2f, 0.2f, 0.2f));
     lightingShader.setUniform3f("sceneAmbient", glm::vec3(0.4f, 0.4f, 0.4f));
 
-    float lightAngle = 0.0f;
-    float lightRadius = 7.0f;
-    glm::vec3 rotationCenter(2.0f, 2.0f, 2.0f); // Center of rotation
+    const double targetFrameRate = 60.0;
+    const double targetFrameTime = 1.0 / targetFrameRate; // Time per frame in seconds
+
+    double lastFrameTime = glfwGetTime();
+
 
     // mainloop 
     while (!glfwWindowShouldClose(window)) {
+        double currentFrameTime = glfwGetTime();
+        double deltaTime = currentFrameTime - lastFrameTime;
+        // update frame time
+        state.updateTime();
+
         // poll glfw events 
         glfwPollEvents();
 
-        // update camera position
+        // get keyboard inputs 
+        if (not io.WantCaptureKeyboard) processInput(window);
+
+        // update camera position attributes
         double xpos, ypos;
         glfwGetCursorPos(window, &xpos, &ypos);
-        if (not io.WantCaptureKeyboard) processInput(window);
-        if (not io.WantCaptureMouse and state.enableCam) {
-            state.cam.updateDirection(xpos, ypos);
-        }
+        if (not io.WantCaptureMouse and state.enableCam) state.cam.updateDirection(xpos, ypos);
         else state.cam.updateMousePos(xpos, ypos);
-
-        // update frame time
-        state.updateTime();
         state.cam.updateCamera(state.deltaTime);
     
         glViewport(state.windowWidth * (1-state.renderWidthPercentage), 0, state.windowWidth  * state.renderWidthPercentage, state.windowHeight);
+        // prepare frame for rendering 
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // get update projection and view matrix
         glm::mat4 proj = state.getProjectionMatrix();
         glm::mat4 view = state.cam.getViewMatrix();
-        // rendering 
-        glClear(GL_COLOR_BUFFER_BIT);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 
         if (state.drawWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         else glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -300,6 +306,15 @@ int main() {
         gui.renderLightingControls();
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+        double frameEndTime = glfwGetTime();
+        double frameDuration = frameEndTime - currentFrameTime;
+        if (frameDuration < targetFrameTime) {
+            double sleepTime = targetFrameTime - frameDuration;
+            std::this_thread::sleep_for(std::chrono::milliseconds((int)(sleepTime * 1000)));
+        }
+
+        lastFrameTime = glfwGetTime(); 
 
         // check and call events and swap the buffers
         glfwSwapBuffers(window);
