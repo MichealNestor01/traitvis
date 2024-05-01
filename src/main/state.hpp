@@ -62,12 +62,9 @@ struct ProgramState {
 
     void toggleCam(GLFWwindow* window) {
         enableCam = not enableCam;
-        if (enableCam) {
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        } else {
-            glfwSetCursorPos(window, windowWidth/2, windowHeight/2);
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        }
+        cam.dissableActions();
+        if (enableCam) glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        else glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
 
     void toggleDrawWireframe() {
@@ -91,7 +88,7 @@ struct ProgramState {
     void setFov(double yoffset) {
         fov -= yoffset;
         if (fov < 1.f) fov = 1.f;
-        else if (fov > 70.f) fov = 70.f;
+        else if (fov > 90.f) fov = 90.f;
     }
 
     void setWidthHeight(int width, int height) {

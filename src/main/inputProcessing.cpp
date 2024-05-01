@@ -22,23 +22,21 @@ void processInput(GLFWwindow* window) {
             spaceLock = true;
         } else if (spaceLock and glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE) {
             spaceLock = false;
-            state->cam.firstMouseMovement = true;
         }
 
-        // camera movement controls
         if (state->enableCam) {
-            if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-                state->cam.moveForward(state->deltaTime);
-            if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-                state->cam.moveBackward(state->deltaTime);
-            if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-                state->cam.moveLeft(state->deltaTime);
-            if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-                state->cam.moveRight(state->deltaTime);
-            if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-                state->cam.moveUp(state->deltaTime);
-            if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-                state->cam.moveDown(state->deltaTime);
+            if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) state->cam.actionForwards = true;
+            if (glfwGetKey(window, GLFW_KEY_W) == GLFW_RELEASE) state->cam.actionForwards = false;
+            if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) state->cam.actionBackwards = true;
+            if (glfwGetKey(window, GLFW_KEY_S) == GLFW_RELEASE) state->cam.actionBackwards = false;
+            if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) state->cam.actionLeft = true;
+            if (glfwGetKey(window, GLFW_KEY_A) == GLFW_RELEASE) state->cam.actionLeft = false;
+            if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) state->cam.actionRight = true;
+            if (glfwGetKey(window, GLFW_KEY_D) == GLFW_RELEASE) state->cam.actionRight = false;
+            if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) state->cam.actionUp = true;
+            if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_RELEASE) state->cam.actionUp = false;
+            if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) state->cam.actionDown = true;
+            if (glfwGetKey(window, GLFW_KEY_E) == GLFW_RELEASE) state->cam.actionDown = false;
         }
     }
 }

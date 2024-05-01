@@ -27,6 +27,8 @@ public:
     glm::vec3 front;
     // direction controls
     bool firstMouseMovement = true;
+    // actions
+    bool actionForwards, actionBackwards, actionLeft, actionRight, actionUp, actionDown;
 
     Camera(glm::vec3 pos, glm::vec3 front, glm::vec3 up) : pos(pos), front(front), up(up) {} 
 
@@ -36,7 +38,6 @@ public:
             oldMouseX = x;
             oldMouseY = y;
         }
-
         float xoffset = (x - oldMouseX)*mouseSens;
         float yoffset = (oldMouseY - y)*mouseSens;
 
@@ -50,11 +51,40 @@ public:
         if (pitch > 89.f) pitch = 89.f;
         else if (pitch < -89.f) pitch = -89.f;
 
+        // glm::vec3 direction;
+        // direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+        // direction.y = sin(glm::radians(pitch));
+        // direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+        // front = glm::normalize(direction);
+    }
+
+    void updateMousePos(double x, double y) {
+        oldMouseX = x;
+        oldMouseY = y;
+    }
+
+    void updateCamera(float dt) {
         glm::vec3 direction;
         direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
         direction.y = sin(glm::radians(pitch));
         direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
         front = glm::normalize(direction);
+
+        if (actionForwards) moveForward(dt);
+        if (actionBackwards) moveBackward(dt);
+        if (actionLeft) moveLeft(dt);
+        if (actionRight) moveRight(dt);
+        if (actionUp) moveUp(dt);
+        if (actionDown) moveDown(dt);
+    }
+
+    void dissableActions() {
+        actionForwards = false;
+        actionBackwards = false;
+        actionLeft = false;
+        actionRight = false;
+        actionUp = false;
+        actionDown = false;
     }
 
     glm::mat4 getViewMatrix() {

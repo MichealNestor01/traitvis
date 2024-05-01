@@ -194,6 +194,6 @@ void GUI::renderLightingControls() {
     ImGui::SliderFloat("FRONT X##1", &programState.cam.front.x, -1, 1, "%.4f");    
     ImGui::SliderFloat("FRONT Y##1", &programState.cam.front.y, sin(-89), sin(89), "%.4f");    
     ImGui::SliderFloat("FRONT Z##1", &programState.cam.front.z, -1, 1, "%.4f"); 
-
+    ImGui::SliderFloat("FOV##1", &programState.fov, 0, 90, "%.0f"); 
     ImGui::End();
 }
