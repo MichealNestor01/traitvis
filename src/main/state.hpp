@@ -91,7 +91,7 @@ struct ProgramState {
     void setFov(double yoffset) {
         fov -= yoffset;
         if (fov < 1.f) fov = 1.f;
-        else if (fov > 70.f) fov = 70.f;
+        else if (fov > 90.f) fov = 90.f;
     }
 
     void setWidthHeight(int width, int height) {
