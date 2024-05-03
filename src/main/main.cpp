@@ -90,7 +90,8 @@ int main() {
     // gl config
     glEnable(GL_DEPTH_TEST);
     //glEnable(GL_CULL_FACE);
-    glClearColor(0.52f, 0.81f, 0.92f, 0.f);
+    //glClearColor(0.52f, 0.81f, 0.92f, 0.f);
+    glClearColor(1.f, 1.f, 1.f, 0.f);
 
     // create shader programs
     ShaderProgram lightingShader({
@@ -111,7 +112,7 @@ int main() {
     glm::mat4 defaultModel(1.f);
 
     // camera variables 
-    glm::vec3 defaultCameraPos = glm::vec3(0.f, 0.f, 3.f);
+    glm::vec3 defaultCameraPos = glm::vec3(560.f, -200.f, 560.f);
     glm::vec3 defaultCameraFront = glm::vec3(0.f, 0.f, -1.f);
     glm::vec3 defaultCameraUp = glm::vec3(0.f, 1.f, 0.f);
     // setup state
