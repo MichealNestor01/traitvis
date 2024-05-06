@@ -156,7 +156,15 @@ TEST_F(DistanceFieldTests, ThreeDimensionalAttributeSpace) {
         1,       sqrt(2),   // y = 1
     };
 
+    // Redirect std::cout
+    std::streambuf* originalCoutBuffer = std::cout.rdbuf();
+    std::ostringstream redirectedCout;
+    std::cout.rdbuf(redirectedCout.rdbuf());
+
     std::vector<std::vector<float>> distanceField = generateDistanceField(points, testMultiField);
+
+    // Restore std::cout to its original buffer
+    std::cout.rdbuf(originalCoutBuffer);
 
     // validate that the distance field matches the expected distance field 
     for (int i = 0; i < distanceField.size(); i++) 
