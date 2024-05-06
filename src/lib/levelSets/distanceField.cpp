@@ -1,8 +1,13 @@
 #include <glm.hpp>
 #include <stdlib.h>
+#include <chrono>
+#include <iostream>
 #include "distanceField.hpp"
 
 std::vector<std::vector<float>> generateDistanceField(const std::vector<TraitPoint> & vertices, const MultiField & multifield) {
+    // Start timing
+    auto startTime = std::chrono::high_resolution_clock::now();
+
     //float ** distanceField = (float**)malloc(sizeof(float*) * multifield.xVals * multifield.yVals * multifield.zVals);
     std::vector<std::vector<float>> distanceField(multifield.xVals * multifield.yVals * multifield.zVals, std::vector<float>(4));
     int index = 0;
@@ -30,5 +35,11 @@ std::vector<std::vector<float>> generateDistanceField(const std::vector<TraitPoi
         distanceField[index][3] = distance;
         index++;
     }}}
+
+    // End timing and calculate duration
+    auto endTime = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = endTime - startTime;
+    std::cout << "Distance Field time taken: " << elapsed.count() << " seconds\n";
+
     return distanceField;
 }

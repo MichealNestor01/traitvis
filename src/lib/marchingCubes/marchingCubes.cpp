@@ -8,6 +8,7 @@
 #include <map>
 #include <fstream>
 #include <algorithm>
+#include <chrono>
 
 std::vector<float> Surface::getVertices() {
     std::vector<float> verticesWithNormals(vertices.size() * 6);
@@ -88,11 +89,20 @@ void examineCube(Surface &triangles, const GridLayout &layout, const std::vector
 Surface extractSurface(const std::vector<std::vector<float>> &grid, const GridLayout &layout, float isoValue) {
     Surface surface;
 
+    // Start timing
+    auto startTime = std::chrono::high_resolution_clock::now();
+
     for (int x = 0; x < layout.x - 1; ++x) {
     for (int y = 0; y < layout.y - 1; ++y) {
     for (int z = 0; z < layout.z - 1; ++z) {
         examineCube(surface, layout, grid, (x*layout.z*layout.y) + (y*layout.z) + z, isoValue);
     }}}
+
+    // End timing and calculate duration
+    auto endTime = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = endTime - startTime;
+    std::cout << "marching cubes time taken: " << elapsed.count() << " seconds\n";
+    std::cout << "marching cubes surface vertices: " << surface.vertices.size() << " vertices\n";
 
     std::cout << "Generated Surface:" << std::endl;
     std::cout << "Active Vertices: " << surface.activeVertices.size() << std::endl;

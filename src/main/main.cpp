@@ -187,7 +187,7 @@ int main() {
     lightingShader.setUniform3f("lightDiffuse", glm::vec3(0.2f, 0.2f, 0.2f));
     lightingShader.setUniform3f("sceneAmbient", glm::vec3(0.4f, 0.4f, 0.4f));
 
-    const double targetFrameRate = 60.0;
+    const double targetFrameRate = 240.0;
     const double targetFrameTime = 1.0 / targetFrameRate; // Time per frame in seconds
 
     double lastFrameTime = glfwGetTime();
@@ -314,6 +314,9 @@ int main() {
             double sleepTime = targetFrameTime - frameDuration;
             std::this_thread::sleep_for(std::chrono::milliseconds((int)(sleepTime * 1000)));
         }
+
+        // show last frame time
+        //std::cout << "Frame time: " << frameDuration << std::endl;
 
         lastFrameTime = glfwGetTime(); 
 
