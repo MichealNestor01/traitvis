@@ -67,7 +67,7 @@ int main() {
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 130"); 
-    ImFont* font = io.Fonts->AddFontFromFileTTF("assets/OpenSans-VariableFont_wdth,wght.ttf", 24.0f);
+    ImFont* font = io.Fonts->AddFontFromFileTTF("assets/fonts/OpenSans-VariableFont_wdth,wght.ttf", 24.0f);
     if (font != nullptr) io.FontDefault = font;
 
     // set vsync
