@@ -318,6 +318,9 @@ int main() {
         // show last frame time
         //std::cout << "Frame time: " << frameDuration << std::endl;
 
+        // show estimated frame rate given frameDuration:
+        // std::cout << "Estimated frame rate: " << 1.0 / frameDuration << std::endl;
+
         lastFrameTime = glfwGetTime(); 
 
         // check and call events and swap the buffers
