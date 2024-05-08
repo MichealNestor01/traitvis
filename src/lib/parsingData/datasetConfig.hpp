@@ -106,14 +106,14 @@ public:
 
 class BlockDataset : public Dataset {
 private:
-    struct Attribute {
+    struct BlockAttribute {
         std::string name;
         int start;
         int stride;
         float lowerBound;
         float upperBound; 
     };
-    std::vector<Attribute> attributes;
+    std::vector<BlockAttribute> attributes;
 public:
     BlockDataset(int xVals, int yVals, int zVals, DimensionOrder order, IndexScheme scheme) : Dataset(BLOCK, xVals, yVals, zVals, order, scheme) {}
     void printDataset() const {
