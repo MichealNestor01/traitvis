@@ -107,12 +107,4 @@ public:
     glm::vec3 getPos() const {
         return pos;
     }
-
-    float getOldMouseX() {
-        return oldMouseX;
-    }
-
-    float getOldMouseY() {
-        return oldMouseY;
-    }
 };
