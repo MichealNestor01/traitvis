@@ -60,13 +60,13 @@ void GUI::render() {
         if (newVertex.values.size() > 0) programState.addAttributeSpaceVertexToBuffer(newVertex);
     }
 
-    if (programState.attributeSpaceVerticesBuffer.size() != 0) {
+    if (programState.attributeSpacePointsBuffer.size() != 0) {
         ImGui::Text(" ");
         ImGui::Text("Attribute Vertices: ");
         int i = 0;
-        for (auto &vertex : programState.attributeSpaceVerticesBuffer) {
+        for (auto &vertex : programState.attributeSpacePointsBuffer) {
             if (ImGui::Button(std::string("Remove Vertex: " + std::to_string(i)).c_str())) {
-                programState.attributeSpaceVerticesBuffer.erase(programState.attributeSpaceVerticesBuffer.begin() + i);
+                programState.attributeSpacePointsBuffer.erase(programState.attributeSpacePointsBuffer.begin() + i);
             }
             ImGui::SameLine();
             if (ImGui::Button(std::string("Load Vertex: " + std::to_string(i)).c_str())) {

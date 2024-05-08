@@ -42,17 +42,17 @@ struct ProgramState {
     bool loadedDataset = false;
     MultiField dataset;
     // levelset variables
-    std::vector<TraitPoint> attributeSpaceVerticesBuffer;
+    std::vector<TraitPoint> attributeSpacePointsBuffer;
     std::vector<FeatureLevelSet> levelSets;
 
 
     void generateLevelSet(float euclideanDistance, glm::vec3 colour, std::string id) {
-        FeatureLevelSet newLevelSet(attributeSpaceVerticesBuffer, dataset, euclideanDistance, colour, id);
+        FeatureLevelSet newLevelSet(attributeSpacePointsBuffer, dataset, euclideanDistance, colour, id);
         levelSets.push_back(newLevelSet);
     }
 
     void addAttributeSpaceVertexToBuffer(TraitPoint vertex) {
-        attributeSpaceVerticesBuffer.push_back(vertex);
+        attributeSpacePointsBuffer.push_back(vertex);
     }
 
     void loadDataset(std::string path) {
