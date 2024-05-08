@@ -18,6 +18,30 @@ private:
         pos += speed * deltaTime * direction;
     }
 
+    void moveForward(float deltaTime) {
+        move(deltaTime, front);
+    }
+
+    void moveBackward(float deltaTime) { 
+        move(deltaTime, -front);
+    }
+
+    void moveRight(float deltaTime) { 
+        move(deltaTime, glm::normalize(glm::cross(front, up)));
+    }
+
+    void moveLeft(float deltaTime) {
+        move(deltaTime, -glm::normalize(glm::cross(front, up)));
+    }
+
+    void moveUp(float deltaTime) { 
+        move(deltaTime, up);
+    }
+
+    void moveDown(float deltaTime) {
+        move(deltaTime, -up);
+    }
+
 public:
     // direction controls
     float mouseSens = 0.15f;
@@ -90,29 +114,5 @@ public:
 
     float getOldMouseY() {
         return oldMouseY;
-    }
-
-    void moveForward(float deltaTime) {
-        move(deltaTime, front);
-    }
-
-    void moveBackward(float deltaTime) { 
-        move(deltaTime, -front);
-    }
-
-    void moveRight(float deltaTime) { 
-        move(deltaTime, glm::normalize(glm::cross(front, up)));
-    }
-
-    void moveLeft(float deltaTime) {
-        move(deltaTime, -glm::normalize(glm::cross(front, up)));
-    }
-
-    void moveUp(float deltaTime) { 
-        move(deltaTime, up);
-    }
-
-    void moveDown(float deltaTime) {
-        move(deltaTime, -up);
     }
 };
