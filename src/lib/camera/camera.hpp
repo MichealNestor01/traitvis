@@ -9,7 +9,6 @@ private:
     // translation controls
     glm::vec3 up;
     // direction controls
-    float mouseSens = 0.15f;
     float oldMouseX = 800.f / 2.f;
     float oldMouseY = 600.f / 2.f;
     float yaw = -90.f;
@@ -20,6 +19,8 @@ private:
     }
 
 public:
+    // direction controls
+    float mouseSens = 0.15f;
     // speed
     float speed = 20.f;
     // translation controls 
