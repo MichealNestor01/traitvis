@@ -51,8 +51,8 @@ struct ProgramState {
         levelSets.push_back(newLevelSet);
     }
 
-    void addAttributeSpaceVertexToBuffer(TraitPoint vertex) {
-        attributeSpacePointsBuffer.push_back(vertex);
+    void addAttributeSpacePointToBuffer(TraitPoint point) {
+        attributeSpacePointsBuffer.push_back(point);
     }
 
     void loadDataset(std::string path) {

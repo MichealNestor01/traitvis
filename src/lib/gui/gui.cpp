@@ -57,7 +57,7 @@ void GUI::render() {
                 newVertex.values.push_back({&widget.attribute, widget.value});
             }
         }
-        if (newVertex.values.size() > 0) programState.addAttributeSpaceVertexToBuffer(newVertex);
+        if (newVertex.values.size() > 0) programState.addAttributeSpacePointToBuffer(newVertex);
     }
 
     if (programState.attributeSpacePointsBuffer.size() != 0) {
