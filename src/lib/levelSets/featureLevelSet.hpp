@@ -7,7 +7,7 @@
 
 class FeatureLevelSet {
 public:
-    std::vector<TraitPoint> vertices;
+    std::vector<TraitPoint> points;
     Surface surface;
     std::vector<float> surfaceVertices;
     glm::vec3 colour;
@@ -19,7 +19,7 @@ public:
     bool showActiveInactivePixels = false;
     bool invertNormals = false;
     
-    FeatureLevelSet(std::vector<TraitPoint> vertices, MultiField & dataset, float euclideanDistance, glm::vec3 colour, std::string id);
+    FeatureLevelSet(std::vector<TraitPoint> points, MultiField & dataset, float euclideanDistance, glm::vec3 colour, std::string id);
     
     bool operator<(const FeatureLevelSet &rhs) const {
         return renderDepth < rhs.renderDepth;
