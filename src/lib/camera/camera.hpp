@@ -26,8 +26,6 @@ public:
     // translation controls 
     glm::vec3 pos;
     glm::vec3 front;
-    // direction controls
-    bool firstMouseMovement = true;
     // actions
     bool actionForwards, actionBackwards, actionLeft, actionRight, actionUp, actionDown;
 
