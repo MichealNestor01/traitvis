@@ -14,7 +14,7 @@ class ShaderProgram {
             GLenum type;
             std::string path;
         };
-        ShaderProgram(std::vector<ShaderSource> = {});
+        ShaderProgram(std::vector<ShaderSource> sources = {});
         ~ShaderProgram();
         GLuint program;
         void setUniformb(std::string name, GLboolean b);
