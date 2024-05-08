@@ -26,7 +26,7 @@ To load a datset,you will need to describe it using our configuration file forma
 
 The configuration file schema is shown here with an example for timestep24 of Isabel below it. 
 
-![Configuration file schema](https://imgur.com/VZcXeel)
+![Configuration file schema](https://imgur.com/VZcXeel.png)
 
 ```
 NAME:isabell-timestep-24
