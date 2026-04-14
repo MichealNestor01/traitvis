@@ -79,40 +79,41 @@ project "main"
         optimize "On"
 
 project "tests"
-        location "_build_/tests"
-        kind "ConsoleApp"
-        language "C++"
-        targetdir "bin/%{cfg.buildcfg}"
+    location "_build_/tests"
+    kind "ConsoleApp"
+    language "C++"
+    targetdir "bin/%{cfg.buildcfg}"
 
-        files {
-            "tests/**.cpp",
-            "src/lib/marchingCubes/**",
-            "src/lib/parsingData/**",
-            "src/lib/levelSets/**",
-        }
+    files {
+        "tests/**.cpp",
+        "src/lib/marchingCubes/**",
+        "src/lib/parsingData/**",
+        "src/lib/levelSets/**",
+    }
 
-        links {
-            "GoogleTest",
-            "main",
-        }
-    
-        includedirs {
-            "third_party/googletest/googletest/include",
-            "third_party/glm",
-            "src/**",
-        }
+    links {
+        "GoogleTest",
+        "main",
+    }
 
-        libdirs {
-            "third_party/glfw/src"
-        }
+    includedirs {
+        "third_party/googletest/googletest/include",
+        "third_party/glm",
+        "src/**",
+        "tests"
+    }
 
-        filter "configurations:Debug"
-            defines {"DEBUG"}
-            symbols "On"
+    libdirs {
+        "third_party/glfw/src"
+    }
 
-        filter "configurations:Release"
-            defines {"NDEBUG"}
-            optimize "On"
+    filter "configurations:Debug"
+        defines {"DEBUG"}
+        symbols "On"
+
+    filter "configurations:Release"
+        defines {"NDEBUG"}
+        optimize "On"
 
 project "read_binary"
     location "_build_/read_binary"
@@ -137,25 +138,25 @@ project "read_binary"
         optimize "On"
 
 project "read_multifield"
-        location "_build_/read_multifield"
-        kind "ConsoleApp"
-        language "C++"
-        targetdir "bin/%{cfg.buildcfg}"
+    location "_build_/read_multifield"
+    kind "ConsoleApp"
+    language "C++"
+    targetdir "bin/%{cfg.buildcfg}"
+
     
-        
-        files { 
-            "src/read_multifield/*.cpp",
-            "src/read_multifield/*.hpp",
-            "src/lib/multiField/*.hpp",
-            "src/lib/multiField/*.cpp",
-            "src/lib/parsingData/*.hpp", 
-            "src/lib/parsingData/*.cpp", 
-        }
-    
-        filter "configurations:Debug"
-            defines { "DEBUG" }
-            symbols "On"
-    
-        filter "configurations:Release"
-            defines { "NDEBUG" }
-            optimize "On"
+    files { 
+        "src/read_multifield/*.cpp",
+        "src/read_multifield/*.hpp",
+        "src/lib/multiField/*.hpp",
+        "src/lib/multiField/*.cpp",
+        "src/lib/parsingData/*.hpp", 
+        "src/lib/parsingData/*.cpp", 
+    }
+
+    filter "configurations:Debug"
+        defines { "DEBUG" }
+        symbols "On"
+
+    filter "configurations:Release"
+        defines { "NDEBUG" }
+        optimize "On"
