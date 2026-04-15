@@ -5,6 +5,7 @@
 #include <vector>
 #include <iostream>
 #include <functional>
+#include <memory>
 
 enum DatasetFormat {BLOCK, ATTRIBUTEPERFILE};
 enum IndexScheme {ROWMAJOR, COLUMNMAJOR};
@@ -128,16 +129,13 @@ struct DatasetDirConfig {
     bool parseError = true;
     std::string filePath;
     std::string name;
-    Dataset *dataset = nullptr;
-
-    ~DatasetDirConfig() {
-        if (dataset != nullptr) delete dataset;
-    }
+    std::unique_ptr<Dataset> dataset;
 
     void printConfig() const {
         std::cout << "DatasetDirConfig" << std::endl;
         std::cout << "filePath: " << filePath << "; name: " << name << std::endl;
-        dataset->printDataset();
+        if (dataset) dataset->printDataset();
+        else std::cout << "Dataset obj is null" << std::endl;
     }
 };
 

@@ -11,7 +11,7 @@
 
 
 MultiField readAttributePerFileDataset(const DatasetDirConfig& config) {
-    AttributePerFileDataset* dataset = (AttributePerFileDataset*) config.dataset;
+    AttributePerFileDataset* dataset = static_cast<AttributePerFileDataset*>(config.dataset.get());
 
     MultiField multiField;
 

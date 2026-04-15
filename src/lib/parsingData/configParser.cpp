@@ -150,7 +150,8 @@ DatasetDirConfig parseConfig(std::string filepath) {
     if (datasetType == "ATTRIBUTEPERFILE") {
         try {
             int valuesPerFile = std::stoi(datasetStructure.substr(datasetStructure.find(":")+1));
-            config.dataset = new AttributePerFileDataset(valuesPerFile, xVals, yVals, zVals, dimOrder, scheme);
+            config.dataset = std::make_unique<AttributePerFileDataset>(valuesPerFile, xVals, yVals, zVals, dimOrder, scheme);
+            auto* dataset = static_cast<AttributePerFileDataset*>(config.dataset.get());
 
             // attributes will be listed as such in the file: ATTRIBUTE:filename:attributename:minfloatval:maxfloatval
             while (std::getline(configFile, line)) {
@@ -169,7 +170,7 @@ DatasetDirConfig parseConfig(std::string filepath) {
                         try {
                             float lowerBound = std::stof(attribute.substr(0, attribute.find(":")));
                             float upperBound = std::stof(attribute.substr(attribute.find(":")+1));
-                            static_cast<AttributePerFileDataset*>(config.dataset)->addFile(filename, name, lowerBound, upperBound);
+                            dataset->addFile(filename, name, lowerBound, upperBound);
                         }catch (const std::invalid_argument& err) {
                             std::cerr << "Unable to parse bounds for attribute: " << attribute << std::endl;
                             return config;
@@ -194,7 +195,7 @@ DatasetDirConfig parseConfig(std::string filepath) {
             return config;
         }
     } else if (datasetType == "BLOCK") {
-        config.dataset = new BlockDataset(xVals, yVals, zVals, dimOrder, scheme);
+        config.dataset = std::make_unique<BlockDataset>(xVals, yVals, zVals, dimOrder, scheme);
     } else {
         std::cerr << "Invalid dataset type \"" << datasetType << "\" in \"" << filepath << "\"" << std::endl;
         return config;
