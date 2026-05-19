@@ -35,7 +35,7 @@ public:
     IndexScheme scheme;
     // Constructor to initialize format
     Dataset(DatasetFormat fmt, int xVals, int yVals, int zVals, DimensionOrder order, IndexScheme scheme) : format(fmt), xVals(xVals), yVals(yVals), zVals(zVals), scheme(scheme), dimOrder(order) {}
-    ~Dataset() {}
+    virtual ~Dataset() = default;
     void virtual printDataset() const = 0;
     std::function<int(int, int, int, int, int, int)> getIndexFunction() const {
         switch (scheme) {
