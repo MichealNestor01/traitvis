@@ -61,28 +61,35 @@ DatasetDirConfig parseConfig(std::string filepath) {
     int xVals, yVals, zVals;
     std::getline(configFile, line);
     if (line.substr(0,14) == "SPACIALDOMAIN:") {
-        try {
-            std::string spacialDomain = line.substr(14);
-            std::string xValsStr = spacialDomain.substr(0, spacialDomain.find(":"));
-            spacialDomain = spacialDomain.substr(spacialDomain.find(":")+1);
-            std::string yValsStr = spacialDomain.substr(0, spacialDomain.find(":"));
-            std::string zValsStr = spacialDomain.substr(spacialDomain.find(":")+1);
-            try {
-                xVals = std::stoi(xValsStr);
-                yVals = std::stoi(yValsStr);
-                zVals = std::stoi(zValsStr);    
-            } catch (const std::invalid_argument& err) {
-                std::cerr << "Failed to parse SPACIALDOMAIN values from \"" << filepath << "\": Invalid Integer" << std::endl;
-                return config;
-            } catch (const std::out_of_range& err) {
-                std::cerr << "Failed to parse SPACIALDOMAIN values from  \"" << filepath << "\": Out of Integer range" << std::endl;
-                return config;
-            }
-        } catch (const std::out_of_range& err) {
+        std::string spacialDomain = line.substr(14);
+
+        auto firstColon = spacialDomain.find(':');
+        if (firstColon == std::string::npos) {
             std::cerr << "Spacial domain formatting error in \"" << filepath << "\"" << std::endl;
+            return config;
         }
+        std::string xValsStr = spacialDomain.substr(0, firstColon);
+        spacialDomain = spacialDomain.substr(firstColon + 1);
 
+        auto secondColon = spacialDomain.find(':');
+        if (secondColon == std::string::npos) {
+            std::cerr << "Spacial domain formatting error in \"" << filepath << "\"" << std::endl;
+            return config;
+        }
+        std::string yValsStr = spacialDomain.substr(0, secondColon);
+        std::string zValsStr = spacialDomain.substr(secondColon + 1);
 
+        try {
+            xVals = std::stoi(xValsStr);
+            yVals = std::stoi(yValsStr);
+            zVals = std::stoi(zValsStr);
+        } catch (const std::invalid_argument& err) {
+            std::cerr << "Failed to parse SPACIALDOMAIN values from \"" << filepath << "\": Invalid Integer" << std::endl;
+            return config;
+        } catch (const std::out_of_range& err) {
+            std::cerr << "Failed to parse SPACIALDOMAIN values from  \"" << filepath << "\": Out of Integer range" << std::endl;
+            return config;
+        }
     } else {
         std::cerr << "Failed to find SPACIALDOMAIN in \"" << filepath << "\"" << std::endl;
         return config;
