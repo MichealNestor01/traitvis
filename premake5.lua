@@ -1,6 +1,7 @@
 -- premake5.lua
 workspace "TraitVis"
     configurations { "Debug", "Release" }
+    cppdialect "C++20"
 
 project "GoogleTest"
     location "_build_/googletest"
