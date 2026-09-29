@@ -1,4 +1,5 @@
 #include "shaderProgram.hpp"
+#include "shaderSource.hpp"
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -13,36 +14,8 @@
 #include <sstream>
 
 GLuint loadShader(GLenum type, const char * path) {
-    std::vector<GLchar> sourceCode;
-    // read the text from the file
-    std::ostringstream msg;
-    if (std::FILE* input = std::fopen(path, "rb")) {
-        // get file length
-        std::fseek(input, 0, SEEK_END);
-        std::size_t length = std::size_t(std::ftell(input));
-        std::fseek(input, 0, SEEK_SET);
-
-        sourceCode.resize(length);
-        for (std::size_t totalRead = 0; totalRead != length;) {
-            auto const numRead = std::fread(sourceCode.data()+totalRead, 1, length-totalRead, input);
-            if (numRead == 0) {
-                if (auto const err = std::ferror(input)) {
-                    msg << "loadShader(): error while reading from \"" << path << "\": " << err \
-                        << " (" << totalRead << " bytes read, " << length << " total)";
-                    throw std::runtime_error(msg.str());
-                }
-                if (std::feof(input)) {
-                    msg << "loadShader(): unexpected EOF in \"" << path << "\": (" \
-                        << totalRead << " bytes read, " << length << " total)";
-                    throw std::runtime_error(msg.str());
-                }
-            }
-            totalRead+=numRead;
-        }
-    } else {
-        msg << "loadShader(): unable to open file \"" << path << "\"";
-        throw std::runtime_error(msg.str());
-    }
+    const std::string sourceStr = readShaderSource(path);
+    std::vector<GLchar> sourceCode(sourceStr.begin(), sourceStr.end());
 
     GLuint shader = glCreateShader(type);
     sourceCode.push_back('\0'); // ensure the source code is null termintated
@@ -55,6 +28,7 @@ GLuint loadShader(GLenum type, const char * path) {
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
     if (not success) {
         glGetShaderInfoLog(shader, 512, NULL, infoLog);
+        std::ostringstream msg;
         msg << "Unable to compile shader \"" << path << "\":" << infoLog;
         throw std::runtime_error(msg.str());
     }

@@ -89,6 +89,8 @@ project "tests"
         "src/lib/marchingCubes/**",
         "src/lib/parsingData/**",
         "src/lib/levelSets/**",
+        "src/lib/shaderTools/shaderSource.cpp",
+        "src/lib/shaderTools/shaderSource.hpp",
     }
 
     links {

@@ -9,7 +9,9 @@
 #include <gtc/type_ptr.hpp>
 #include <iostream>
 #include <math.h>
+#include <optional>
 #include <set>
+#include <stdexcept>
 #include <algorithm>
 #include <thread>
 #include <chrono>
@@ -93,11 +95,24 @@ int main() {
     //glClearColor(0.52f, 0.81f, 0.92f, 0.f);
     glClearColor(1.f, 1.f, 1.f, 0.f);
 
-    // create shader programs
-    ShaderProgram lightingShader({
-        {GL_VERTEX_SHADER, "assets/colours.vert"},
-        {GL_FRAGMENT_SHADER, "assets/colours.frag"}
-    });
+    // create shader programs (constructed in place: ShaderProgram owns a GL
+    // program id, so it must not be copied or move-assigned)
+    std::optional<ShaderProgram> lightingShaderOpt;
+    try {
+        lightingShaderOpt.emplace(std::vector<ShaderProgram::ShaderSource>{
+            {GL_VERTEX_SHADER, "assets/colours.vert"},
+            {GL_FRAGMENT_SHADER, "assets/colours.frag"}
+        });
+    } catch (const std::runtime_error& e) {
+        std::cerr << "Fatal: " << e.what() << std::endl;
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+        glfwDestroyWindow(window);
+        glfwTerminate();
+        return -1;
+    }
+    ShaderProgram& lightingShader = lightingShaderOpt.value();
     
     // global lighting variables
     glm::vec3 lightPos(0.5f, -3.f, -3.f);
