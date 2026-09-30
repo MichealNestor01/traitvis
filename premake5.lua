@@ -27,6 +27,36 @@ project "GoogleTest"
         defines {"NDEBUG"}
         optimize "On"
 
+-- GL-free library: parsing, the multifield model, distance fields, marching cubes,
+-- and the shader file reader. No GL, GLFW, or ImGui on the include path, so a
+-- platform include in here fails the build.
+project "core"
+    location "_build_/core"
+    kind "StaticLib"
+    language "C++"
+    targetdir "bin/%{cfg.buildcfg}"
+
+    files {
+        "src/lib/parsingData/**",
+        "src/lib/multiField/**",
+        "src/lib/levelSets/**",
+        "src/lib/marchingCubes/**",
+        "src/lib/camera/**",
+        "src/lib/shaderTools/shaderSource.*",
+    }
+
+    includedirs {
+        "third_party/glm",
+    }
+
+    filter "configurations:Debug"
+        defines {"DEBUG"}
+        symbols "On"
+
+    filter "configurations:Release"
+        defines {"NDEBUG"}
+        optimize "On"
+
 project "main"
     location "_build_/main"
     kind "ConsoleApp"
@@ -57,14 +87,16 @@ project "main"
         "pthread", 
         "dl",
         "GL",
-        "GoogleTest",
+        "core",
     }
 
     files {
         "src/main/*.cpp", 
         "src/main/*.hpp", 
-        "src/lib/**.cpp",
-        "src/lib/**.hpp",
+        "src/lib/gui/**",
+        "src/lib/meshTools/**",
+        "src/lib/shaderTools/shaderProgram.cpp",
+        "src/lib/shaderTools/shaderProgram.hpp",
         "third_party/glad/src/glad.c",
         "third_party/imgui/*.cpp",
         "third_party/imgui/backends/imgui_impl_glfw.cpp",
@@ -87,16 +119,11 @@ project "tests"
 
     files {
         "tests/**.cpp",
-        "src/lib/marchingCubes/**",
-        "src/lib/parsingData/**",
-        "src/lib/levelSets/**",
-        "src/lib/shaderTools/shaderSource.cpp",
-        "src/lib/shaderTools/shaderSource.hpp",
     }
 
     links {
         "GoogleTest",
-        "main",
+        "core",
     }
 
     includedirs {
@@ -104,10 +131,6 @@ project "tests"
         "third_party/glm",
         "src/**",
         "tests"
-    }
-
-    libdirs {
-        "third_party/glfw/src"
     }
 
     filter "configurations:Debug"
@@ -128,9 +151,9 @@ project "read_binary"
     files { 
         "src/read_binary/*.cpp",
         "src/read_binary/*.hpp",
-        "src/lib/parsingData/*.hpp", 
-        "src/lib/parsingData/*.cpp" 
     }
+
+    links { "core" }
 
     filter "configurations:Debug"
         defines { "DEBUG" }
@@ -150,11 +173,9 @@ project "read_multifield"
     files { 
         "src/read_multifield/*.cpp",
         "src/read_multifield/*.hpp",
-        "src/lib/multiField/*.hpp",
-        "src/lib/multiField/*.cpp",
-        "src/lib/parsingData/*.hpp", 
-        "src/lib/parsingData/*.cpp", 
     }
+
+    links { "core" }
 
     filter "configurations:Debug"
         defines { "DEBUG" }
