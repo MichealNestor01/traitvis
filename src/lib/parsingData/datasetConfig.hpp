@@ -6,6 +6,7 @@
 #include <iostream>
 #include <functional>
 #include <memory>
+#include <optional>
 
 enum DatasetFormat {BLOCK, ATTRIBUTEPERFILE};
 enum IndexScheme {ROWMAJOR, COLUMNMAJOR};
@@ -129,11 +130,15 @@ struct DatasetDirConfig {
     bool parseError = true;
     std::string filePath;
     std::string name;
+    // Absent means the dataset has no fill value. Present means that exact
+    // float is missing data and becomes NaN when the attribute files are read.
+    std::optional<float> noData;
     std::unique_ptr<Dataset> dataset;
 
     void printConfig() const {
         std::cout << "DatasetDirConfig" << std::endl;
         std::cout << "filePath: " << filePath << "; name: " << name << std::endl;
+        if (noData) std::cout << "noData: " << *noData << std::endl;
         if (dataset) dataset->printDataset();
         else std::cout << "Dataset obj is null" << std::endl;
     }

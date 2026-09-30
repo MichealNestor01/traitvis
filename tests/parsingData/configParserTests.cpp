@@ -42,7 +42,8 @@ INSTANTIATE_TEST_SUITE_P(
         BadConfigCase{"MissingAttribute",        "tests/parsingData/badConfigFiles/missingAttribute.txt",       "Failed to find ATTRIBUTE where expected in \"tests/parsingData/badConfigFiles/missingAttribute.txt\"\n"},
         BadConfigCase{"AttributeMissformatted",  "tests/parsingData/badConfigFiles/attributeMissformatted.txt", "Attribute miss formatted in \"tests/parsingData/badConfigFiles/attributeMissformatted.txt\": ATTRIBUTE:\n"},
         BadConfigCase{"BadSpacialdomain",        "tests/parsingData/badConfigFiles/badSpacialdomain.txt",       "Failed to parse SPACIALDOMAIN values from \"tests/parsingData/badConfigFiles/badSpacialdomain.txt\": Invalid Integer\n"},
-        BadConfigCase{"TruncatedSpacialdomain",  "tests/parsingData/badConfigFiles/truncatedSpacialdomain.txt", "Spacial domain formatting error in \"tests/parsingData/badConfigFiles/truncatedSpacialdomain.txt\"\n"}
+        BadConfigCase{"TruncatedSpacialdomain",  "tests/parsingData/badConfigFiles/truncatedSpacialdomain.txt", "Spacial domain formatting error in \"tests/parsingData/badConfigFiles/truncatedSpacialdomain.txt\"\n"},
+        BadConfigCase{"BadNodata",              "tests/parsingData/badConfigFiles/badNodata.txt",             "Failed to parse NODATA value from \"tests/parsingData/badConfigFiles/badNodata.txt\": Invalid float\n"}
     ),
     [](const testing::TestParamInfo<BadConfigCase>& info) {
         return info.param.name;

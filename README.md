@@ -24,7 +24,7 @@ Tests can be ran using the tests binary, however, for tests the tests to succeed
 
 To load a datset,you will need to describe it using our configuration file format. Currently TraitVis only supports mutlfield datasets where attributes are defined in separate binary files of the same size in the brick of floats format. The Hurricane Isabel datset is an example of a dataset which TratVis currently supports and can be donwloaded [here](https://www.earthsystemgrid.org/dataset/isabeldata.html).
 
-The configuration file schema is shown here with an example for timestep24 of Isabel below it. 
+The configuration file schema is shown here with an example for timestep24 of Isabel below it. `NODATA` is optional. When it is present, that exact float value is treated as missing data.
 
 ![Configuration file schema](https://imgur.com/VZcXeel.png)
 
@@ -34,6 +34,7 @@ FILEPATH:GLOBAL/PATH/TO/TIMESTEP
 SPACIALDOMAIN:500:100:500
 DIMENSIONORDER:WIDTH_DEPTH_HEIGHT
 INDEXSCHEME:ROWMAJOR
+NODATA:1e35
 DATASETSTRUCTURE:ATTRIBUTEPERFILE:25000000
 ATTRIBUTE:CLOUDf24.bin:Total cloud:0:0.0032
 ATTRIBUTE:Pf24.bin:Pressure:-5471.85791:3225.42578

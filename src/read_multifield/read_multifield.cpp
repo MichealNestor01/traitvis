@@ -1,3 +1,4 @@
+#include <cmath>
 #include <iostream>
 #include <vector>
 
@@ -6,7 +7,6 @@
 #include "../lib/parsingData/datasetReader.hpp"
 
 
-const float NO_DATA_VAL = 1.0000000e+35;
 
 int main(int argc, char **argv) {
     MultiField isabel = readDataset("/home/michealnestor/University/final-project/dataset/timestep02/config.txt");
@@ -25,12 +25,9 @@ int main(int argc, char **argv) {
         // check if any of the values are outside of the allowed range for this file
         std::vector<int> invalid_indexes = {};
         for (int valIndex = 0; valIndex < curr.values.size(); ++valIndex) {
-            if (
-                curr.values[valIndex] != NO_DATA_VAL and (
-                    curr.bounds.lower > curr.values[valIndex] or 
-                    curr.values[valIndex] > curr.bounds.upper
-                )) {
-                    invalid_indexes.push_back(valIndex);                
+            if (std::isnan(curr.values[valIndex])) continue;
+            if (curr.bounds.lower > curr.values[valIndex] or curr.values[valIndex] > curr.bounds.upper) {
+                invalid_indexes.push_back(valIndex);
             }
         }
         std::cout << "\tFound " << invalid_indexes.size() << " points outside of the allowed range" << std::endl;

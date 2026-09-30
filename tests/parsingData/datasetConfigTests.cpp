@@ -34,4 +34,13 @@ TEST(DatasetConfigTests, ParsedConfigDatasetIsAccessible) {
     EXPECT_EQ(config.dataset->xVals, 2);
     EXPECT_EQ(config.dataset->yVals, 2);
     EXPECT_EQ(config.dataset->zVals, 2);
+    EXPECT_FALSE(config.noData.has_value());
+}
+
+TEST(DatasetConfigTests, OptionalNoDataIsParsedAsFloat) {
+    StreamRedirect redirect(std::cerr);
+    DatasetDirConfig config = parseConfig("tests/parsingData/sentinelDataset/config.txt");
+    ASSERT_FALSE(config.parseError);
+    ASSERT_TRUE(config.noData.has_value());
+    EXPECT_FLOAT_EQ(*config.noData, 1e35f);
 }

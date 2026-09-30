@@ -1,0 +1,7 @@
+NAME:sentinelDataset
+FILEPATH:/home/michealnestor/University/final-project/tests/parsingData/sentinelDataset/
+SPACIALDOMAIN:2:2:2
+DIMENSIONORDER:WIDTH_DEPTH_HEIGHT
+INDEXSCHEME:ROWMAJOR
+DATASETSTRUCTURE:ATTRIBUTEPERFILE:8
+ATTRIBUTE:sentinel.bin:attr:0:1

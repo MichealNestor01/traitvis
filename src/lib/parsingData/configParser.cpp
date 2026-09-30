@@ -137,10 +137,24 @@ DatasetDirConfig parseConfig(std::string filepath) {
         return config;
     }
     
+    // Optional fill value. Omitted datasets keep every sample.
+    std::getline(configFile, line);
+    if (line.substr(0, 7) == "NODATA:") {
+        try {
+            config.noData = std::stof(line.substr(7));
+        } catch (const std::invalid_argument&) {
+            std::cerr << "Failed to parse NODATA value from \"" << filepath << "\": Invalid float" << std::endl;
+            return config;
+        } catch (const std::out_of_range&) {
+            std::cerr << "Failed to parse NODATA value from \"" << filepath << "\": Out of float range" << std::endl;
+            return config;
+        }
+        std::getline(configFile, line);
+    }
+
     // read the datasetStructure
     std::string datasetType;
     std::string datasetStructure;
-    std::getline(configFile, line);
     if (line.substr(0,17) == "DATASETSTRUCTURE:") {
         try {
             datasetStructure = line.substr(17);

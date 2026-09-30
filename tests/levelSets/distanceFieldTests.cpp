@@ -2,9 +2,10 @@
 #include "multiField.hpp"
 
 #include <gtest/gtest.h>
-#include <iostream>
-#include <sstream>
 #include <cmath>
+#include <iostream>
+#include <limits>
+#include <sstream>
 
 
 // Using a test class here to ensure that the same MultiField object is used for all tests
@@ -185,6 +186,23 @@ TEST_F(DistanceFieldTests, ThreeDimensionalAttributeSpace) {
     // validate that the distance field matches the expected distance field 
     for (int i = 0; i < distanceField.size(); i++) 
         EXPECT_EQ(distanceField[i][3], expectedDistanceField[i]) << " coordinate (" << distanceField[i][0] << ", " << distanceField[i][1] << ", " << distanceField[i][2] << ") has distance " << distanceField[i][3] << " expected: " << expectedDistanceField[i];
-}    
-    
+}
+
+TEST_F(DistanceFieldTests, NaNVoxelKeepsMaxDistanceAndDoesNotAffectNeighbours) {
+    testMultiField.attributeDomain[0].values[0] = std::numeric_limits<float>::quiet_NaN();
+    TraitPoint point1 = {
+        .values = {{.attribute = &testMultiField.attributeDomain[0], .value = 1.f}}
+    };
+
+    std::streambuf* originalCoutBuffer = std::cout.rdbuf();
+    std::ostringstream redirectedCout;
+    std::cout.rdbuf(redirectedCout.rdbuf());
+    std::vector<std::vector<float>> distanceField = generateDistanceField({point1}, testMultiField);
+    std::cout.rdbuf(originalCoutBuffer);
+
+    // (0,0,0) holds the NaN. NaN loses the comparison, so the voxel stays at the initial max.
+    EXPECT_EQ(distanceField[0][3], std::numeric_limits<float>::max());
+    // (0,0,1) has attribute value 1, so its distance to the trait value 1 is unchanged.
+    EXPECT_FLOAT_EQ(distanceField[1][3], 0.f);
+}
     

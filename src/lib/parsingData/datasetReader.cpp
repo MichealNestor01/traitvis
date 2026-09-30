@@ -1,8 +1,11 @@
 #include "datasetReader.hpp"
 
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <limits>
 #include <string>
 #include <vector>
-#include <iostream>
 
 #include "../multiField/multiField.hpp"
 #include "datasetConfig.hpp"
@@ -30,15 +33,22 @@ MultiField readAttributePerFileDataset(const DatasetDirConfig& config) {
             std::cerr << "Failed to read values from " << path << std::endl;
             return multiField;
         }
+        // A configured fill value becomes NaN so it passes through normalisation
+        // unchanged and loses every distance comparison (NaN < x is false).
+        if (config.noData.has_value()) {
+            const float sentinel = *config.noData;
+            std::ranges::replace_if(vals,
+                [sentinel](float value) { return value == sentinel; },
+                std::numeric_limits<float>::quiet_NaN());
+        }
         // reinterpret the lower and upper bounds as the actual lowest and greatest value in the file
         // values will then be normalised between these bounds
         float lowerBound = file.upperBound;
         float upperBound = file.lowerBound;
         for (float val : vals) {
-            if (val != 1e35) {
-                if (val < lowerBound && val >= file.lowerBound) lowerBound = val;
-                if (val > upperBound && val <= file.upperBound) upperBound = val;
-            }
+            if (std::isnan(val)) continue;
+            if (val < lowerBound && val >= file.lowerBound) lowerBound = val;
+            if (val > upperBound && val <= file.upperBound) upperBound = val;
         }
 
         multiField.attributeDomain.push_back({file.name, {lowerBound, upperBound}, vals});
