@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
 #include "../multiField/multiField.hpp"
+#include "scalarField.hpp"
 
-std::vector<std::vector<float>> generateDistanceField(const std::vector<TraitPoint> & vertices, const MultiField & mulitifield);
+ScalarField generateDistanceField(const std::vector<TraitPoint> & vertices, const MultiField & multifield);

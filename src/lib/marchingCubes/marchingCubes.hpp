@@ -1,9 +1,9 @@
 #pragma once
 #include <stdlib.h>
-#include <glm.hpp>
 #include <vector>
 #include <map>
 #include <set>
+#include "../levelSets/scalarField.hpp"
 
 struct Vec3Comparator {
     bool operator()(const glm::vec3& a, const glm::vec3& b) const {
@@ -16,13 +16,6 @@ struct Vec3Comparator {
     }
 };
 
-struct GridLayout {
-	int x, y, z, total;
-	GridLayout(int x, int y, int z): x(x), y(y), z(z) {
-		total = x*y*z;
-	}
-};
-
 struct Surface {
 	std::vector<glm::vec3> vertices;
 	std::vector<glm::vec3> normals;
@@ -33,5 +26,5 @@ struct Surface {
 	std::vector<float> getVertices();
 };
 
-void examineCube(Surface &triangles, const GridLayout &layout, const  std::vector<std::vector<float>> &grid, int vertex0, float isoValue);
-Surface extractSurface(const std::vector<std::vector<float>> &grid, const GridLayout &layout, float isoValue);
+void examineCube(Surface &triangles, const ScalarField &field, int vertex0, float isoValue);
+Surface extractSurface(const ScalarField &field, float isoValue);

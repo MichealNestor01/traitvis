@@ -1,7 +1,9 @@
 #include "distanceField.hpp"
 #include "multiField.hpp"
+#include "scalarField.hpp"
 
 #include <gtest/gtest.h>
+#include <glm.hpp>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -62,20 +64,16 @@ protected:
             }
         };
     }
+
+    // Fixture method: it has to see testMultiField, so it cannot be a free function.
+    TraitPoint pointOn(int attribute, float value) {
+        return {.values = {{.attribute = &testMultiField.attributeDomain[attribute], .value = value}}};
+    }
 };
 
 
 TEST_F(DistanceFieldTests, SingleDimensionAttributeSpace) {
-    TraitPoint point1 = {
-        .values = { // std::vector<TraitPointComponent>
-            {
-                .attribute = &testMultiField.attributeDomain[0],
-                .value = 1
-            }
-        }
-    };
-    
-    std::vector<TraitPoint> points = {point1};
+    std::vector<TraitPoint> points = {pointOn(0, 1.f)};
 
     // simplified distance field as the coordinates are not needed for this test
     std::vector<float> expectedDistanceField = {
@@ -92,30 +90,21 @@ TEST_F(DistanceFieldTests, SingleDimensionAttributeSpace) {
     std::ostringstream redirectedCout;
     std::cout.rdbuf(redirectedCout.rdbuf());
 
-    std::vector<std::vector<float>> distanceField = generateDistanceField(points, testMultiField);
+    ScalarField field = generateDistanceField(points, testMultiField);
 
     // Restore std::cout to its original buffer
     std::cout.rdbuf(originalCoutBuffer);
 
-    // validate that the distance field matches the expected distance field 
-    for (int i = 0; i < distanceField.size(); i++) 
-        EXPECT_EQ(distanceField[i][3], expectedDistanceField[i]) << " coordinate (" << distanceField[i][0] << ", " << distanceField[i][1] << "," << distanceField[i][2] << ") has distance " << distanceField[i][3] << " expected: " << expectedDistanceField[i];
-}    
+    for (int i = 0; i < static_cast<int>(field.values.size()); i++) {
+        const glm::ivec3 c = field.layout.coords(i);
+        EXPECT_EQ(field.values[i], expectedDistanceField[i]) << " coordinate (" << c.x << ", " << c.y << ", " << c.z << ") has distance " << field.values[i] << " expected: " << expectedDistanceField[i];
+    }
+}
 
 TEST_F(DistanceFieldTests, TwoDimensionalAttributeSpace) {
-    TraitPoint point1 = {
-        .values = { // std::vector<TraitPointComponent>
-            {
-                .attribute = &testMultiField.attributeDomain[0],
-                .value = 1
-            },
-            {
-                .attribute = &testMultiField.attributeDomain[1],
-                .value = 1
-            }
-        }
-    };
-    
+    TraitPoint point1 = pointOn(0, 1.f);
+    point1.values.push_back(pointOn(1, 1.f).values[0]);
+
     std::vector<TraitPoint> points = {point1};
 
     // simplified distance field as the coordinates are not needed for this test
@@ -133,34 +122,22 @@ TEST_F(DistanceFieldTests, TwoDimensionalAttributeSpace) {
     std::ostringstream redirectedCout;
     std::cout.rdbuf(redirectedCout.rdbuf());
 
-    std::vector<std::vector<float>> distanceField = generateDistanceField(points, testMultiField);
+    ScalarField field = generateDistanceField(points, testMultiField);
 
     // Restore std::cout to its original buffer
     std::cout.rdbuf(originalCoutBuffer);
 
-    // validate that the distance field matches the expected distance field 
-    for (int i = 0; i < distanceField.size(); i++) 
-        EXPECT_EQ(distanceField[i][3], expectedDistanceField[i]) << " coordinate (" << distanceField[i][0] << ", " << distanceField[i][1] << "," << distanceField[i][2] << ") has distance " << distanceField[i][3] << " expected: " << expectedDistanceField[i];
-}    
+    for (int i = 0; i < static_cast<int>(field.values.size()); i++) {
+        const glm::ivec3 c = field.layout.coords(i);
+        EXPECT_EQ(field.values[i], expectedDistanceField[i]) << " coordinate (" << c.x << ", " << c.y << ", " << c.z << ") has distance " << field.values[i] << " expected: " << expectedDistanceField[i];
+    }
+}
 
 TEST_F(DistanceFieldTests, ThreeDimensionalAttributeSpace) {
-    TraitPoint point1 = {
-        .values = { // std::vector<TraitPointComponent>
-            {
-                .attribute = &testMultiField.attributeDomain[0],
-                .value = 1
-            },
-            {
-                .attribute = &testMultiField.attributeDomain[1],
-                .value = 1
-            },
-            {
-                .attribute = &testMultiField.attributeDomain[2],
-                .value = 1
-            }
-        }
-    };
-    
+    TraitPoint point1 = pointOn(0, 1.f);
+    point1.values.push_back(pointOn(1, 1.f).values[0]);
+    point1.values.push_back(pointOn(2, 1.f).values[0]);
+
     std::vector<TraitPoint> points = {point1};
 
     // simplified distance field as the coordinates are not needed for this test
@@ -178,31 +155,29 @@ TEST_F(DistanceFieldTests, ThreeDimensionalAttributeSpace) {
     std::ostringstream redirectedCout;
     std::cout.rdbuf(redirectedCout.rdbuf());
 
-    std::vector<std::vector<float>> distanceField = generateDistanceField(points, testMultiField);
+    ScalarField field = generateDistanceField(points, testMultiField);
 
     // Restore std::cout to its original buffer
     std::cout.rdbuf(originalCoutBuffer);
 
-    // validate that the distance field matches the expected distance field 
-    for (int i = 0; i < distanceField.size(); i++) 
-        EXPECT_EQ(distanceField[i][3], expectedDistanceField[i]) << " coordinate (" << distanceField[i][0] << ", " << distanceField[i][1] << ", " << distanceField[i][2] << ") has distance " << distanceField[i][3] << " expected: " << expectedDistanceField[i];
+    for (int i = 0; i < static_cast<int>(field.values.size()); i++) {
+        const glm::ivec3 c = field.layout.coords(i);
+        EXPECT_EQ(field.values[i], expectedDistanceField[i]) << " coordinate (" << c.x << ", " << c.y << ", " << c.z << ") has distance " << field.values[i] << " expected: " << expectedDistanceField[i];
+    }
 }
 
 TEST_F(DistanceFieldTests, NaNVoxelKeepsMaxDistanceAndDoesNotAffectNeighbours) {
     testMultiField.attributeDomain[0].values[0] = std::numeric_limits<float>::quiet_NaN();
-    TraitPoint point1 = {
-        .values = {{.attribute = &testMultiField.attributeDomain[0], .value = 1.f}}
-    };
+    std::vector<TraitPoint> points = {pointOn(0, 1.f)};
 
     std::streambuf* originalCoutBuffer = std::cout.rdbuf();
     std::ostringstream redirectedCout;
     std::cout.rdbuf(redirectedCout.rdbuf());
-    std::vector<std::vector<float>> distanceField = generateDistanceField({point1}, testMultiField);
+    ScalarField field = generateDistanceField(points, testMultiField);
     std::cout.rdbuf(originalCoutBuffer);
 
     // (0,0,0) holds the NaN. NaN loses the comparison, so the voxel stays at the initial max.
-    EXPECT_EQ(distanceField[0][3], std::numeric_limits<float>::max());
+    EXPECT_EQ(field.values[0], std::numeric_limits<float>::max());
     // (0,0,1) has attribute value 1, so its distance to the trait value 1 is unchanged.
-    EXPECT_FLOAT_EQ(distanceField[1][3], 0.f);
+    EXPECT_FLOAT_EQ(field.values[1], 0.f);
 }
-    

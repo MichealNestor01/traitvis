@@ -23,7 +23,8 @@ std::vector<float> Surface::getVertices() {
     return verticesWithNormals;
 }
 
-void examineCube(Surface &triangles, const GridLayout &layout, const std::vector<std::vector<float>> &grid, int vertex0, float isoValue) {
+void examineCube(Surface &triangles, const ScalarField &field, int vertex0, float isoValue) {
+    const GridLayout &layout = field.layout;
     int vertices[8];
     // find the index in the coordinate grid of each vertex of the cube
     vertices[0] = vertex0;
@@ -37,14 +38,14 @@ void examineCube(Surface &triangles, const GridLayout &layout, const std::vector
 
     // find the case this cube matches with
     int cubeIndex = 0;
-    if (grid[vertices[0]][3] > isoValue) cubeIndex |= 1;
-    if (grid[vertices[1]][3] > isoValue) cubeIndex |= 2;
-    if (grid[vertices[2]][3] > isoValue) cubeIndex |= 4;
-    if (grid[vertices[3]][3] > isoValue) cubeIndex |= 8;
-    if (grid[vertices[4]][3] > isoValue) cubeIndex |= 16;
-    if (grid[vertices[5]][3] > isoValue) cubeIndex |= 32;
-    if (grid[vertices[6]][3] > isoValue) cubeIndex |= 64;
-    if (grid[vertices[7]][3] > isoValue) cubeIndex |= 128;
+    if (field.values[vertices[0]] > isoValue) cubeIndex |= 1;
+    if (field.values[vertices[1]] > isoValue) cubeIndex |= 2;
+    if (field.values[vertices[2]] > isoValue) cubeIndex |= 4;
+    if (field.values[vertices[3]] > isoValue) cubeIndex |= 8;
+    if (field.values[vertices[4]] > isoValue) cubeIndex |= 16;
+    if (field.values[vertices[5]] > isoValue) cubeIndex |= 32;
+    if (field.values[vertices[6]] > isoValue) cubeIndex |= 64;
+    if (field.values[vertices[7]] > isoValue) cubeIndex |= 128;
 
     // No triangles found
     if (cubeIndex == 0 or cubeIndex == 255) return;
@@ -57,22 +58,21 @@ void examineCube(Surface &triangles, const GridLayout &layout, const std::vector
             // and add that to the list of vertices
             int edge = matchingCase[triIndex*3+vertIndex];
             int *endPoints = edgeTable[edge];
-            std::vector<float> endPoint0 = grid[vertices[endPoints[0]]];
-            std::vector<float> endPoint1 = grid[vertices[endPoints[1]]];
-            float isoDistance = (isoValue-endPoint0[3])/(endPoint1[3] - endPoint0[3]); 
-            glm::vec3 vertex(
-                endPoint0[0]+(isoDistance * (endPoint1[0]-endPoint0[0])),
-                endPoint0[1]+(isoDistance * (endPoint1[1]-endPoint0[1])),
-                endPoint0[2]+(isoDistance * (endPoint1[2]-endPoint0[2]))
-            );
+            int corner0 = vertices[endPoints[0]];
+            int corner1 = vertices[endPoints[1]];
+            float value0 = field.values[corner0];
+            float value1 = field.values[corner1];
+            glm::vec3 endPoint0 = glm::vec3(field.layout.coords(corner0));
+            glm::vec3 endPoint1 = glm::vec3(field.layout.coords(corner1));
+            float isoDistance = (isoValue - value0) / (value1 - value0);
+            glm::vec3 vertex = endPoint0 + isoDistance * (endPoint1 - endPoint0);
             triangles.vertices.push_back(vertex);
-            if (endPoint0[3] < isoValue) {
-                triangles.activeVertices.insert({endPoint0[0], endPoint0[1], endPoint0[2]});
-                triangles.inactiveVertices.insert({endPoint1[0], endPoint1[1], endPoint1[2]});
-
+            if (value0 < isoValue) {
+                triangles.activeVertices.insert(endPoint0);
+                triangles.inactiveVertices.insert(endPoint1);
             } else {
-                triangles.inactiveVertices.insert({endPoint0[0], endPoint0[1], endPoint0[2]});
-                triangles.activeVertices.insert({endPoint1[0], endPoint1[1], endPoint1[2]});
+                triangles.inactiveVertices.insert(endPoint0);
+                triangles.activeVertices.insert(endPoint1);
             }
         }
         // calculate surface normal for the traingle and assign it to the triangle's three vertices
@@ -86,8 +86,9 @@ void examineCube(Surface &triangles, const GridLayout &layout, const std::vector
     }
 }
 
-Surface extractSurface(const std::vector<std::vector<float>> &grid, const GridLayout &layout, float isoValue) {
+Surface extractSurface(const ScalarField &field, float isoValue) {
     Surface surface;
+    const GridLayout &layout = field.layout;
 
     // Start timing
     auto startTime = std::chrono::high_resolution_clock::now();
@@ -95,7 +96,7 @@ Surface extractSurface(const std::vector<std::vector<float>> &grid, const GridLa
     for (int x = 0; x < layout.x - 1; ++x) {
     for (int y = 0; y < layout.y - 1; ++y) {
     for (int z = 0; z < layout.z - 1; ++z) {
-        examineCube(surface, layout, grid, (x*layout.z*layout.y) + (y*layout.z) + z, isoValue);
+        examineCube(surface, field, layout.index(x, y, z), isoValue);
     }}}
 
     // End timing and calculate duration

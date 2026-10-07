@@ -140,44 +140,21 @@ int main() {
     // setup gui 
     GUI gui(state);
 
-    // test grid
-    GridLayout layout = {3, 3, 3}; 
-    std::vector<std::vector<float>> grid = {
-        // x layer 1
-        {0, 0, 0, 1},  {0, 0, 1, 1},  {0, 0, 2, 1}, 
-        {0, 1, 0, 1},  {0, 1, 1, 1},  {0, 1, 2, 1}, 
-        {0, 2, 0, 1},  {0, 2, 1, 1},  {0, 2, 2, 1}, 
-        // x layer 2
-        {1, 0, 0, 1},  {1, 0, 1, 1},  {1, 0, 2, 1}, 
-        {1, 1, 0, 1},  {1, 1, 1, -1},  {1, 1, 2, 1}, 
-        {1, 2, 0, 1},  {1, 2, 1, 1},  {1, 2, 2, 1}, 
-        // x layer 3
-        {2, 0, 0, 1},  {2, 0, 1, 1},  {2, 0, 2, 1}, 
-        {2, 1, 0, 1},  {2, 1, 1, 1},  {2, 1, 2, 1}, 
-        {2, 2, 0, 1},  {2, 2, 1, 1},  {2, 2, 2, 1}, 
-    };
+    // test grid: one active corner at (1, 1, 1)
+    ScalarField field{{3, 3, 3}, std::vector<float>(27, 1.f)};
+    field.values[field.layout.index(1, 1, 1)] = -1.f;
     float isoValue = 0;
 
     // code to display specific marching cubes case
-    // GridLayout layout = {2, 2, 2};
-    // float isoValue = 0; 
+    // ScalarField field{{2, 2, 2}, std::vector<float>(8)};
+    // float isoValue = 0;
     // int caseNum = 6;
-    // std::vector<std::vector<float>> grid = {
-    //     // Layer 1
-    //     {0, 0, 0, static_cast<float>((caseNum & 1) ? 1 : -1)},
-    //     {0, 0, 1, static_cast<float>((caseNum & 2) ? 1 : -1)},
-    //     {0, 1, 0, static_cast<float>((caseNum & 4) ? 1 : -1)},
-    //     {0, 1, 1, static_cast<float>((caseNum & 8) ? 1 : -1)},
-    //     // Layer 2
-    //     {1, 0, 0, static_cast<float>((caseNum & 16) ? 1 : -1)},
-    //     {1, 0, 1, static_cast<float>((caseNum & 32) ? 1 : -1)},
-    //     {1, 1, 0, static_cast<float>((caseNum & 64) ? 1 : -1)},
-    //     {1, 1, 1, static_cast<float>((caseNum & 128) ? 1 : -1)}
-    // };
+    // for (int corner = 0; corner < 8; ++corner)
+    //     field.values[corner] = (caseNum & (1 << corner)) ? 1.f : -1.f;
 
     //create surface based on active vertices in the grid
     //if a surface exists createa a VAO for it.
-    Surface surface = extractSurface(grid, layout, isoValue);
+    Surface surface = extractSurface(field, isoValue);
     unsigned int surfaceVAO;
     if (surface.vertices.size()) {
         std::vector<float> surfaceVertices = surface.getVertices();
@@ -189,8 +166,8 @@ int main() {
     
     // // create model matrices to place small cubes at each point on the coordinate grid 
     std::vector<glm::mat4> pixels;
-    for (int pixel = 0; pixel < layout.total; ++pixel) 
-       pixels.push_back(glm::scale(glm::translate(glm::mat4(1.f), glm::vec3({grid[pixel][0], grid[pixel][1], grid[pixel][2]})), glm::vec3(0.1f)));
+    for (int pixel = 0; pixel < field.layout.total(); ++pixel)
+       pixels.push_back(glm::scale(glm::translate(glm::mat4(1.f), glm::vec3(field.layout.coords(pixel))), glm::vec3(0.1f)));
 
     // setup static uniforms for the lighting shader that don't change
     glUseProgram(lightingShader.program);
@@ -261,7 +238,7 @@ int main() {
         lightingShader.setUniformf("objectTransparency", 1.f);
         lightingShader.setUniformb("invertNormal", true);
         for (int pixel = 0; pixel < pixels.size(); ++pixel) {
-            if (grid[pixel][3] > isoValue) lightingShader.setUniform3f("objectColor", colourRed);
+            if (field.values[pixel] > isoValue) lightingShader.setUniform3f("objectColor", colourRed);
             else lightingShader.setUniform3f("objectColor", colourGreen);
             lightingShader.setUniformMat4f("model", &pixels[pixel]);
             glBindVertexArray(cubeVAO);
