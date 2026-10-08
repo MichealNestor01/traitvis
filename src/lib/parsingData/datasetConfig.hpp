@@ -101,7 +101,7 @@ public:
         std::cout << "demsionOrder: " << dimensionOrderToString(dimOrder) << std::endl;
         std::cout << "indexingScheme: " << indexSchemeToString(scheme) << std::endl;
         std::cout << "valuesPerFile: " << valuesPerFile << std::endl;
-        for (auto file : files) {
+        for (const auto& file : files) {
             std::cout << "filename: " << file.filename << "; name: " << file.name << "; lowerBound: " << file.lowerBound << "; upperBound: " << file.upperBound << std::endl;
         }
     }

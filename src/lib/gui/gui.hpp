@@ -1,5 +1,4 @@
 #pragma once
-#include <string>
 #include "imgui.h"
 
 #include "../../main/state.hpp" 
@@ -16,7 +15,6 @@ private:
     ProgramState &programState;
     // textbox state
     char inputTextBuffer[256] = "";
-    std::string displayText = "";
     // attribute widgets
     std::vector<AttributeWidget> attributeWidgets;
     // level set slider values

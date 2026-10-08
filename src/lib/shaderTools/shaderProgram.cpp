@@ -10,7 +10,6 @@
 #include <string>
 #include <utility>
 #include <stdexcept>
-#include <format>
 #include <sstream>
 
 GLuint loadShader(GLenum type, const char * path) {

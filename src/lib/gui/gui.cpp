@@ -4,6 +4,8 @@
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 
+#include <string>
+
 #include "gui.hpp"
 #include "../../main/state.hpp" 
 #include "../multiField/multiField.hpp"
@@ -183,8 +185,10 @@ void GUI::renderLightingControls() {
 
     ImGui::Text(" ");
     ImGui::Checkbox("Back Face Culling", &programState.backFaceCulling);
+#ifndef __EMSCRIPTEN__
     ImGui::Text(" ");
     ImGui::Checkbox("Draw Wireframes", &programState.drawWireframe);
+#endif
     ImGui::Text(" ");
     ImGui::Text("Camera Controls:");
     ImGui::SliderFloat("SPEED##1", &programState.cam.speed, 0, 250, "%.0f");    

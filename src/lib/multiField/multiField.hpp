@@ -8,11 +8,6 @@ struct FloatRange {
     float upper;
 };
 
-struct IntRange {
-    int lower;
-    int upper;
-};
-
 struct Attribute {
     std::string name;
     FloatRange bounds;

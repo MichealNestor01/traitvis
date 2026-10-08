@@ -67,18 +67,6 @@ struct ProgramState {
         else glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
 
-    void toggleDrawWireframe() {
-        if (drawWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        else glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        drawWireframe = not drawWireframe;
-    }
-
-    void toggleBackFaceCulling() {
-        if (backFaceCulling) glEnable(GL_CULL_FACE);
-        else glDisable(GL_CULL_FACE);
-        backFaceCulling = not backFaceCulling;
-    }
-
     void updateTime() {
         float now = glfwGetTime();
         deltaTime = now - lastFrame;
