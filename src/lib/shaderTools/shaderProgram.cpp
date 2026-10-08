@@ -76,6 +76,11 @@ void ShaderProgram::setUniformb(std::string name, GLboolean b) {
     glUniform1i(location, b);
 }
 
+void ShaderProgram::setUniformi(std::string name, GLint value) {
+    int location = glGetUniformLocation(program, name.c_str());
+    glUniform1i(location, value);
+}
+
 void ShaderProgram::setUniformf(std::string name, GLfloat f) {
     int location = glGetUniformLocation(program, name.c_str());
     glUniform1f(location, f);

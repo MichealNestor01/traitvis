@@ -129,9 +129,6 @@ void GUI::render() {
         ImGui::Text("Transparency: ");
         ImGui::SameLine();
         ImGui::SliderFloat((std::string("##Transparency") + levelSet.id).c_str(), &levelSet.transparency, 0, 1, "%.4f");
-        ImGui::Text("Render depth: ");
-        ImGui::SameLine();
-        ImGui::SliderFloat((std::string("##Render Depth") + levelSet.id).c_str(), &levelSet.renderDepth, 0, 1, "%.4f");
         ImGui::Text("Red: ");
         ImGui::SameLine();
         ImGui::SliderFloat((std::string("##Red") + levelSet.id).c_str(), &levelSet.colour.x, 0, 1, "%.4f");
