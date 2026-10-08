@@ -1,6 +1,7 @@
 #include "configParser.hpp"
 
 #include <gtest/gtest.h>
+#include <filesystem>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -10,6 +11,13 @@ struct BadConfigCase {
     const char* filepath;
     const char* expectedError;
 };
+
+TEST(ConfigParserTests, RelativeFilepathIsResolvedAgainstConfigDirectory) {
+    DatasetDirConfig config = parseConfig("tests/parsingData/testDataset/config.txt");
+    ASSERT_FALSE(config.parseError);
+    EXPECT_EQ(std::filesystem::weakly_canonical(config.filePath),
+              std::filesystem::weakly_canonical("tests/parsingData/testDataset/"));
+}
 
 class ConfigParserBadFileTests : public testing::TestWithParam<BadConfigCase> {};
 

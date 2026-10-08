@@ -5,6 +5,7 @@
 #include <vector>
 #include <iostream>
 #include <functional>
+#include <filesystem>
 #include <memory>
 #include <optional>
 
@@ -128,7 +129,7 @@ public:
 
 struct DatasetDirConfig {
     bool parseError = true;
-    std::string filePath;
+    std::filesystem::path filePath;
     std::string name;
     // Absent means the dataset has no fill value. Present means that exact
     // float is missing data and becomes NaN when the attribute files are read.

@@ -15,7 +15,7 @@ class GUI {
 private:
     ProgramState &programState;
     // textbox state
-    char inputTextBuffer[256] = "/home/michealnestor/University/final-project/dataset/timestep02/config.txt";
+    char inputTextBuffer[256] = "";
     std::string displayText = "";
     // attribute widgets
     std::vector<AttributeWidget> attributeWidgets;

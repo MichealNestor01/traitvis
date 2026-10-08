@@ -23,7 +23,7 @@ TEST(DatasetReaderTests, TestDataset) {
     // Restore std::cout to its original buffer
     std::cout.rdbuf(originalCoutBuffer);
 
-    EXPECT_EQ(result.readError, false);
+    ASSERT_FALSE(result.readError);
     EXPECT_EQ(result.name, "testDataset");
     EXPECT_EQ(result.xVals, 2);
     EXPECT_EQ(result.yVals, 2);
@@ -46,6 +46,12 @@ TEST(DatasetReaderTests, SentinelBecomesNaNAndIsExcludedFromBounds) {
     EXPECT_FLOAT_EQ(result.attributeDomain[0].bounds.upper, 1.f);
     EXPECT_FLOAT_EQ(values[0], 0.25f);
     EXPECT_FLOAT_EQ(values[3], 0.75f);
+}
+
+TEST(DatasetReaderTests, MissingConfigReportsReadError) {
+    StreamRedirect cerrRedirect(std::cerr);
+    MultiField result = readDataset("tests/parsingData/does-not-exist/config.txt");
+    EXPECT_TRUE(result.readError);
 }
 
 TEST(DatasetReaderTests, WithoutNoDataTheSentinelValueIsKept) {

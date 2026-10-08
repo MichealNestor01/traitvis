@@ -1,5 +1,5 @@
 NAME:testDataset
-FILEPATH:/home/michealnestor/University/final-project/tests/parsingData/testDataset/
+FILEPATH:./
 SPACIALDOMAIN:2:2:2
 DIMENSIONORDER:WIDTH_DEPTH_HEIGHT
 INDEXSCHEME:ROWMAJOR

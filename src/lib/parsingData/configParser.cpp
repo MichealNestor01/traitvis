@@ -1,5 +1,6 @@
 #include "configParser.hpp"
 #include "datasetConfig.hpp"
+#include <filesystem>
 #include <string>
 #include <fstream>
 #include <iostream>
@@ -47,7 +48,9 @@ DatasetDirConfig parseConfig(std::string filepath) {
     std::getline(configFile, line);
     if (line.substr(0,9) == "FILEPATH:") {
         try {
-            config.filePath = line.substr(9);
+            const std::filesystem::path configDir = std::filesystem::path(filepath).parent_path();
+            // An absolute FILEPATH replaces configDir; a relative one is resolved against it.
+            config.filePath = std::filesystem::absolute(configDir / line.substr(9));
         } catch (const std::out_of_range& err) {
             std::cerr << "Failed to parse FILEPATH in \"" << filepath << "\"" << std::endl;
             return config;

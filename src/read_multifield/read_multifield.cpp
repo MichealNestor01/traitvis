@@ -9,7 +9,11 @@
 
 
 int main(int argc, char **argv) {
-    MultiField isabel = readDataset("/home/michealnestor/University/final-project/dataset/timestep02/config.txt");
+    if (argc < 2) {
+        std::cerr << "Usage: " << argv[0] << " <config.txt>\n";
+        return 2;
+    }
+    MultiField isabel = readDataset(argv[1]);
 
     if (isabel.readError) {
         std::cerr << "Error reading dataset" << std::endl;
