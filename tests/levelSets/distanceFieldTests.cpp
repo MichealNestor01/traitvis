@@ -60,9 +60,7 @@ protected:
                     }
                 }
             },
-            .indexFunction = [](int x, int y, int z, int xVals, int yVals, int zVals) {
-                return z + zVals * (y + yVals * x); // column major, width_height_depth dimension order
-            }
+            .strides = {4, 2, 1} // column major, width-height-depth, on a 2x2x2 grid
         };
     }
 

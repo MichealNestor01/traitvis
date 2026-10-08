@@ -1,7 +1,6 @@
 #pragma once 
 #include <vector>
 #include <string>
-#include <functional>
 
 struct FloatRange {
     float lower;
@@ -30,12 +29,19 @@ struct TraitPoint {
     }
 };
 
+struct IndexStrides {
+    int x, y, z;
+    [[nodiscard]] constexpr int index(int ix, int iy, int iz) const noexcept {
+        return ix * x + iy * y + iz * z;
+    }
+};
+
 struct MultiField {
     bool readError = true;
     std::string name;
     int xVals, yVals, zVals;
-    std::vector<Attribute> attributeDomain; 
-    std::function<int(int, int, int, int, int, int)> indexFunction;
+    std::vector<Attribute> attributeDomain;
+    IndexStrides strides;
 
     void normaliseAttributes() {
         for (auto &attribute : attributeDomain) {
@@ -46,6 +52,6 @@ struct MultiField {
     }
 
     int getIndexInDataset(int x, int y, int z) const {
-        return indexFunction(x, y, z, xVals, yVals, zVals);
+        return strides.index(x, y, z);
     }
 };

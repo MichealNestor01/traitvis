@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include <functional>
 #include <filesystem>
 #include <memory>
 #include <optional>
@@ -29,6 +28,14 @@ inline std::string dimensionOrderToString(DimensionOrder order) {
     return "";
 }
 
+// Row major: the first-listed dimension varies fastest. Column major: the last-listed does.
+[[nodiscard]] constexpr IndexStrides makeStrides(IndexScheme scheme, DimensionOrder order, int xVals, int yVals, int zVals) {
+    const bool heightBeforeDepth = order == WIDTH_HEIGHT_DEPTH;
+    if (scheme == ROWMAJOR)
+        return heightBeforeDepth ? IndexStrides{1, xVals, xVals * yVals} : IndexStrides{1, xVals * zVals, xVals};
+    return heightBeforeDepth ? IndexStrides{yVals * zVals, zVals, 1} : IndexStrides{yVals * zVals, 1, yVals};
+}
+
 class Dataset {
 public:
     DatasetFormat format;
@@ -39,30 +46,6 @@ public:
     Dataset(DatasetFormat fmt, int xVals, int yVals, int zVals, DimensionOrder order, IndexScheme scheme) : format(fmt), xVals(xVals), yVals(yVals), zVals(zVals), scheme(scheme), dimOrder(order) {}
     virtual ~Dataset() = default;
     void virtual printDataset() const = 0;
-    std::function<int(int, int, int, int, int, int)> getIndexFunction() const {
-        switch (scheme) {
-            case ROWMAJOR:
-                switch (dimOrder) {
-                    case WIDTH_HEIGHT_DEPTH:
-                        return [this](int x, int y, int z, int xVals, int yVals, int zVals) { return x + (y * xVals) + (z * xVals * yVals); };
-                    case WIDTH_DEPTH_HEIGHT:
-                        return [this](int x, int y, int z, int xVals, int yVals, int zVals) { return x + (z * xVals) + (y * xVals * zVals); };
-                    default:
-                        throw std::invalid_argument("Unknown dimension order");
-                }
-            case COLUMNMAJOR:
-                switch (dimOrder) {
-                    case WIDTH_HEIGHT_DEPTH:
-                        return [this](int x, int y, int z, int xVals, int yVals, int zVals) { return z + zVals * (y + yVals * x); };
-                    case WIDTH_DEPTH_HEIGHT:
-                        return [this](int x, int y, int z, int xVals, int yVals, int zVals) { return y + yVals * (z + zVals * x); };
-                    default:
-                        throw std::invalid_argument("Unknown dimension order");
-                }
-            default:
-                throw std::invalid_argument("Unknown index scheme");
-        }
-    }
 };
 
 class AttributePerFileDataset : public Dataset {
