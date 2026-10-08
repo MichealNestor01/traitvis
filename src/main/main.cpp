@@ -164,8 +164,8 @@ int main() {
     Surface surface = extractSurface(field, isoValue);
     unsigned int surfaceVAO;
     if (surface.vertices.size()) {
-        std::vector<float> surfaceVertices = surface.getVertices();
-        surfaceVAO = createVAO(surfaceVertices.data(), surfaceVertices.size()*sizeof(float));
+        const std::vector<float> interleaved = surface.interleaved();
+        surfaceVAO = createVAO(interleaved.data(), interleaved.size()*sizeof(float));
     }
     
     // create cube vao
@@ -268,7 +268,8 @@ int main() {
             for (auto & levelSet : state.levelSets) {
                 if (levelSet.active) {
                     if (levelSet.VAO == 0) {
-                        levelSet.VAO = createVAO(levelSet.surfaceVertices.data(), levelSet.surfaceVertices.size()*sizeof(float));
+                        const std::vector<float> interleaved = levelSet.surface.interleaved();
+                        levelSet.VAO = createVAO(interleaved.data(), interleaved.size()*sizeof(float));
                         levelSet.activeInstanceVBO = boundaryCubeInstances(levelSet.surface.activeVertices);
                         levelSet.inactiveInstanceVBO = boundaryCubeInstances(levelSet.surface.inactiveVertices);
                     }
@@ -279,7 +280,7 @@ int main() {
                     else glDepthMask(GL_TRUE);
                     lightingShader.setUniformb("useInstanceModel", false);
                     glBindVertexArray(levelSet.VAO);
-                    glDrawArrays(GL_TRIANGLES, 0, levelSet.surfaceVertices.size());
+                    glDrawArrays(GL_TRIANGLES, 0, levelSet.surface.vertices.size() * 6);
 
                     if (levelSet.showActiveInactivePixels) {
                         lightingShader.setUniformb("useInstanceModel", true);
