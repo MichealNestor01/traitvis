@@ -62,7 +62,7 @@ struct ProgramState {
 
     void toggleCam(GLFWwindow* window) {
         enableCam = not enableCam;
-        cam.dissableActions();
+        cam.disableActions();
         if (enableCam) glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         else glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }

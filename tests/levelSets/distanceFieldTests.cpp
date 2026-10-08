@@ -61,7 +61,7 @@ protected:
                 }
             },
             .indexFunction = [](int x, int y, int z, int xVals, int yVals, int zVals) {
-                return z + zVals * (y + yVals * x); // comlumn majour, width_hieght_depth dimension order
+                return z + zVals * (y + yVals * x); // column major, width_height_depth dimension order
             }
         };
     }

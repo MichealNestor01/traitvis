@@ -75,7 +75,7 @@ void examineCube(Surface &triangles, const ScalarField &field, int vertex0, floa
                 triangles.activeVertices.insert(endPoint1);
             }
         }
-        // calculate surface normal for the traingle and assign it to the triangle's three vertices
+        // calculate surface normal for the triangle and assign it to the triangle's three vertices
         glm::vec3 vertex1 = triangles.vertices.at(triangles.vertices.size() - 3);
         glm::vec3 vertex2 = triangles.vertices.at(triangles.vertices.size() - 2);
         glm::vec3 vertex3 = triangles.vertices.at(triangles.vertices.size() - 1);

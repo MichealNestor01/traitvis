@@ -42,15 +42,15 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Values(
         BadConfigCase{"MissingName",             "tests/parsingData/badConfigFiles/missingName.txt",            "Failed to find NAME in \"tests/parsingData/badConfigFiles/missingName.txt\"\n"},
         BadConfigCase{"MissingFilepath",         "tests/parsingData/badConfigFiles/missingFilepath.txt",        "Failed to find FILEPATH in \"tests/parsingData/badConfigFiles/missingFilepath.txt\"\n"},
-        BadConfigCase{"MissingSpacialdomain",    "tests/parsingData/badConfigFiles/missingSpacialdomain.txt",   "Failed to find SPACIALDOMAIN in \"tests/parsingData/badConfigFiles/missingSpacialdomain.txt\"\n"},
+        BadConfigCase{"MissingSpatialdomain",    "tests/parsingData/badConfigFiles/missingSpatialdomain.txt",   "Failed to find SPATIALDOMAIN in \"tests/parsingData/badConfigFiles/missingSpatialdomain.txt\"\n"},
         BadConfigCase{"MissingDimensionorder",   "tests/parsingData/badConfigFiles/missingDimensionorder.txt",  "Failed to find DIMENSIONORDER in \"tests/parsingData/badConfigFiles/missingDimensionorder.txt\"\n"},
         BadConfigCase{"MissingIndexscheme",      "tests/parsingData/badConfigFiles/missingIndexscheme.txt",     "Failed to find INDEXSCHEME in \"tests/parsingData/badConfigFiles/missingIndexscheme.txt\"\n"},
         BadConfigCase{"MissingDatasetstructure", "tests/parsingData/badConfigFiles/missingDatasetstructure.txt","Failed to find DATASETSTRUCTURE in \"tests/parsingData/badConfigFiles/missingDatasetstructure.txt\"\n"},
         BadConfigCase{"EmptyFile",               "tests/parsingData/badConfigFiles/emptyFile.txt",              "Failed to find NAME in \"tests/parsingData/badConfigFiles/emptyFile.txt\"\n"},
         BadConfigCase{"MissingAttribute",        "tests/parsingData/badConfigFiles/missingAttribute.txt",       "Failed to find ATTRIBUTE where expected in \"tests/parsingData/badConfigFiles/missingAttribute.txt\"\n"},
-        BadConfigCase{"AttributeMissformatted",  "tests/parsingData/badConfigFiles/attributeMissformatted.txt", "Attribute miss formatted in \"tests/parsingData/badConfigFiles/attributeMissformatted.txt\": ATTRIBUTE:\n"},
-        BadConfigCase{"BadSpacialdomain",        "tests/parsingData/badConfigFiles/badSpacialdomain.txt",       "Failed to parse SPACIALDOMAIN values from \"tests/parsingData/badConfigFiles/badSpacialdomain.txt\": Invalid Integer\n"},
-        BadConfigCase{"TruncatedSpacialdomain",  "tests/parsingData/badConfigFiles/truncatedSpacialdomain.txt", "Spacial domain formatting error in \"tests/parsingData/badConfigFiles/truncatedSpacialdomain.txt\"\n"},
+        BadConfigCase{"AttributeMisformatted",  "tests/parsingData/badConfigFiles/attributeMisformatted.txt", "Attribute misformatted in \"tests/parsingData/badConfigFiles/attributeMisformatted.txt\": ATTRIBUTE:\n"},
+        BadConfigCase{"BadSpatialdomain",        "tests/parsingData/badConfigFiles/badSpatialdomain.txt",       "Failed to parse SPATIALDOMAIN values from \"tests/parsingData/badConfigFiles/badSpatialdomain.txt\": Invalid Integer\n"},
+        BadConfigCase{"TruncatedSpatialdomain",  "tests/parsingData/badConfigFiles/truncatedSpatialdomain.txt", "Spatial domain formatting error in \"tests/parsingData/badConfigFiles/truncatedSpatialdomain.txt\"\n"},
         BadConfigCase{"BadNodata",              "tests/parsingData/badConfigFiles/badNodata.txt",             "Failed to parse NODATA value from \"tests/parsingData/badConfigFiles/badNodata.txt\": Invalid float\n"}
     ),
     [](const testing::TestParamInfo<BadConfigCase>& info) {

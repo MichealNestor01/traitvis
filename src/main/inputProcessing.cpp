@@ -16,7 +16,7 @@ void processInput(GLFWwindow* window) {
         glfwSetWindowShouldClose(window, true);
 
     if (auto* state = static_cast<ProgramState*>(glfwGetWindowUserPointer(window))) {
-        // dissable/enable mouse
+        // disable/enable mouse
         if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS and not spaceLock) {
             state->toggleCam(window);
             spaceLock = true;

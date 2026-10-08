@@ -1,6 +1,6 @@
 NAME:sentinelDataset
 FILEPATH:/home/michealnestor/University/final-project/tests/parsingData/sentinelDataset/
-SPACIALDOMAIN:2:2:2
+SPATIALDOMAIN:2:2:2
 DIMENSIONORDER:WIDTH_DEPTH_HEIGHT
 INDEXSCHEME:ROWMAJOR
 NODATA:1e35

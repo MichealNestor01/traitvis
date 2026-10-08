@@ -60,41 +60,41 @@ DatasetDirConfig parseConfig(std::string filepath) {
         return config;
     }
 
-    // read the xVals, yVals and zVals from the file, in the format "SPACIALDOMAIN:xvals:yvals:zvals"
+    // read the xVals, yVals and zVals from the file, in the format "SPATIALDOMAIN:xvals:yvals:zvals"
     int xVals, yVals, zVals;
     std::getline(configFile, line);
-    if (line.substr(0,14) == "SPACIALDOMAIN:") {
-        std::string spacialDomain = line.substr(14);
+    if (line.substr(0,14) == "SPATIALDOMAIN:") {
+        std::string spatialDomain = line.substr(14);
 
-        auto firstColon = spacialDomain.find(':');
+        auto firstColon = spatialDomain.find(':');
         if (firstColon == std::string::npos) {
-            std::cerr << "Spacial domain formatting error in \"" << filepath << "\"" << std::endl;
+            std::cerr << "Spatial domain formatting error in \"" << filepath << "\"" << std::endl;
             return config;
         }
-        std::string xValsStr = spacialDomain.substr(0, firstColon);
-        spacialDomain = spacialDomain.substr(firstColon + 1);
+        std::string xValsStr = spatialDomain.substr(0, firstColon);
+        spatialDomain = spatialDomain.substr(firstColon + 1);
 
-        auto secondColon = spacialDomain.find(':');
+        auto secondColon = spatialDomain.find(':');
         if (secondColon == std::string::npos) {
-            std::cerr << "Spacial domain formatting error in \"" << filepath << "\"" << std::endl;
+            std::cerr << "Spatial domain formatting error in \"" << filepath << "\"" << std::endl;
             return config;
         }
-        std::string yValsStr = spacialDomain.substr(0, secondColon);
-        std::string zValsStr = spacialDomain.substr(secondColon + 1);
+        std::string yValsStr = spatialDomain.substr(0, secondColon);
+        std::string zValsStr = spatialDomain.substr(secondColon + 1);
 
         try {
             xVals = std::stoi(xValsStr);
             yVals = std::stoi(yValsStr);
             zVals = std::stoi(zValsStr);
         } catch (const std::invalid_argument& err) {
-            std::cerr << "Failed to parse SPACIALDOMAIN values from \"" << filepath << "\": Invalid Integer" << std::endl;
+            std::cerr << "Failed to parse SPATIALDOMAIN values from \"" << filepath << "\": Invalid Integer" << std::endl;
             return config;
         } catch (const std::out_of_range& err) {
-            std::cerr << "Failed to parse SPACIALDOMAIN values from  \"" << filepath << "\": Out of Integer range" << std::endl;
+            std::cerr << "Failed to parse SPATIALDOMAIN values from  \"" << filepath << "\": Out of Integer range" << std::endl;
             return config;
         }
     } else {
-        std::cerr << "Failed to find SPACIALDOMAIN in \"" << filepath << "\"" << std::endl;
+        std::cerr << "Failed to find SPATIALDOMAIN in \"" << filepath << "\"" << std::endl;
         return config;
     }
 
@@ -188,7 +188,7 @@ DatasetDirConfig parseConfig(std::string filepath) {
                         attribute = attribute.substr(attribute.find(":")+1);
                         // throw an error if any of the strings are empty
                         if (filename.empty() || name.empty() || attribute.empty()) {
-                            std::cerr << "Attribute miss formatted in \"" << filepath << "\": " << line << std::endl;
+                            std::cerr << "Attribute misformatted in \"" << filepath << "\": " << line << std::endl;
                             return config;
                         }
                         try {
@@ -203,7 +203,7 @@ DatasetDirConfig parseConfig(std::string filepath) {
                             return config;
                         }
                     } catch (const std::out_of_range& err) {
-                        std::cerr << "Attribute miss formatted in \"" << filepath << "\": " << line << std::endl;
+                        std::cerr << "Attribute misformatted in \"" << filepath << "\": " << line << std::endl;
                         return config;
                     }
                 } else {

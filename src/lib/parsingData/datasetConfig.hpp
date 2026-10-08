@@ -98,7 +98,7 @@ public:
     void printDataset() const {
         std::cout << "AttributePerFileDataset" << std::endl;
         std::cout << "xVals: " << xVals << "; yVals: " << yVals << "; zVals: " << zVals << std::endl;
-        std::cout << "demsionOrder: " << dimensionOrderToString(dimOrder) << std::endl;
+        std::cout << "dimensionOrder: " << dimensionOrderToString(dimOrder) << std::endl;
         std::cout << "indexingScheme: " << indexSchemeToString(scheme) << std::endl;
         std::cout << "valuesPerFile: " << valuesPerFile << std::endl;
         for (const auto& file : files) {
@@ -121,7 +121,7 @@ public:
     BlockDataset(int xVals, int yVals, int zVals, DimensionOrder order, IndexScheme scheme) : Dataset(BLOCK, xVals, yVals, zVals, order, scheme) {}
     void printDataset() const {
         std::cout << "BlockDataset" << std::endl;
-        std::cout << "demsionOrder: " << dimensionOrderToString(dimOrder) << std::endl;
+        std::cout << "dimensionOrder: " << dimensionOrderToString(dimOrder) << std::endl;
         std::cout << "indexingScheme: " << indexSchemeToString(scheme) << std::endl;
         std::cout << "xVals: " << xVals << "; yVals: " << yVals << "; zVals: " << zVals << std::endl;
     }

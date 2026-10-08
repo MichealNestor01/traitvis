@@ -29,7 +29,7 @@ The configuration file schema is shown here with an example for timestep24 of Is
 ```
 NAME:isabell-timestep-24
 FILEPATH:./
-SPACIALDOMAIN:500:100:500
+SPATIALDOMAIN:500:100:500
 DIMENSIONORDER:WIDTH_DEPTH_HEIGHT
 INDEXSCHEME:ROWMAJOR
 NODATA:1e35

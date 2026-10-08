@@ -91,7 +91,7 @@ public:
         if (actionDown) moveDown(dt);
     }
 
-    void dissableActions() {
+    void disableActions() {
         actionForwards = false;
         actionBackwards = false;
         actionLeft = false;
