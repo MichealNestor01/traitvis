@@ -8,6 +8,7 @@
 #include <iostream>
 #include <limits>
 #include <sstream>
+#include <utility>
 
 
 // Using a test class here to ensure that the same MultiField object is used for all tests
@@ -180,4 +181,23 @@ TEST_F(DistanceFieldTests, NaNVoxelKeepsMaxDistanceAndDoesNotAffectNeighbours) {
     EXPECT_EQ(field.values[0], std::numeric_limits<float>::max());
     // (0,0,1) has attribute value 1, so its distance to the trait value 1 is unchanged.
     EXPECT_FLOAT_EQ(field.values[1], 0.f);
+}
+
+TEST_F(DistanceFieldTests, SteppingSlabBySlabMatchesOneShotAndReportsProgress) {
+    std::vector<TraitPoint> points = {pointOn(0, 1.f)};
+
+    std::streambuf* originalCoutBuffer = std::cout.rdbuf();
+    std::ostringstream redirectedCout;
+    std::cout.rdbuf(redirectedCout.rdbuf());
+    const ScalarField expected = generateDistanceField(points, testMultiField);
+    std::cout.rdbuf(originalCoutBuffer);
+
+    DistanceFieldJob job(points, testMultiField);      // xVals == 2 → two slabs
+    EXPECT_FLOAT_EQ(job.progress(), 0.f);
+    EXPECT_FALSE(job.step(1));
+    EXPECT_FLOAT_EQ(job.progress(), 0.5f);
+    EXPECT_TRUE(job.step(1));
+    EXPECT_TRUE(job.step(1));                          // no-op once done
+    EXPECT_FLOAT_EQ(job.progress(), 1.f);
+    EXPECT_EQ(std::move(job).take().values, expected.values);
 }

@@ -1,7 +1,13 @@
 -- premake5.lua
 workspace "TraitVis"
-    configurations { "Debug", "Release" }
+    configurations { "Debug", "Release", "ThreadSanitize" }
     cppdialect "C++20"
+
+    filter "configurations:ThreadSanitize"
+        symbols "On"
+        buildoptions { "-fsanitize=thread" }
+        linkoptions { "-fsanitize=thread" }
+    filter {}
 
 project "GoogleTest"
     location "_build_/googletest"
@@ -42,6 +48,7 @@ project "core"
         "src/lib/levelSets/**",
         "src/lib/marchingCubes/**",
         "src/lib/camera/**",
+        "src/lib/util/**",
         "src/lib/shaderTools/shaderSource.*",
     }
 
@@ -124,6 +131,7 @@ project "tests"
     links {
         "GoogleTest",
         "core",
+        "pthread",
     }
 
     includedirs {
