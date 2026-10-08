@@ -3,7 +3,6 @@
 #include <filesystem>
 #include <string>
 #include <fstream>
-#include <iostream>
 #include <stdexcept>
 #include <optional>
 
@@ -23,11 +22,13 @@ std::optional<DimensionOrder> stringToDimensionOrder(const std::string& str) {
 DatasetDirConfig parseConfig(std::string filepath) {
     std::ifstream configFile(filepath);
     DatasetDirConfig config;
+    auto fail = [&](std::string message) {
+        config.error = std::move(message);
+        return std::move(config);
+    };
 
-    if (!configFile.is_open()) {
-        std::cerr << "Failed to open \"" << filepath << "\"" << std::endl;
-        return config;
-    }
+    if (!configFile.is_open())
+        return fail("Failed to open \"" + filepath + "\"\n");
 
     // read the name 
     std::string line;
@@ -36,12 +37,10 @@ DatasetDirConfig parseConfig(std::string filepath) {
         try {
             config.name = line.substr(5);
         } catch (const std::out_of_range& err) {
-            std::cerr << "Failed to parse NAME in \"" << filepath << "\"" << std::endl;
-            return config;
+            return fail("Failed to parse NAME in \"" + filepath + "\"\n");
         }
     } else {
-        std::cerr << "Failed to find NAME in \"" << filepath << "\"" << std::endl;
-        return config;
+        return fail("Failed to find NAME in \"" + filepath + "\"\n");
     }
 
     // read the FILEPATH
@@ -52,12 +51,10 @@ DatasetDirConfig parseConfig(std::string filepath) {
             // An absolute FILEPATH replaces configDir; a relative one is resolved against it.
             config.filePath = std::filesystem::absolute(configDir / line.substr(9));
         } catch (const std::out_of_range& err) {
-            std::cerr << "Failed to parse FILEPATH in \"" << filepath << "\"" << std::endl;
-            return config;
+            return fail("Failed to parse FILEPATH in \"" + filepath + "\"\n");
         }
     } else {
-        std::cerr << "Failed to find FILEPATH in \"" << filepath << "\"" << std::endl;
-        return config;
+        return fail("Failed to find FILEPATH in \"" + filepath + "\"\n");
     }
 
     // read the xVals, yVals and zVals from the file, in the format "SPATIALDOMAIN:xvals:yvals:zvals"
@@ -67,18 +64,14 @@ DatasetDirConfig parseConfig(std::string filepath) {
         std::string spatialDomain = line.substr(14);
 
         auto firstColon = spatialDomain.find(':');
-        if (firstColon == std::string::npos) {
-            std::cerr << "Spatial domain formatting error in \"" << filepath << "\"" << std::endl;
-            return config;
-        }
+        if (firstColon == std::string::npos)
+            return fail("Spatial domain formatting error in \"" + filepath + "\"\n");
         std::string xValsStr = spatialDomain.substr(0, firstColon);
         spatialDomain = spatialDomain.substr(firstColon + 1);
 
         auto secondColon = spatialDomain.find(':');
-        if (secondColon == std::string::npos) {
-            std::cerr << "Spatial domain formatting error in \"" << filepath << "\"" << std::endl;
-            return config;
-        }
+        if (secondColon == std::string::npos)
+            return fail("Spatial domain formatting error in \"" + filepath + "\"\n");
         std::string yValsStr = spatialDomain.substr(0, secondColon);
         std::string zValsStr = spatialDomain.substr(secondColon + 1);
 
@@ -87,15 +80,12 @@ DatasetDirConfig parseConfig(std::string filepath) {
             yVals = std::stoi(yValsStr);
             zVals = std::stoi(zValsStr);
         } catch (const std::invalid_argument& err) {
-            std::cerr << "Failed to parse SPATIALDOMAIN values from \"" << filepath << "\": Invalid Integer" << std::endl;
-            return config;
+            return fail("Failed to parse SPATIALDOMAIN values from \"" + filepath + "\": Invalid Integer\n");
         } catch (const std::out_of_range& err) {
-            std::cerr << "Failed to parse SPATIALDOMAIN values from  \"" << filepath << "\": Out of Integer range" << std::endl;
-            return config;
+            return fail("Failed to parse SPATIALDOMAIN values from  \"" + filepath + "\": Out of Integer range\n");
         }
     } else {
-        std::cerr << "Failed to find SPATIALDOMAIN in \"" << filepath << "\"" << std::endl;
-        return config;
+        return fail("Failed to find SPATIALDOMAIN in \"" + filepath + "\"\n");
     }
 
     DimensionOrder dimOrder;
@@ -107,16 +97,13 @@ DatasetDirConfig parseConfig(std::string filepath) {
             if (orderOpt) {
                 dimOrder = orderOpt.value();
             } else {
-                std::cerr << "Error: DIMENSIONORDER option \"" << dimOrder << "\" is not supported" << std::endl;
-                return config;
+                return fail("Error: DIMENSIONORDER option \"" + dimensionOrder + "\" is not supported\n");
             }
         } catch (const std::out_of_range& err) {
-            std::cerr << "Failed to parse DIMENSIONORDER in \"" << filepath << "\"" << std::endl;
-            return config;
+            return fail("Failed to parse DIMENSIONORDER in \"" + filepath + "\"\n");
         }
     } else {
-        std::cerr << "Failed to find DIMENSIONORDER in \"" << filepath << "\"" << std::endl;
-        return config;
+        return fail("Failed to find DIMENSIONORDER in \"" + filepath + "\"\n");
     }
     
     IndexScheme scheme;
@@ -128,16 +115,13 @@ DatasetDirConfig parseConfig(std::string filepath) {
             if (schemeOpt) {
                 scheme = schemeOpt.value();
             } else {
-                std::cerr << "Error: INDEXSCHEME scheme \"" << indexScheme << "\" is not supported" << std::endl;
-                return config;
+                return fail("Error: INDEXSCHEME scheme \"" + indexScheme + "\" is not supported\n");
             }
         } catch (const std::out_of_range& err) {
-            std::cerr << "Failed to parse INDEXSCHEME in \"" << filepath << "\"" << std::endl;
-            return config;
+            return fail("Failed to parse INDEXSCHEME in \"" + filepath + "\"\n");
         }
     } else {
-        std::cerr << "Failed to find INDEXSCHEME in \"" << filepath << "\"" << std::endl;
-        return config;
+        return fail("Failed to find INDEXSCHEME in \"" + filepath + "\"\n");
     }
     
     // Optional fill value. Omitted datasets keep every sample.
@@ -146,11 +130,9 @@ DatasetDirConfig parseConfig(std::string filepath) {
         try {
             config.noData = std::stof(line.substr(7));
         } catch (const std::invalid_argument&) {
-            std::cerr << "Failed to parse NODATA value from \"" << filepath << "\": Invalid float" << std::endl;
-            return config;
+            return fail("Failed to parse NODATA value from \"" + filepath + "\": Invalid float\n");
         } catch (const std::out_of_range&) {
-            std::cerr << "Failed to parse NODATA value from \"" << filepath << "\": Out of float range" << std::endl;
-            return config;
+            return fail("Failed to parse NODATA value from \"" + filepath + "\": Out of float range\n");
         }
         std::getline(configFile, line);
     }
@@ -163,12 +145,10 @@ DatasetDirConfig parseConfig(std::string filepath) {
             datasetStructure = line.substr(17);
             datasetType = datasetStructure.substr(0, datasetStructure.find(":"));
         } catch (const std::out_of_range& err) {
-            std::cerr << "DATASTRUCTURE not found in \"" << filepath << "\"" << std::endl;
-            return config;
+            return fail("DATASTRUCTURE not found in \"" + filepath + "\"\n");
         }
     } else {
-        std::cerr << "Failed to find DATASETSTRUCTURE in \"" << filepath << "\"" << std::endl;
-        return config;
+        return fail("Failed to find DATASETSTRUCTURE in \"" + filepath + "\"\n");
     }
 
     if (datasetType == "ATTRIBUTEPERFILE") {
@@ -187,44 +167,34 @@ DatasetDirConfig parseConfig(std::string filepath) {
                         std::string name = attribute.substr(0, attribute.find(":"));
                         attribute = attribute.substr(attribute.find(":")+1);
                         // throw an error if any of the strings are empty
-                        if (filename.empty() || name.empty() || attribute.empty()) {
-                            std::cerr << "Attribute misformatted in \"" << filepath << "\": " << line << std::endl;
-                            return config;
-                        }
+                        if (filename.empty() || name.empty() || attribute.empty())
+                            return fail("Attribute misformatted in \"" + filepath + "\": " + line + "\n");
                         try {
                             float lowerBound = std::stof(attribute.substr(0, attribute.find(":")));
                             float upperBound = std::stof(attribute.substr(attribute.find(":")+1));
                             dataset->addFile(filename, name, lowerBound, upperBound);
-                        }catch (const std::invalid_argument& err) {
-                            std::cerr << "Unable to parse bounds for attribute: " << attribute << std::endl;
-                            return config;
+                        } catch (const std::invalid_argument& err) {
+                            return fail("Unable to parse bounds for attribute: " + attribute + "\n");
                         } catch (const std::out_of_range& err) {
-                            std::cerr << "Bounds out of float value range for attribute: " << attribute << std::endl;
-                            return config;
+                            return fail("Bounds out of float value range for attribute: " + attribute + "\n");
                         }
                     } catch (const std::out_of_range& err) {
-                        std::cerr << "Attribute misformatted in \"" << filepath << "\": " << line << std::endl;
-                        return config;
+                        return fail("Attribute misformatted in \"" + filepath + "\": " + line + "\n");
                     }
                 } else {
-                    std::cerr << "Failed to find ATTRIBUTE where expected in \"" << filepath << "\"" << std::endl;
-                    return config;
+                    return fail("Failed to find ATTRIBUTE where expected in \"" + filepath + "\"\n");
                 }
             }
         } catch (const std::invalid_argument& err) {
-            std::cerr << "Failed to parse valuesPerFile from \"" << filepath << "\": Invalid Integer" << std::endl;
-            return config;
+            return fail("Failed to parse valuesPerFile from \"" + filepath + "\": Invalid Integer\n");
         } catch (const std::out_of_range& err) {
-            std::cerr << "Failed to parse valuesPerFile from \"" << filepath << "\": Out of Integer range" << std::endl;
-            return config;
+            return fail("Failed to parse valuesPerFile from \"" + filepath + "\": Out of Integer range\n");
         }
     } else if (datasetType == "BLOCK") {
         config.dataset = std::make_unique<BlockDataset>(xVals, yVals, zVals, dimOrder, scheme);
     } else {
-        std::cerr << "Invalid dataset type \"" << datasetType << "\" in \"" << filepath << "\"" << std::endl;
-        return config;
+        return fail("Invalid dataset type \"" + datasetType + "\" in \"" + filepath + "\"\n");
     }
-    
-    config.parseError = false;  
+
     return config;
 }

@@ -34,8 +34,8 @@ void GUI::render() {
         return;
     }
 
-    if (programState.dataset.readError) {
-        ImGui::Text("Dataset read error, check console output.");
+    if (!programState.dataset.ok()) {
+        ImGui::TextUnformatted(programState.dataset.error.c_str());
     } else {
         std::string message = "Loaded dataset: " + programState.dataset.name;
         ImGui::Text("%s", message.c_str());
@@ -151,7 +151,7 @@ void GUI::render() {
 }
 
 void GUI::createDatasetWidgets() {
-    if (programState.dataset.readError) return;
+    if (!programState.dataset.ok()) return;
     for (Attribute& attribute : programState.dataset.attributeDomain) 
         attributeWidgets.push_back({attribute, false, attribute.bounds.lower});
 }

@@ -111,7 +111,8 @@ public:
 };
 
 struct DatasetDirConfig {
-    bool parseError = true;
+    std::string error;
+    [[nodiscard]] bool ok() const { return error.empty(); }
     std::filesystem::path filePath;
     std::string name;
     // Absent means the dataset has no fill value. Present means that exact

@@ -52,4 +52,4 @@ ATTRIBUTE:velocity.bin:Wind Velocity:0:85.17703
 
 ## Generating Feature Level-Sets
 
-To generate a feature level-set, first define a trait by selecting points in attribute space. Then select a Euclidean distance, select a colour, give the feature level-set a name, and click the generate level-set button. A surface for your feature level-set will then appear. The console will output the number of vertices, contianed in the surface, if this is 0 then your no points in the spatial domain map to your trait in attribute space. 
+To generate a feature level-set, first define a trait by selecting points in attribute space. Then select a Euclidean distance, select a colour, give the feature level-set a name, and click the generate level-set button. A surface for your feature level-set will then appear. A surface with no vertices means no point in the spatial domain maps to your trait in attribute space. 

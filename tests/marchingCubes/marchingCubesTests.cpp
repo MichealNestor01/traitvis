@@ -4,24 +4,13 @@
 
 #include <gtest/gtest.h>
 #include <algorithm>
-#include <iostream>
-#include <sstream>
 
 TEST(MarchingCubesTests, TestNoActiveVertices) {
     ScalarField field{{3, 3, 3}, std::vector<float>(27, 1.f)};
     float isoValue = 0;
 
-    // Redirect std::cout
-    std::streambuf* originalCoutBuffer = std::cout.rdbuf();
-    std::ostringstream redirectedCout;
-    std::cout.rdbuf(redirectedCout.rdbuf());
-
     Surface result = extractSurface(field, isoValue);
 
-    // Restore std::cout to its original buffer
-    std::cout.rdbuf(originalCoutBuffer);
-
-    // Assertions
     EXPECT_EQ(result.vertices.size(), 0); // Expect 0 surface vertices
     EXPECT_EQ(result.activeVertices.size(), 0); // Expect 0 active vertices
     EXPECT_EQ(result.inactiveVertices.size(), 0); // Expect 0 inactive vertices
@@ -32,17 +21,8 @@ TEST(MarchingCubesTests, TestSingleActiveVertices) {
     field.values[13] = -1.f;
     float isoValue = 0;
 
-    // Redirect std::cout
-    std::streambuf* originalCoutBuffer = std::cout.rdbuf();
-    std::ostringstream redirectedCout;
-    std::cout.rdbuf(redirectedCout.rdbuf());
-
     Surface result = extractSurface(field, isoValue);
 
-    // Restore std::cout to its original buffer
-    std::cout.rdbuf(originalCoutBuffer);
-
-    // Assertions
     EXPECT_EQ(result.vertices.size(), 24); // Expect 32 surface vertices
     EXPECT_EQ(result.activeVertices.size(), 1); // Expect 1 active vertices
     EXPECT_EQ(result.inactiveVertices.size(), 6); // Expect 0 inactive vertices
@@ -74,15 +54,7 @@ TEST(MarchingCubesTests, TestAllCases) {
             values[corner] = (caseNum & (1 << corner)) ? 1.f : -1.f;
         ScalarField field{{2, 2, 2}, std::move(values)};
 
-        // Redirect std::cout
-        std::streambuf* originalCoutBuffer = std::cout.rdbuf();
-        std::ostringstream redirectedCout;
-        std::cout.rdbuf(redirectedCout.rdbuf());
-
         Surface result = extractSurface(field, isoValue);
-
-        // Restore std::cout to its original buffer
-        std::cout.rdbuf(originalCoutBuffer);
 
         int expectedTriangles = triangleTable[caseNum][0];
         int generatedTriangles = result.vertices.size()/3;

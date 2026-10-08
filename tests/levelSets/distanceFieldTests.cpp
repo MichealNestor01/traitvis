@@ -5,9 +5,7 @@
 #include <gtest/gtest.h>
 #include <glm.hpp>
 #include <cmath>
-#include <iostream>
 #include <limits>
-#include <sstream>
 #include <utility>
 
 
@@ -84,15 +82,7 @@ TEST_F(DistanceFieldTests, SingleDimensionAttributeSpace) {
         1, 1, // y = 1
     };
 
-    // Redirect std::cout
-    std::streambuf* originalCoutBuffer = std::cout.rdbuf();
-    std::ostringstream redirectedCout;
-    std::cout.rdbuf(redirectedCout.rdbuf());
-
     ScalarField field = generateDistanceField(points, testMultiField);
-
-    // Restore std::cout to its original buffer
-    std::cout.rdbuf(originalCoutBuffer);
 
     for (int i = 0; i < static_cast<int>(field.values.size()); i++) {
         const glm::ivec3 c = field.layout.coords(i);
@@ -116,15 +106,7 @@ TEST_F(DistanceFieldTests, TwoDimensionalAttributeSpace) {
         1,       sqrt(2),   // y = 1
     };
 
-    // Redirect std::cout
-    std::streambuf* originalCoutBuffer = std::cout.rdbuf();
-    std::ostringstream redirectedCout;
-    std::cout.rdbuf(redirectedCout.rdbuf());
-
     ScalarField field = generateDistanceField(points, testMultiField);
-
-    // Restore std::cout to its original buffer
-    std::cout.rdbuf(originalCoutBuffer);
 
     for (int i = 0; i < static_cast<int>(field.values.size()); i++) {
         const glm::ivec3 c = field.layout.coords(i);
@@ -149,15 +131,7 @@ TEST_F(DistanceFieldTests, ThreeDimensionalAttributeSpace) {
         1,       sqrt(2),   // y = 1
     };
 
-    // Redirect std::cout
-    std::streambuf* originalCoutBuffer = std::cout.rdbuf();
-    std::ostringstream redirectedCout;
-    std::cout.rdbuf(redirectedCout.rdbuf());
-
     ScalarField field = generateDistanceField(points, testMultiField);
-
-    // Restore std::cout to its original buffer
-    std::cout.rdbuf(originalCoutBuffer);
 
     for (int i = 0; i < static_cast<int>(field.values.size()); i++) {
         const glm::ivec3 c = field.layout.coords(i);
@@ -169,11 +143,7 @@ TEST_F(DistanceFieldTests, NaNVoxelKeepsMaxDistanceAndDoesNotAffectNeighbours) {
     testMultiField.attributeDomain[0].values[0] = std::numeric_limits<float>::quiet_NaN();
     std::vector<TraitPoint> points = {pointOn(0, 1.f)};
 
-    std::streambuf* originalCoutBuffer = std::cout.rdbuf();
-    std::ostringstream redirectedCout;
-    std::cout.rdbuf(redirectedCout.rdbuf());
     ScalarField field = generateDistanceField(points, testMultiField);
-    std::cout.rdbuf(originalCoutBuffer);
 
     // (0,0,0) holds the NaN. NaN loses the comparison, so the voxel stays at the initial max.
     EXPECT_EQ(field.values[0], std::numeric_limits<float>::max());
@@ -184,11 +154,7 @@ TEST_F(DistanceFieldTests, NaNVoxelKeepsMaxDistanceAndDoesNotAffectNeighbours) {
 TEST_F(DistanceFieldTests, SteppingSlabBySlabMatchesOneShotAndReportsProgress) {
     std::vector<TraitPoint> points = {pointOn(0, 1.f)};
 
-    std::streambuf* originalCoutBuffer = std::cout.rdbuf();
-    std::ostringstream redirectedCout;
-    std::cout.rdbuf(redirectedCout.rdbuf());
     const ScalarField expected = generateDistanceField(points, testMultiField);
-    std::cout.rdbuf(originalCoutBuffer);
 
     DistanceFieldJob job(points, testMultiField);      // xVals == 2 → two slabs
     EXPECT_FLOAT_EQ(job.progress(), 0.f);

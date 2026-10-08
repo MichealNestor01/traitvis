@@ -1,5 +1,4 @@
 #include "fileReader.hpp"
-#include "testUtils.hpp"
 
 #include <gtest/gtest.h>
 #include <cstddef>
@@ -28,7 +27,6 @@ TEST(FileReaderTests, TruncatedFileReturnsEmpty) {
 }
 
 TEST(FileReaderTests, MissingFileReturnsEmpty) {
-    StreamRedirect cerrRedirect(std::cerr);
     std::vector<float> result = readFloatBinaryFile("tests/parsingData/does-not-exist.bin", 1, false);
     EXPECT_TRUE(result.empty());
 }

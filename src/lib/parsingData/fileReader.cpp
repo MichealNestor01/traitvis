@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <fstream>
-#include <iostream>
 
 // endianess reverser from Gregor Brandt at https://stackoverflow.com/questions/2782725/converting-float-values-from-big-endian-to-little-endian
 float reverseFloat(float inFloat) {
@@ -22,10 +21,7 @@ float reverseFloat(float inFloat) {
 std::vector<float> readFloatBinaryFile(const std::filesystem::path& file, std::size_t count, bool reverseByteOrder) {
     std::ifstream inputFile(file, std::ios::binary);
 
-    if (!inputFile.is_open()) {
-        std::cerr << "Error: Could not open " << file << std::endl;
-        return {};
-    }
+    if (!inputFile.is_open()) return {};
 
     std::vector<float> data(count);
 

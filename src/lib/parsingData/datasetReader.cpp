@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <iostream>
 #include <limits>
 #include <string>
 #include <vector>
@@ -30,7 +29,7 @@ MultiField readAttributePerFileDataset(const DatasetDirConfig& config) {
         const std::filesystem::path path = config.filePath / file.filename;
         std::vector<float> vals = readFloatBinaryFile(path, static_cast<std::size_t>(valuesPerFile), true);
         if (vals.size() == 0) {
-            std::cerr << "Failed to read values from " << path << std::endl;
+            multiField.error = "Failed to read values from " + path.string() + "\n";
             return multiField;
         }
         // A configured fill value becomes NaN so it passes through normalisation
@@ -56,27 +55,22 @@ MultiField readAttributePerFileDataset(const DatasetDirConfig& config) {
 
     // normalise the attributes
     multiField.normaliseAttributes();
-
-    multiField.readError = false;
     return multiField;
 }
 
 MultiField readDataset(std::string filepath) {
-    DatasetDirConfig config = parseConfig(filepath); 
-    MultiField empty;
-
-    if (config.parseError) {
-        std::cerr << "Failed to parse dataset config from " << filepath << std::endl;
-        return empty;
+    DatasetDirConfig config = parseConfig(filepath);
+    if (!config.ok()) {
+        MultiField failed;
+        failed.error = config.error;
+        return failed;
     }
 
-    config.printConfig();
-
-    if (config.dataset->format == ATTRIBUTEPERFILE) {
+    if (config.dataset->format == ATTRIBUTEPERFILE)
         return readAttributePerFileDataset(config);
-    } 
 
-    std::cerr  << "Dataset format not currently supported" << std::endl;
-    return empty;
+    MultiField failed;
+    failed.error = "Dataset format not currently supported\n";
+    return failed;
 }
 

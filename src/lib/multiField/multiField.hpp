@@ -37,7 +37,8 @@ struct IndexStrides {
 };
 
 struct MultiField {
-    bool readError = true;
+    std::string error;
+    [[nodiscard]] bool ok() const { return error.empty(); }
     std::string name;
     int xVals, yVals, zVals;
     std::vector<Attribute> attributeDomain;

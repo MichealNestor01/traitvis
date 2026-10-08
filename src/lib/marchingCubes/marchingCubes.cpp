@@ -4,11 +4,9 @@
 #include <glm.hpp>
 #include <stdlib.h>
 #include <stdio.h>
-#include <iostream>
 #include <map>
 #include <fstream>
 #include <algorithm>
-#include <chrono>
 
 std::vector<float> Surface::interleaved() const {
     std::vector<float> positionsAndNormals(vertices.size() * 6);
@@ -90,24 +88,11 @@ Surface extractSurface(const ScalarField &field, float isoValue) {
     Surface surface;
     const GridLayout &layout = field.layout;
 
-    // Start timing
-    auto startTime = std::chrono::high_resolution_clock::now();
-
     for (int x = 0; x < layout.x - 1; ++x) {
     for (int y = 0; y < layout.y - 1; ++y) {
     for (int z = 0; z < layout.z - 1; ++z) {
         examineCube(surface, field, layout.index(x, y, z), isoValue);
     }}}
-
-    // End timing and calculate duration
-    auto endTime = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = endTime - startTime;
-    std::cout << "marching cubes time taken: " << elapsed.count() << " seconds\n";
-    std::cout << "marching cubes surface vertices: " << surface.vertices.size() << " vertices\n";
-
-    std::cout << "Generated Surface:" << std::endl;
-    std::cout << "Active Vertices: " << surface.activeVertices.size() << std::endl;
-    std::cout << "Inactive Vertices: " << surface.inactiveVertices.size() << std::endl;
 
     return surface;
 }

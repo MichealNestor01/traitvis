@@ -2,8 +2,6 @@
 
 #include <gtest/gtest.h>
 #include <filesystem>
-#include <iostream>
-#include <sstream>
 #include <string>
 
 struct BadConfigCase {
@@ -14,7 +12,7 @@ struct BadConfigCase {
 
 TEST(ConfigParserTests, RelativeFilepathIsResolvedAgainstConfigDirectory) {
     DatasetDirConfig config = parseConfig("tests/parsingData/testDataset/config.txt");
-    ASSERT_FALSE(config.parseError);
+    ASSERT_TRUE(config.ok());
     EXPECT_EQ(std::filesystem::weakly_canonical(config.filePath),
               std::filesystem::weakly_canonical("tests/parsingData/testDataset/"));
 }
@@ -23,17 +21,8 @@ class ConfigParserBadFileTests : public testing::TestWithParam<BadConfigCase> {}
 
 TEST_P(ConfigParserBadFileTests, ReturnsParseErrorWithMessage) {
     const auto& [name, filepath, expectedError] = GetParam();
-
-    std::streambuf* originalCerrBuffer = std::cerr.rdbuf();
-    std::ostringstream redirectedCerr;
-    std::cerr.rdbuf(redirectedCerr.rdbuf());
-
     DatasetDirConfig result = parseConfig(filepath);
-
-    std::cerr.rdbuf(originalCerrBuffer);
-
-    EXPECT_TRUE(result.parseError);
-    EXPECT_EQ(redirectedCerr.str(), expectedError);
+    EXPECT_EQ(result.error, expectedError);
 }
 
 INSTANTIATE_TEST_SUITE_P(

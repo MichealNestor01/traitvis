@@ -16,8 +16,8 @@ int main(int argc, char **argv) {
     }
     MultiField isabel = readDataset(argv[1]);
 
-    if (isabel.readError) {
-        std::cerr << "Error reading dataset" << std::endl;
+    if (!isabel.ok()) {
+        std::cerr << isabel.error;
         return 1;
     }
 

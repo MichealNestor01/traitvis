@@ -3,27 +3,15 @@
 #include "configParser.hpp"
 #include "multiField.hpp"
 
-#include "testUtils.hpp"
-
 #include <gtest/gtest.h>
 #include <cmath>
-#include <iostream>
 #include <limits>
-#include <sstream>
 #include <vector>
 
 TEST(DatasetReaderTests, TestDataset) {
-    // Redirect std::cout
-    std::streambuf* originalCoutBuffer = std::cout.rdbuf();
-    std::ostringstream redirectedCout;
-    std::cout.rdbuf(redirectedCout.rdbuf());
-
     MultiField result = readDataset("tests/parsingData/testDataset/config.txt");
 
-    // Restore std::cout to its original buffer
-    std::cout.rdbuf(originalCoutBuffer);
-
-    ASSERT_FALSE(result.readError);
+    ASSERT_TRUE(result.ok());
     EXPECT_EQ(result.name, "testDataset");
     EXPECT_EQ(result.xVals, 2);
     EXPECT_EQ(result.yVals, 2);
@@ -36,10 +24,9 @@ TEST(DatasetReaderTests, TestDataset) {
 }
 
 TEST(DatasetReaderTests, SentinelBecomesNaNAndIsExcludedFromBounds) {
-    StreamRedirect redirect(std::cout);
     MultiField result = readDataset("tests/parsingData/sentinelDataset/config.txt");
 
-    ASSERT_FALSE(result.readError);
+    ASSERT_TRUE(result.ok());
     const auto& values = result.attributeDomain[0].values;
     EXPECT_TRUE(std::isnan(values[1]));
     EXPECT_FLOAT_EQ(result.attributeDomain[0].bounds.lower, 0.f);
@@ -49,16 +36,14 @@ TEST(DatasetReaderTests, SentinelBecomesNaNAndIsExcludedFromBounds) {
 }
 
 TEST(DatasetReaderTests, MissingConfigReportsReadError) {
-    StreamRedirect cerrRedirect(std::cerr);
     MultiField result = readDataset("tests/parsingData/does-not-exist/config.txt");
-    EXPECT_TRUE(result.readError);
+    EXPECT_EQ(result.error, "Failed to open \"tests/parsingData/does-not-exist/config.txt\"\n");
 }
 
 TEST(DatasetReaderTests, WithoutNoDataTheSentinelValueIsKept) {
-    StreamRedirect redirect(std::cout);
     MultiField result = readDataset("tests/parsingData/sentinelDataset/config_without_nodata.txt");
 
-    ASSERT_FALSE(result.readError);
+    ASSERT_TRUE(result.ok());
     EXPECT_FALSE(std::isnan(result.attributeDomain[0].values[1]));
     EXPECT_FLOAT_EQ(result.attributeDomain[0].values[1], 1e35f);
     EXPECT_FLOAT_EQ(result.attributeDomain[0].bounds.lower, 0.f);
