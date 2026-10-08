@@ -9,7 +9,6 @@ class FeatureLevelSet {
 public:
     std::vector<TraitPoint> points;
     Surface surface;
-    std::vector<float> surfaceVertices;
     glm::vec3 colour;
     float transparency = 1.f;
     bool active = true;

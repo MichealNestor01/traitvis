@@ -91,3 +91,10 @@ TEST(MarchingCubesTests, TestAllCases) {
         EXPECT_EQ(generatedTriangles, expectedTriangles) << "Case " << caseNum << " failed.";
     }
 }
+
+TEST(SurfaceTests, InterleavedVerticesArePositionThenNormal) {
+    Surface s;
+    s.vertices = {{1, 2, 3}, {4, 5, 6}};
+    s.normals  = {{0, 0, 1}, {0, 1, 0}};
+    EXPECT_EQ(s.interleaved(), (std::vector<float>{1, 2, 3, 0, 0, 1,  4, 5, 6, 0, 1, 0}));
+}

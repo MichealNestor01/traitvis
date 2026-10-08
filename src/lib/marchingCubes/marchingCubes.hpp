@@ -23,7 +23,7 @@ struct Surface {
 	std::set<glm::vec3, Vec3Comparator> activeVertices;
 	std::set<glm::vec3, Vec3Comparator> inactiveVertices;
 
-	std::vector<float> getVertices();
+	std::vector<float> interleaved() const;
 };
 
 void examineCube(Surface &triangles, const ScalarField &field, int vertex0, float isoValue);

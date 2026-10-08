@@ -12,5 +12,4 @@ FeatureLevelSet::FeatureLevelSet(std::vector<TraitPoint> points, MultiField & da
     ScalarField distanceField = generateDistanceField(this->points, dataset);
     // extract the surface given the normalised eucliean distance
     surface = extractSurface(distanceField, euclideanDistance);
-    surfaceVertices = surface.getVertices();
 }

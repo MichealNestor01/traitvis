@@ -10,17 +10,17 @@
 #include <algorithm>
 #include <chrono>
 
-std::vector<float> Surface::getVertices() {
-    std::vector<float> verticesWithNormals(vertices.size() * 6);
-    for (int vertIndex = 0; vertIndex < vertices.size(); ++vertIndex) {
-        verticesWithNormals[vertIndex*6] = vertices[vertIndex].x;
-        verticesWithNormals[vertIndex*6+1] = vertices[vertIndex].y;
-        verticesWithNormals[vertIndex*6+2] = vertices[vertIndex].z;
-        verticesWithNormals[vertIndex*6+3] = normals[vertIndex].x;
-        verticesWithNormals[vertIndex*6+4] = normals[vertIndex].y;
-        verticesWithNormals[vertIndex*6+5] = normals[vertIndex].z;
+std::vector<float> Surface::interleaved() const {
+    std::vector<float> positionsAndNormals(vertices.size() * 6);
+    for (std::size_t vertIndex = 0; vertIndex < vertices.size(); ++vertIndex) {
+        positionsAndNormals[vertIndex * 6]     = vertices[vertIndex].x;
+        positionsAndNormals[vertIndex * 6 + 1] = vertices[vertIndex].y;
+        positionsAndNormals[vertIndex * 6 + 2] = vertices[vertIndex].z;
+        positionsAndNormals[vertIndex * 6 + 3] = normals[vertIndex].x;
+        positionsAndNormals[vertIndex * 6 + 4] = normals[vertIndex].y;
+        positionsAndNormals[vertIndex * 6 + 5] = normals[vertIndex].z;
     }
-    return verticesWithNormals;
+    return positionsAndNormals;
 }
 
 void examineCube(Surface &triangles, const ScalarField &field, int vertex0, float isoValue) {
