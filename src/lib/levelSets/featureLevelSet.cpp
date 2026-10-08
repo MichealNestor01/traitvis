@@ -1,5 +1,6 @@
-#include <iostream>
 #include "featureLevelSet.hpp"
+
+#include <utility>
 
 
 FeatureLevelSet::FeatureLevelSet(std::vector<TraitPoint> points, MultiField & dataset, float euclideanDistance, glm::vec3 colour, std::string id) {
@@ -13,3 +14,6 @@ FeatureLevelSet::FeatureLevelSet(std::vector<TraitPoint> points, MultiField & da
     // extract the surface given the normalised eucliean distance
     surface = extractSurface(distanceField, euclideanDistance);
 }
+
+FeatureLevelSet::FeatureLevelSet(std::vector<TraitPoint> points, Surface surface, glm::vec3 colour, std::string id)
+    : points(std::move(points)), surface(std::move(surface)), colour(colour), id(std::move(id)) {}

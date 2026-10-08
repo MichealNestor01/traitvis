@@ -4,7 +4,10 @@
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
 #include <gtc/type_ptr.hpp>
+#include <memory>
+#include <optional>
 #include <set>
+#include <utility>
 #include <vector>
 
 #include "../lib/camera/camera.hpp"
@@ -12,6 +15,7 @@
 #include "../lib/multiField/multiField.hpp"
 #include "../lib/marchingCubes/marchingCubes.hpp"
 #include "../lib/levelSets/featureLevelSet.hpp"
+#include "../lib/levelSets/levelSetJob.hpp"
 
 struct ProgramState {
     // camera object
@@ -40,24 +44,57 @@ struct ProgramState {
     bool backFaceCulling = false;
     // dataset variables
     bool loadedDataset = false;
-    MultiField dataset;
+    std::shared_ptr<MultiField> dataset = std::make_shared<MultiField>();
+    std::optional<DatasetReadJob> activeLoad;
     // levelset variables
     std::vector<TraitPoint> attributeSpacePointsBuffer;
     std::vector<FeatureLevelSet> levelSets;
+    std::optional<LevelSetJob> activeLevelSet;
 
 
     void generateLevelSet(float euclideanDistance, glm::vec3 colour, std::string id) {
-        FeatureLevelSet newLevelSet(attributeSpacePointsBuffer, dataset, euclideanDistance, colour, id);
-        levelSets.push_back(newLevelSet);
+        if (activeLevelSet || !dataset || !dataset->ok()) return;
+        activeLevelSet.emplace(attributeSpacePointsBuffer, std::shared_ptr<const MultiField>(dataset), euclideanDistance, colour, std::move(id));
+        activeLevelSet->start();
     }
 
     void addAttributeSpacePointToBuffer(TraitPoint point) {
         attributeSpacePointsBuffer.push_back(point);
     }
 
-    void loadDataset(std::string path) {
-        dataset = readDataset(path);
+    void beginDatasetLoad(std::string path) {
+        if (activeLoad) return;
+        activeLoad.emplace(std::move(path));
+        activeLoad->start();
+    }
+
+    // Steps a load that has no worker, then installs a finished dataset on this thread.
+    // Returns true when a new dataset replaced the previous one, so the interface can
+    // rebuild the attribute widgets. A cancel installs nothing.
+    bool pollDatasetLoad() {
+#if defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)
+        if (activeLoad && !activeLoad->runsOnWorker() && !activeLoad->finished())
+            activeLoad->stepOnMainThread();
+#endif
+        if (!activeLoad || !activeLoad->finished()) return false;
+        std::optional<MultiField> loaded = activeLoad->take();
+        activeLoad.reset();
+        if (!loaded) return false;
+        dataset = std::make_shared<MultiField>(std::move(*loaded));
         loadedDataset = true;
+        attributeSpacePointsBuffer.clear();
+        return true;
+    }
+
+    void pollLevelSet() {
+#if defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)
+        if (activeLevelSet && !activeLevelSet->runsOnWorker() && !activeLevelSet->finished())
+            activeLevelSet->stepOnMainThread(1);
+#endif
+        if (!activeLevelSet || !activeLevelSet->finished()) return;
+        if (std::optional<FeatureLevelSet> made = activeLevelSet->take())
+            levelSets.push_back(std::move(*made));
+        activeLevelSet.reset();
     }
 
     void toggleCam(GLFWwindow* window) {

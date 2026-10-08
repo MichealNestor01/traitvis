@@ -20,4 +20,5 @@ public:
     bool invertNormals = false;
     
     FeatureLevelSet(std::vector<TraitPoint> points, MultiField & dataset, float euclideanDistance, glm::vec3 colour, std::string id);
+    FeatureLevelSet(std::vector<TraitPoint> points, Surface surface, glm::vec3 colour, std::string id);
 };

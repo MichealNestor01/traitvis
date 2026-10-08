@@ -20,13 +20,23 @@ void GUI::render() {
     ImGui::Begin("Controls");
     ImGui::SetWindowFontScale(1.f);
 
-    if (ImGui::Button("Load Dataset")) {
-        programState.loadDataset(std::string(inputTextBuffer)); 
-        createDatasetWidgets();
+    if (programState.pollDatasetLoad()) createDatasetWidgets();
+    programState.pollLevelSet();
+
+    if (programState.activeLoad) {
+        ImGui::ProgressBar(programState.activeLoad->progress());
+        if (ImGui::Button("Cancel load")) programState.activeLoad->cancel();
+    } else if (ImGui::Button("Load Dataset")) {
+        programState.beginDatasetLoad(std::string(inputTextBuffer));
     }
     ImGui::SameLine();
     // Text input
     ImGui::InputText("##DatasetPath", inputTextBuffer, IM_ARRAYSIZE(inputTextBuffer));
+
+    if (programState.activeLevelSet) {
+        ImGui::ProgressBar(programState.activeLevelSet->progress());
+        if (ImGui::Button("Cancel level set")) programState.activeLevelSet->cancel();
+    }
 
     // Display the text from the input box underneath it)
     if (not programState.loadedDataset) {
@@ -34,10 +44,10 @@ void GUI::render() {
         return;
     }
 
-    if (!programState.dataset.ok()) {
-        ImGui::TextUnformatted(programState.dataset.error.c_str());
+    if (!programState.dataset->ok()) {
+        ImGui::TextUnformatted(programState.dataset->error.c_str());
     } else {
-        std::string message = "Loaded dataset: " + programState.dataset.name;
+        std::string message = "Loaded dataset: " + programState.dataset->name;
         ImGui::Text("%s", message.c_str());
         ImGui::Text(" ");
         ImGui::Text("Define Trait:");
@@ -107,7 +117,8 @@ void GUI::render() {
                 }
             }
             if (not uniqueId) ImGui::Text("Level set id must be unique.");
-            else programState.generateLevelSet(levelSetDistance/100, glm::vec3(levelSetRed/255.f, levelSetGreen/255.f, levelSetBlue/255.f), std::string(levelSetIdBuffer));
+            else if (!programState.activeLevelSet)
+                programState.generateLevelSet(levelSetDistance/100, glm::vec3(levelSetRed/255.f, levelSetGreen/255.f, levelSetBlue/255.f), std::string(levelSetIdBuffer));
         }
     }
 
@@ -148,8 +159,9 @@ void GUI::render() {
 }
 
 void GUI::createDatasetWidgets() {
-    if (!programState.dataset.ok()) return;
-    for (Attribute& attribute : programState.dataset.attributeDomain) 
+    attributeWidgets.clear();
+    if (!programState.dataset || !programState.dataset->ok()) return;
+    for (Attribute& attribute : programState.dataset->attributeDomain)
         attributeWidgets.push_back({attribute, false, attribute.bounds.lower});
 }
 
