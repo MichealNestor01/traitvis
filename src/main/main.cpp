@@ -24,7 +24,6 @@
 #include "../lib/meshTools/createVao.hpp"
 #include "../lib/meshTools/cube.hpp"
 #include "../lib/marchingCubes/marchingCubes.hpp"
-#include "../lib/marchingCubes/grid.hpp"
 #include "../lib/gui/gui.hpp"
 #include "../lib/marchingCubes/mc_tables.h"
 
