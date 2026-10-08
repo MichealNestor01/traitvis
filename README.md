@@ -18,8 +18,6 @@ $ make config=release
 
 Binaries will be available in ./bin/Release/  
 
-Tests can be ran using the tests binary, however, for tests the tests to succeed you will need to generate some test binary files, you can do this by nagivating to `tests/parsingData/testBinaryFiles/` and run the `binaryFileMaker.py` script. This will produce the binary files that the tests are expecting.
-
 ## Loading Datasets
 
 To load a datset,you will need to describe it using our configuration file format. Currently TraitVis only supports mutlfield datasets where attributes are defined in separate binary files of the same size in the brick of floats format. The Hurricane Isabel datset is an example of a dataset which TratVis currently supports and can be donwloaded [here](https://www.earthsystemgrid.org/dataset/isabeldata.html).
