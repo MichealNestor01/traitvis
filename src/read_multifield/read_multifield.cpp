@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -35,8 +36,14 @@ int main(int argc, char **argv) {
             }
         }
         std::cout << "\tFound " << invalid_indexes.size() << " points outside of the allowed range" << std::endl;
-        if (invalid_indexes.size() > 0) {
-            std::cout << "\tExample Values: " << curr.values[invalid_indexes[0]] << ", " << curr.values[invalid_indexes[1]] << std::endl; 
+        if (!invalid_indexes.empty()) {
+            const std::size_t exampleCount = std::min<std::size_t>(2, invalid_indexes.size());
+            std::cout << "\tExample Values:";
+            for (std::size_t i = 0; i < exampleCount; ++i) {
+                if (i != 0) std::cout << ",";
+                std::cout << " " << curr.values[invalid_indexes[i]];
+            }
+            std::cout << std::endl;
         }
     }
     return 0;
