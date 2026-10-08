@@ -1,8 +1,11 @@
 #include "fileReader.hpp"
 
+#include <algorithm>
+#include <fstream>
+#include <iostream>
+
 // endianess reverser from Gregor Brandt at https://stackoverflow.com/questions/2782725/converting-float-values-from-big-endian-to-little-endian
-float reverseFloat( float inFloat )
-{
+float reverseFloat(float inFloat) {
    float retVal;
    char *floatToConvert = reinterpret_cast<char*>(&inFloat);
    char *returnFloat = reinterpret_cast<char*>(&retVal);
@@ -16,29 +19,21 @@ float reverseFloat( float inFloat )
    return retVal;
 }
 
-std::vector<float> readFloatBinaryFile(const char* filename, int ndata, bool reverseByteOrder) {
-    std::ifstream inputFile(filename, std::ios::binary);
+std::vector<float> readFloatBinaryFile(const std::filesystem::path& file, std::size_t count, bool reverseByteOrder) {
+    std::ifstream inputFile(file, std::ios::binary);
 
     if (!inputFile.is_open()) {
-        std::cerr << "Error: Could not open " << filename << std::endl;
-        return {};  // Return an empty vector to indicate failure
+        std::cerr << "Error: Could not open " << file << std::endl;
+        return {};
     }
 
-    std::vector<float> data(ndata);
+    std::vector<float> data(count);
 
-    // Read binary data into the vector
-    inputFile.read(reinterpret_cast<char*>(data.data()), sizeof(float) * ndata);
+    inputFile.read(reinterpret_cast<char*>(data.data()), static_cast<std::streamsize>(count * sizeof(float)));
+    if (inputFile.gcount() != static_cast<std::streamsize>(count * sizeof(float))) return {};
 
-    // reverse byte order 
-    if (reverseByteOrder) 
-        std::transform(data.begin(), data.end(), data.begin(), [](float c){return reverseFloat(c);});
-
-    // Close the file
-    inputFile.close();
+    if (reverseByteOrder)
+        std::transform(data.begin(), data.end(), data.begin(), [](float c){ return reverseFloat(c); });
 
     return data;
-}
-
-std::vector<float> readFloatBinaryFile(std::string filename, int ndata, bool reverseByteOrder) {
-    return readFloatBinaryFile(filename.c_str(), ndata, reverseByteOrder);
 }
