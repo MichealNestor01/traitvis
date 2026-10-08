@@ -16,6 +16,8 @@ public:
     float renderDepth = 1.f;
     std::string id;
     unsigned int VAO = 0;
+    unsigned int activeInstanceVBO = 0;
+    unsigned int inactiveInstanceVBO = 0;
     bool showActiveInactivePixels = false;
     bool invertNormals = false;
     

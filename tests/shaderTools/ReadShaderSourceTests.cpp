@@ -17,7 +17,7 @@ TEST(ReadShaderSourceTests, MissingFile_ThrowsRuntimeError) {
 }
 
 TEST(ReadShaderSourceTests, ExistingFile_ReturnsContents) {
-    const std::string contents = readShaderSource("assets/colours.vert");
+    const std::string contents = readShaderSource("assets/litSurface.vert");
 
     EXPECT_GT(contents.size(), 0u);
     EXPECT_NE(contents.find("void main"), std::string::npos);

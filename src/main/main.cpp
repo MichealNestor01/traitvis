@@ -27,6 +27,14 @@
 #include "../lib/gui/gui.hpp"
 #include "../lib/marchingCubes/mc_tables.h"
 
+unsigned int boundaryCubeInstances(const std::set<glm::vec3, Vec3Comparator>& vertices) {
+    std::vector<glm::mat4> models;
+    models.reserve(vertices.size());
+    for (const glm::vec3& vertex : vertices)
+        models.push_back(glm::scale(glm::translate(glm::mat4(1.f), vertex), glm::vec3(0.1f)));
+    return createInstanceBuffer(models.data(), models.size());
+}
+
 // Define the error callback function
 void error_callback(int error, const char* description) {
     std::cerr << "GLFW Error (" << error << "): " << description << std::endl;
@@ -99,8 +107,8 @@ int main() {
     std::optional<ShaderProgram> lightingShaderOpt;
     try {
         lightingShaderOpt.emplace(std::vector<ShaderProgram::ShaderSource>{
-            {GL_VERTEX_SHADER, "assets/colours.vert"},
-            {GL_FRAGMENT_SHADER, "assets/colours.frag"}
+            {GL_VERTEX_SHADER, "assets/litSurface.vert"},
+            {GL_FRAGMENT_SHADER, "assets/litSurface.frag"}
         });
     } catch (const std::runtime_error& e) {
         std::cerr << "Fatal: " << e.what() << std::endl;
@@ -173,6 +181,7 @@ int main() {
     lightingShader.setUniform3f("lightColor", lightColour);
     lightingShader.setUniform3f("lightPos", lightPos);
     lightingShader.setUniformf("objectTransparency", 1.f);
+    lightingShader.setUniformb("useInstanceModel", false);
     // global lighting
     lightingShader.setUniform3f("lightDir", glm::normalize(glm::vec3(-1.f, -1.f, -1.f)));
     lightingShader.setUniform3f("lightDiffuse", glm::vec3(0.2f, 0.2f, 0.2f));
@@ -258,32 +267,34 @@ int main() {
             lightingShader.setUniformMat4f("model", &defaultModel);
             for (auto & levelSet : state.levelSets) {
                 if (levelSet.active) {
-                    if (levelSet.VAO == 0) levelSet.VAO = createVAO(levelSet.surfaceVertices.data(), levelSet.surfaceVertices.size()*sizeof(float));
+                    if (levelSet.VAO == 0) {
+                        levelSet.VAO = createVAO(levelSet.surfaceVertices.data(), levelSet.surfaceVertices.size()*sizeof(float));
+                        levelSet.activeInstanceVBO = boundaryCubeInstances(levelSet.surface.activeVertices);
+                        levelSet.inactiveInstanceVBO = boundaryCubeInstances(levelSet.surface.inactiveVertices);
+                    }
                     lightingShader.setUniformb("invertNormal", levelSet.invertNormals);
                     lightingShader.setUniform3f("objectColor", levelSet.colour);
                     lightingShader.setUniformf("objectTransparency", levelSet.transparency);
                     if (levelSet.transparency < 1.f) glDepthMask(GL_FALSE);
                     else glDepthMask(GL_TRUE);
+                    lightingShader.setUniformb("useInstanceModel", false);
                     glBindVertexArray(levelSet.VAO);
                     glDrawArrays(GL_TRIANGLES, 0, levelSet.surfaceVertices.size());
-                    
+
                     if (levelSet.showActiveInactivePixels) {
-                        // generate boundary vertices
+                        lightingShader.setUniformb("useInstanceModel", true);
                         glBindVertexArray(cubeVAO);
-                        lightingShader.setUniform3f("objectColor", colourGreen);
-                        for (auto & vertex : levelSet.surface.activeVertices) {
-                            //std::cout << "Active vertex: " << vertex.x << " " << vertex.y << " " << vertex.z << "\n";
-                            glm::mat4 cubeModel = glm::scale(glm::translate(glm::mat4(1.f), vertex), glm::vec3(0.1f));
-                            lightingShader.setUniformMat4f("model", &cubeModel);
-                            glDrawArrays(GL_TRIANGLES, 0, 6*2*3);
+                        if (levelSet.activeInstanceVBO != 0) {
+                            lightingShader.setUniform3f("objectColor", colourGreen);
+                            bindInstanceBuffer(levelSet.activeInstanceVBO);
+                            glDrawArraysInstanced(GL_TRIANGLES, 0, 6*2*3, levelSet.surface.activeVertices.size());
                         }
-                        lightingShader.setUniform3f("objectColor", colourRed);
-                        for (auto & vertex : levelSet.surface.inactiveVertices) {
-                            //std::cout << "Active vertex: " << vertex.x << " " << vertex.y << " " << vertex.z << "\n";
-                            glm::mat4 cubeModel = glm::scale(glm::translate(glm::mat4(1.f), vertex), glm::vec3(0.1f));
-                            lightingShader.setUniformMat4f("model", &cubeModel);
-                            glDrawArrays(GL_TRIANGLES, 0, 6*2*3);
+                        if (levelSet.inactiveInstanceVBO != 0) {
+                            lightingShader.setUniform3f("objectColor", colourRed);
+                            bindInstanceBuffer(levelSet.inactiveInstanceVBO);
+                            glDrawArraysInstanced(GL_TRIANGLES, 0, 6*2*3, levelSet.surface.inactiveVertices.size());
                         }
+                        lightingShader.setUniformb("useInstanceModel", false);
                     }
                 }
             }
