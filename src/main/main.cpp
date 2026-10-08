@@ -280,7 +280,7 @@ int main() {
                     else glDepthMask(GL_TRUE);
                     lightingShader.setUniformb("useInstanceModel", false);
                     glBindVertexArray(levelSet.VAO);
-                    glDrawArrays(GL_TRIANGLES, 0, levelSet.surface.vertices.size() * 6);
+                    glDrawArrays(GL_TRIANGLES, 0, levelSet.surface.vertices.size());
 
                     if (levelSet.showActiveInactivePixels) {
                         lightingShader.setUniformb("useInstanceModel", true);
