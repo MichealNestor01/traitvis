@@ -16,6 +16,11 @@ struct Vec3Comparator {
     }
 };
 
+enum class NormalMode {
+    Flat,      // one normal per triangle, from the cross product of its edges
+    Gradient   // the distance field's slope, interpolated along the crossed edge
+};
+
 struct Surface {
 	std::vector<glm::vec3> vertices;
 	std::vector<glm::vec3> normals;
@@ -26,5 +31,5 @@ struct Surface {
 	std::vector<float> interleaved() const;
 };
 
-void examineCube(Surface &triangles, const ScalarField &field, int vertex0, float isoValue);
-Surface extractSurface(const ScalarField &field, float isoValue);
+void examineCube(Surface &triangles, const ScalarField &field, int vertex0, float isoValue, NormalMode normals = NormalMode::Gradient);
+Surface extractSurface(const ScalarField &field, float isoValue, NormalMode normals = NormalMode::Gradient);

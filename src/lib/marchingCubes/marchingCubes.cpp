@@ -8,6 +8,38 @@
 #include <fstream>
 #include <algorithm>
 
+namespace {
+
+float partial(const ScalarField& field, glm::ivec3 p, int axis) {
+    const int n = axis == 0 ? field.layout.x : axis == 1 ? field.layout.y : field.layout.z;
+    const int i = axis == 0 ? p.x : axis == 1 ? p.y : p.z;
+    auto at = [&](int index) {
+        glm::ivec3 q = p;
+        if (axis == 0) q.x = index;
+        else if (axis == 1) q.y = index;
+        else q.z = index;
+        return field.values[field.layout.index(q.x, q.y, q.z)];
+    };
+    if (n < 2) return 0.f;
+    // Central difference in the interior. One cell, one-sided, on the border.
+    if (i <= 0) return at(1) - at(0);
+    if (i >= n - 1) return at(n - 1) - at(n - 2);
+    return (at(i + 1) - at(i - 1)) * 0.5f;
+}
+
+glm::vec3 gradientAt(const ScalarField& field, glm::ivec3 p) {
+    return {partial(field, p, 0), partial(field, p, 1), partial(field, p, 2)};
+}
+
+glm::vec3 faceNormal(const Surface& triangles) {
+    const glm::vec3 vertex1 = triangles.vertices[triangles.vertices.size() - 3];
+    const glm::vec3 vertex2 = triangles.vertices[triangles.vertices.size() - 2];
+    const glm::vec3 vertex3 = triangles.vertices[triangles.vertices.size() - 1];
+    return glm::normalize(glm::cross(vertex2 - vertex1, vertex3 - vertex1));
+}
+
+}
+
 std::vector<float> Surface::interleaved() const {
     std::vector<float> positionsAndNormals(vertices.size() * 6);
     for (std::size_t vertIndex = 0; vertIndex < vertices.size(); ++vertIndex) {
@@ -21,7 +53,7 @@ std::vector<float> Surface::interleaved() const {
     return positionsAndNormals;
 }
 
-void examineCube(Surface &triangles, const ScalarField &field, int vertex0, float isoValue) {
+void examineCube(Surface &triangles, const ScalarField &field, int vertex0, float isoValue, NormalMode normals) {
     const GridLayout &layout = field.layout;
     int vertices[8];
     // find the index in the coordinate grid of each vertex of the cube
@@ -65,6 +97,13 @@ void examineCube(Surface &triangles, const ScalarField &field, int vertex0, floa
             float isoDistance = (isoValue - value0) / (value1 - value0);
             glm::vec3 vertex = endPoint0 + isoDistance * (endPoint1 - endPoint0);
             triangles.vertices.push_back(vertex);
+            if (normals == NormalMode::Gradient) {
+                const glm::vec3 n = glm::mix(
+                    gradientAt(field, field.layout.coords(corner0)),
+                    gradientAt(field, field.layout.coords(corner1)),
+                    isoDistance);
+                triangles.normals.push_back(n);
+            }
             if (value0 < isoValue) {
                 triangles.activeVertices.insert(endPoint0);
                 triangles.inactiveVertices.insert(endPoint1);
@@ -73,25 +112,29 @@ void examineCube(Surface &triangles, const ScalarField &field, int vertex0, floa
                 triangles.activeVertices.insert(endPoint1);
             }
         }
-        // calculate surface normal for the triangle and assign it to the triangle's three vertices
-        glm::vec3 vertex1 = triangles.vertices.at(triangles.vertices.size() - 3);
-        glm::vec3 vertex2 = triangles.vertices.at(triangles.vertices.size() - 2);
-        glm::vec3 vertex3 = triangles.vertices.at(triangles.vertices.size() - 1);
-        glm::vec3 normal = glm::normalize(glm::cross(vertex2 - vertex1, vertex3 - vertex1));
-        triangles.normals.push_back(normal);
-        triangles.normals.push_back(normal);
-        triangles.normals.push_back(normal);
+        const glm::vec3 normal = faceNormal(triangles);
+        if (normals == NormalMode::Flat) {
+            triangles.normals.push_back(normal);
+            triangles.normals.push_back(normal);
+            triangles.normals.push_back(normal);
+        } else {
+            for (std::size_t i = triangles.normals.size() - 3; i < triangles.normals.size(); ++i) {
+                triangles.normals[i] = glm::dot(triangles.normals[i], triangles.normals[i]) > 0.f
+                    ? glm::normalize(triangles.normals[i])
+                    : normal;
+            }
+        }
     }
 }
 
-Surface extractSurface(const ScalarField &field, float isoValue) {
+Surface extractSurface(const ScalarField &field, float isoValue, NormalMode normals) {
     Surface surface;
     const GridLayout &layout = field.layout;
 
     for (int x = 0; x < layout.x - 1; ++x) {
     for (int y = 0; y < layout.y - 1; ++y) {
     for (int z = 0; z < layout.z - 1; ++z) {
-        examineCube(surface, field, layout.index(x, y, z), isoValue);
+        examineCube(surface, field, layout.index(x, y, z), isoValue, normals);
     }}}
 
     return surface;

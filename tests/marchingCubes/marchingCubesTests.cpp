@@ -1,9 +1,11 @@
 #include "marchingCubes.hpp"
 #include "mc_tables.h"
 #include "scalarField.hpp"
+#include "levelSets/fieldFixtures.hpp"
 
 #include <gtest/gtest.h>
 #include <algorithm>
+#include <glm.hpp>
 
 TEST(MarchingCubesTests, TestNoActiveVertices) {
     ScalarField field{{3, 3, 3}, std::vector<float>(27, 1.f)};
@@ -61,6 +63,18 @@ TEST(MarchingCubesTests, TestAllCases) {
 
         // Check the expected number of vertices against the number generated
         EXPECT_EQ(generatedTriangles, expectedTriangles) << "Case " << caseNum << " failed.";
+    }
+}
+
+TEST(MarchingCubesTests, GradientNormalsOnASphereAreRadialUnitVectors) {
+    const ScalarField f = radialField(9);
+    const glm::vec3 centre(4.f);
+    const Surface s = extractSurface(f, 2.5f, NormalMode::Gradient);
+    ASSERT_GT(s.vertices.size(), 0u);
+    ASSERT_EQ(s.normals.size(), s.vertices.size());
+    for (std::size_t i = 0; i < s.vertices.size(); ++i) {
+        EXPECT_NEAR(glm::length(s.normals[i]), 1.f, 1e-4f);
+        EXPECT_GT(glm::dot(s.normals[i], glm::normalize(s.vertices[i] - centre)), 0.99f);
     }
 }
 
