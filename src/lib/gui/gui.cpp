@@ -4,6 +4,7 @@
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 
+#include <filesystem>
 #include <string>
 
 #ifndef __EMSCRIPTEN__
@@ -17,6 +18,7 @@ extern char** environ;
 
 #include "gui.hpp"
 #include "../../main/state.hpp" 
+#include "../meshTools/objMesh.hpp"
 #include "../multiField/multiField.hpp"
 
 #ifndef __EMSCRIPTEN__
@@ -86,6 +88,49 @@ FileDialogOutcome pickConfigFile(const std::string& current) {
     });
 }
 
+FileDialogOutcome pickMeshFile() {
+    const FileDialogOutcome zenity = runFileDialog({
+        "zenity", "--file-selection",
+        "--title=Import OBJ",
+        "--file-filter=Wavefront OBJ | *.obj",
+        "--file-filter=All files | *",
+    });
+    if (zenity.status != FileDialogStatus::Unavailable) return zenity;
+    return runFileDialog({
+        "kdialog", "--getopenfilename", ".",
+        "*.obj|Wavefront OBJ\n*|All files",
+    });
+}
+
+FileDialogOutcome pickSaveMesh(const std::string& suggested) {
+    const FileDialogOutcome zenity = runFileDialog({
+        "zenity", "--file-selection", "--save", "--confirm-overwrite",
+        "--title=Export OBJ",
+        "--filename=" + suggested,
+        "--file-filter=Wavefront OBJ | *.obj",
+        "--file-filter=All files | *",
+    });
+    if (zenity.status != FileDialogStatus::Unavailable) return zenity;
+    return runFileDialog({
+        "kdialog", "--getsavefilename", suggested,
+        "*.obj|Wavefront OBJ\n*|All files",
+    });
+}
+
+std::string uniqueMeshId(const DatasetSession& session, std::string stem) {
+    if (stem.empty()) stem = "mesh";
+    auto taken = [&](const std::string& id) {
+        for (const FeatureLevelSet& levelSet : session.levelSets)
+            if (levelSet.id == id) return true;
+        return false;
+    };
+    if (!taken(stem)) return stem;
+    for (int suffix = 2; ; ++suffix) {
+        const std::string candidate = stem + " " + std::to_string(suffix);
+        if (!taken(candidate)) return candidate;
+    }
+}
+
 }
 #endif
 
@@ -131,109 +176,124 @@ void GUI::render() {
     ImGui::SameLine();
     ImGui::InputText("##DatasetPath", inputTextBuffer, IM_ARRAYSIZE(inputTextBuffer));
     if (!fileDialogError.empty()) ImGui::TextUnformatted(fileDialogError.c_str());
+#ifndef __EMSCRIPTEN__
+    if (busy) ImGui::BeginDisabled();
+    if (ImGui::Button("Import OBJ")) {
+        const FileDialogOutcome picked = pickMeshFile();
+        if (picked.status == FileDialogStatus::Selected) {
+            ObjMesh mesh = importOBJ(picked.path);
+            if (!mesh.ok()) {
+                meshError = std::move(mesh.error);
+            } else {
+                meshError.clear();
+                const std::string id = uniqueMeshId(programState.session, std::filesystem::path(picked.path).stem().string());
+                programState.session.levelSets.emplace_back(
+                    std::vector<TraitPoint>{}, std::move(mesh.surface), glm::vec3{1.f, 0.f, 0.f}, id, std::shared_ptr<const MultiField>{});
+            }
+        } else if (picked.status == FileDialogStatus::Unavailable) {
+            meshError = "No file dialog is available.";
+        }
+    }
+    if (busy) ImGui::EndDisabled();
+    if (programState.session.levelSets.empty() && !meshError.empty())
+        ImGui::TextUnformatted(meshError.c_str());
+#endif
 
     if (programState.activeLevelSet) {
         ImGui::ProgressBar(programState.activeLevelSet->progress());
         if (ImGui::Button("Cancel level set")) programState.activeLevelSet->cancel();
     }
 
-    // Display the text from the input box underneath it)
-    if (programState.session.datasets.empty()) {
-        ImGui::End();
-        return;
-    }
-
-    ImGui::Text("Datasets:");
-    int removeIndex = -1;
-    for (int datasetIndex = 0; datasetIndex < static_cast<int>(programState.session.datasets.size()); ++datasetIndex) {
-        const std::shared_ptr<MultiField>& loaded = programState.session.datasets[datasetIndex];
-        const std::string name = loaded->ok() ? loaded->name : loaded->name + " (failed)";
-        const std::string label = name + "##dataset" + std::to_string(datasetIndex);
-        if (ImGui::RadioButton(label.c_str(), programState.session.active == datasetIndex)) {
-            if (programState.session.setActiveDataset(datasetIndex)) createDatasetWidgets();
-        }
-        ImGui::SameLine();
-        if (ImGui::SmallButton(("Remove##dataset" + std::to_string(datasetIndex)).c_str()))
-            removeIndex = datasetIndex;
-    }
-    if (removeIndex >= 0 && programState.session.removeDataset(removeIndex)) createDatasetWidgets();
-
-    const std::shared_ptr<MultiField> active = programState.session.activeDataset();
-    if (!active) {
-        ImGui::End();
-        return;
-    }
-    if (!active->ok()) {
-        ImGui::TextUnformatted(active->error.c_str());
-    } else {
-        ImGui::Text(" ");
-        ImGui::Text("Define Trait:");
-        for (auto &widget : attributeWidgets) {
-            const Attribute& attribute = widget.attribute();
-            ImGui::Text("%s: ", attribute.name.c_str());
-            if (not widget.active) ImGui::BeginDisabled();
-            ImGui::SliderFloat(("##slider" + attribute.name).c_str(), &widget.value, attribute.bounds.lower, attribute.bounds.upper, "%.7f");
-            if (not widget.active) ImGui::EndDisabled();
-            ImGui::SameLine();
-            ImGui::Checkbox(("##checkbox" + attribute.name).c_str(), &widget.active);
-        }
-    }
-
-    if (ImGui::Button("Add attribute vertex")) {
-        TraitPoint newVertex;
-        for (auto &widget : attributeWidgets) {
-            if (widget.active) {
-                newVertex.values.push_back({&widget.attribute(), widget.value});
-            }
-        }
-        if (newVertex.values.size() > 0) programState.addAttributeSpacePointToBuffer(newVertex);
-    }
-
-    if (programState.session.attributeSpacePointsBuffer.size() != 0) {
-        ImGui::Text(" ");
-        ImGui::Text("Attribute Vertices: ");
-        int i = 0;
-        for (auto &vertex : programState.session.attributeSpacePointsBuffer) {
-            if (ImGui::Button(std::string("Remove Vertex: " + std::to_string(i)).c_str())) {
-                programState.session.attributeSpacePointsBuffer.erase(programState.session.attributeSpacePointsBuffer.begin() + i);
+    if (!programState.session.datasets.empty()) {
+        ImGui::Text("Datasets:");
+        int removeIndex = -1;
+        for (int datasetIndex = 0; datasetIndex < static_cast<int>(programState.session.datasets.size()); ++datasetIndex) {
+            const std::shared_ptr<MultiField>& loaded = programState.session.datasets[datasetIndex];
+            const std::string name = loaded->ok() ? loaded->name : loaded->name + " (failed)";
+            const std::string label = name + "##dataset" + std::to_string(datasetIndex);
+            if (ImGui::RadioButton(label.c_str(), programState.session.active == datasetIndex)) {
+                if (programState.session.setActiveDataset(datasetIndex)) createDatasetWidgets();
             }
             ImGui::SameLine();
-            if (ImGui::Button(std::string("Load Vertex: " + std::to_string(i)).c_str())) {
+            if (ImGui::SmallButton(("Remove##dataset" + std::to_string(datasetIndex)).c_str()))
+                removeIndex = datasetIndex;
+        }
+        if (removeIndex >= 0 && programState.session.removeDataset(removeIndex)) createDatasetWidgets();
+
+        const std::shared_ptr<MultiField> active = programState.session.activeDataset();
+        if (active && !active->ok()) {
+            ImGui::TextUnformatted(active->error.c_str());
+        } else if (active) {
+            ImGui::Text(" ");
+            ImGui::Text("Define Trait:");
+            for (auto &widget : attributeWidgets) {
+                const Attribute& attribute = widget.attribute();
+                ImGui::Text("%s: ", attribute.name.c_str());
+                if (not widget.active) ImGui::BeginDisabled();
+                ImGui::SliderFloat(("##slider" + attribute.name).c_str(), &widget.value, attribute.bounds.lower, attribute.bounds.upper, "%.7f");
+                if (not widget.active) ImGui::EndDisabled();
+                ImGui::SameLine();
+                ImGui::Checkbox(("##checkbox" + attribute.name).c_str(), &widget.active);
+            }
+        }
+
+        if (active) {
+            if (ImGui::Button("Add attribute vertex")) {
+                TraitPoint newVertex;
                 for (auto &widget : attributeWidgets) {
-                    bool foundMatch = false;
-                    for (auto &value : vertex.values) {
-                        if (widget.attribute().name == value.attribute->name) {
-                            foundMatch = true;
-                            widget.active = true;
-                            widget.value = value.value;
-                        } 
+                    if (widget.active) {
+                        newVertex.values.push_back({&widget.attribute(), widget.value});
                     }
-                    if (not foundMatch) widget.active = false;
+                }
+                if (newVertex.values.size() > 0) programState.addAttributeSpacePointToBuffer(newVertex);
+            }
+
+            if (programState.session.attributeSpacePointsBuffer.size() != 0) {
+                ImGui::Text(" ");
+                ImGui::Text("Attribute Vertices: ");
+                int i = 0;
+                for (auto &vertex : programState.session.attributeSpacePointsBuffer) {
+                    if (ImGui::Button(std::string("Remove Vertex: " + std::to_string(i)).c_str())) {
+                        programState.session.attributeSpacePointsBuffer.erase(programState.session.attributeSpacePointsBuffer.begin() + i);
+                    }
+                    ImGui::SameLine();
+                    if (ImGui::Button(std::string("Load Vertex: " + std::to_string(i)).c_str())) {
+                        for (auto &widget : attributeWidgets) {
+                            bool foundMatch = false;
+                            for (auto &value : vertex.values) {
+                                if (widget.attribute().name == value.attribute->name) {
+                                    foundMatch = true;
+                                    widget.active = true;
+                                    widget.value = value.value;
+                                }
+                            }
+                            if (not foundMatch) widget.active = false;
+                        }
+                    }
+                    i++;
+                }
+
+                ImGui::Text("Normalised Euclidean distance for level set: ");
+                ImGui::SliderFloat("##distance", &levelSetDistance, 0, 100, "%.4f");
+                ImGui::Text("Select level set colour: ");
+                ImGui::ColorEdit3("##levelSetColour", &levelSetColour.x);
+                ImGui::Text("Level set name: ");
+                ImGui::SameLine();
+                ImGui::InputText("##levelSetId", levelSetIdBuffer, IM_ARRAYSIZE(levelSetIdBuffer));
+
+                if (ImGui::Button("Generate Feature Level Set")) {
+                    bool uniqueId = true;
+                    for (auto &levelSet : programState.session.levelSets) {
+                        if (std::string(levelSetIdBuffer) == levelSet.id) {
+                            uniqueId = false;
+                            break;
+                        }
+                    }
+                    if (not uniqueId) ImGui::Text("Level set id must be unique.");
+                    else if (!programState.activeLevelSet)
+                        programState.generateLevelSet(levelSetDistance/100, levelSetColour, std::string(levelSetIdBuffer));
                 }
             }
-            i++;
-        }
-
-        ImGui::Text("Normalised Euclidean distance for level set: ");
-        ImGui::SliderFloat("##distance", &levelSetDistance, 0, 100, "%.4f");
-        ImGui::Text("Select level set colour: ");
-        ImGui::ColorEdit3("##levelSetColour", &levelSetColour.x);
-        ImGui::Text("Level set name: ");
-        ImGui::SameLine(); 
-        ImGui::InputText("##levelSetId", levelSetIdBuffer, IM_ARRAYSIZE(levelSetIdBuffer));
-
-        if (ImGui::Button("Generate Feature Level Set")) {
-            // check id is unique
-            bool uniqueId = true;
-            for (auto &levelSet : programState.session.levelSets) {
-                if (std::string(levelSetIdBuffer) == levelSet.id) {
-                    uniqueId = false;
-                    break;
-                }
-            }
-            if (not uniqueId) ImGui::Text("Level set id must be unique.");
-            else if (!programState.activeLevelSet)
-                programState.generateLevelSet(levelSetDistance/100, levelSetColour, std::string(levelSetIdBuffer));
         }
     }
 
@@ -242,6 +302,7 @@ void GUI::render() {
         return;
     }
 
+    if (!meshError.empty()) ImGui::TextUnformatted(meshError.c_str());
     ImGui::Text(" ");
     ImGui::Text("Level Set Controls: ");
     int i = 0;
@@ -253,6 +314,20 @@ void GUI::render() {
         }
         ImGui::SameLine();
         ImGui::Checkbox((std::string("##show") + levelSet.id).c_str(), &levelSet.active);
+#ifndef __EMSCRIPTEN__
+        ImGui::SameLine();
+        if (busy) ImGui::BeginDisabled();
+        if (ImGui::Button((std::string("Export##") + levelSet.id).c_str())) {
+            const FileDialogOutcome picked = pickSaveMesh(levelSet.id + ".obj");
+            if (picked.status == FileDialogStatus::Selected) {
+                if (exportOBJ(levelSet.surface, picked.path)) meshError.clear();
+                else meshError = "Failed to write " + picked.path;
+            } else if (picked.status == FileDialogStatus::Unavailable) {
+                meshError = "No file dialog is available.";
+            }
+        }
+        if (busy) ImGui::EndDisabled();
+#endif
         ImGui::SameLine();
         if (ImGui::Button(std::string("Remove " + levelSet.id).c_str())) 
             programState.session.levelSets.erase(programState.session.levelSets.begin() + i);

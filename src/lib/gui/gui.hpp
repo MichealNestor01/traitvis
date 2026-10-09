@@ -22,6 +22,7 @@ private:
     // textbox state
     char inputTextBuffer[4096] = "dataset/timestep02/config.txt";
     std::string fileDialogError;
+    std::string meshError;
     // attribute widgets
     std::vector<AttributeWidget> attributeWidgets;
     // level set slider values

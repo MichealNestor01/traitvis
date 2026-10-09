@@ -50,6 +50,8 @@ project "core"
         "src/lib/camera/**",
         "src/lib/util/**",
         "src/lib/shaderTools/shaderSource.*",
+        "src/lib/meshTools/objMesh.cpp",
+        "src/lib/meshTools/objMesh.hpp",
     }
 
     includedirs {
@@ -101,7 +103,9 @@ project "main"
         "src/main/*.cpp", 
         "src/main/*.hpp", 
         "src/lib/gui/**",
-        "src/lib/meshTools/**",
+        "src/lib/meshTools/createVao.cpp",
+        "src/lib/meshTools/createVao.hpp",
+        "src/lib/meshTools/cube.hpp",
         "src/lib/shaderTools/shaderProgram.cpp",
         "src/lib/shaderTools/shaderProgram.hpp",
         "third_party/glad/src/glad.c",
