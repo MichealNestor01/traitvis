@@ -100,9 +100,7 @@ void GUI::render() {
         ImGui::Text("Normalised Euclidean distance for level set: ");
         ImGui::SliderFloat("##distance", &levelSetDistance, 0, 100, "%.4f");
         ImGui::Text("Select level set colour: ");
-        ImGui::SliderFloat("R", &levelSetRed, 0, 255, "%.0f");
-        ImGui::SliderFloat("G", &levelSetGreen, 0, 255, "%.0f");
-        ImGui::SliderFloat("B", &levelSetBlue, 0, 255, "%.0f");
+        ImGui::ColorEdit3("##levelSetColour", &levelSetColour.x);
         ImGui::Text("Level set name: ");
         ImGui::SameLine(); 
         ImGui::InputText("##levelSetId", levelSetIdBuffer, IM_ARRAYSIZE(levelSetIdBuffer));
@@ -118,7 +116,7 @@ void GUI::render() {
             }
             if (not uniqueId) ImGui::Text("Level set id must be unique.");
             else if (!programState.activeLevelSet)
-                programState.generateLevelSet(levelSetDistance/100, glm::vec3(levelSetRed/255.f, levelSetGreen/255.f, levelSetBlue/255.f), std::string(levelSetIdBuffer));
+                programState.generateLevelSet(levelSetDistance/100, levelSetColour, std::string(levelSetIdBuffer));
         }
     }
 
@@ -140,15 +138,7 @@ void GUI::render() {
         ImGui::Text("Transparency: ");
         ImGui::SameLine();
         ImGui::SliderFloat((std::string("##Transparency") + levelSet.id).c_str(), &levelSet.transparency, 0, 1, "%.4f");
-        ImGui::Text("Red: ");
-        ImGui::SameLine();
-        ImGui::SliderFloat((std::string("##Red") + levelSet.id).c_str(), &levelSet.colour.x, 0, 1, "%.4f");
-        ImGui::Text("Green: ");
-        ImGui::SameLine();
-        ImGui::SliderFloat((std::string("##Blue") + levelSet.id).c_str(), &levelSet.colour.y, 0, 1, "%.4f");
-        ImGui::Text("Blue: ");
-        ImGui::SameLine();
-        ImGui::SliderFloat((std::string("##Green") + levelSet.id).c_str(), &levelSet.colour.z, 0, 1, "%.4f");
+        ImGui::ColorEdit3((std::string("##colour") + levelSet.id).c_str(), &levelSet.colour.x);
         ImGui::Checkbox((std::string("Show boundary vertices##") + levelSet.id).c_str(), &levelSet.showActiveInactivePixels);
         ImGui::Checkbox((std::string("Invert Normals##") + levelSet.id).c_str(), &levelSet.invertNormals);
         ImGui::Text(" ");
