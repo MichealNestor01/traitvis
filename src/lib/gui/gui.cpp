@@ -6,10 +6,88 @@
 
 #include <string>
 
+#ifndef __EMSCRIPTEN__
+#include <cstdio>
+#include <spawn.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <vector>
+extern char** environ;
+#endif
+
 #include "gui.hpp"
 #include "../../main/state.hpp" 
 #include "../multiField/multiField.hpp"
 
+#ifndef __EMSCRIPTEN__
+namespace {
+
+enum class FileDialogStatus { Selected, Cancelled, Unavailable };
+
+struct FileDialogOutcome {
+    FileDialogStatus status;
+    std::string path;
+};
+
+FileDialogOutcome runFileDialog(const std::vector<std::string>& args) {
+    int pipeEnds[2] = {-1, -1};
+    if (pipe(pipeEnds) != 0) return {FileDialogStatus::Unavailable, {}};
+
+    posix_spawn_file_actions_t actions;
+    posix_spawn_file_actions_init(&actions);
+    posix_spawn_file_actions_adddup2(&actions, pipeEnds[1], STDOUT_FILENO);
+    posix_spawn_file_actions_addclose(&actions, pipeEnds[0]);
+    posix_spawn_file_actions_addclose(&actions, pipeEnds[1]);
+
+    std::vector<char*> argv;
+    argv.reserve(args.size() + 1);
+    for (const std::string& arg : args) argv.push_back(const_cast<char*>(arg.c_str()));
+    argv.push_back(nullptr);
+
+    pid_t pid = 0;
+    const int spawned = posix_spawnp(&pid, argv[0], &actions, nullptr, argv.data(), environ);
+    posix_spawn_file_actions_destroy(&actions);
+    close(pipeEnds[1]);
+    if (spawned != 0) {
+        close(pipeEnds[0]);
+        return {FileDialogStatus::Unavailable, {}};
+    }
+
+    std::string output;
+    char buffer[512];
+    for (ssize_t count = 0; (count = read(pipeEnds[0], buffer, sizeof(buffer))) > 0; )
+        output.append(buffer, static_cast<std::size_t>(count));
+    close(pipeEnds[0]);
+
+    int status = 0;
+    waitpid(pid, &status, 0);
+    if (!WIFEXITED(status) || WEXITSTATUS(status) == 127) return {FileDialogStatus::Unavailable, {}};
+    if (WEXITSTATUS(status) != 0) return {FileDialogStatus::Cancelled, {}};
+    while (!output.empty() && (output.back() == '\n' || output.back() == '\r')) output.pop_back();
+    if (output.empty()) return {FileDialogStatus::Cancelled, {}};
+    return {FileDialogStatus::Selected, std::move(output)};
+}
+
+FileDialogOutcome pickConfigFile(const std::string& current) {
+    std::vector<std::string> zenity = {
+        "zenity", "--file-selection",
+        "--title=Load dataset",
+        "--file-filter=Dataset config | *.txt",
+        "--file-filter=All files | *",
+    };
+    if (!current.empty()) zenity.push_back("--filename=" + current);
+    const FileDialogOutcome zenityResult = runFileDialog(zenity);
+    if (zenityResult.status != FileDialogStatus::Unavailable) return zenityResult;
+
+    return runFileDialog({
+        "kdialog", "--getopenfilename",
+        current.empty() ? std::string(".") : current,
+        "*.txt|Dataset config\n*|All files",
+    });
+}
+
+}
+#endif
 
 void GUI::render() {
 
@@ -27,11 +105,32 @@ void GUI::render() {
         ImGui::ProgressBar(programState.activeLoad->progress());
         if (ImGui::Button("Cancel load")) programState.activeLoad->cancel();
     } else if (ImGui::Button("Load Dataset")) {
+        fileDialogError.clear();
         programState.beginDatasetLoad(std::string(inputTextBuffer));
     }
+#ifndef __EMSCRIPTEN__
     ImGui::SameLine();
-    // Text input
+    const bool busy = programState.activeLoad.has_value() || programState.activeLevelSet.has_value();
+    if (busy) ImGui::BeginDisabled();
+    if (ImGui::Button("Browse")) {
+        const FileDialogOutcome picked = pickConfigFile(inputTextBuffer);
+        if (picked.status == FileDialogStatus::Selected) {
+            if (picked.path.size() >= sizeof(inputTextBuffer)) {
+                fileDialogError = "Selected path is too long.";
+            } else {
+                std::snprintf(inputTextBuffer, sizeof(inputTextBuffer), "%s", picked.path.c_str());
+                fileDialogError.clear();
+                programState.beginDatasetLoad(inputTextBuffer);
+            }
+        } else if (picked.status == FileDialogStatus::Unavailable) {
+            fileDialogError = "No file dialog is available. Type the config path instead.";
+        }
+    }
+    if (busy) ImGui::EndDisabled();
+#endif
+    ImGui::SameLine();
     ImGui::InputText("##DatasetPath", inputTextBuffer, IM_ARRAYSIZE(inputTextBuffer));
+    if (!fileDialogError.empty()) ImGui::TextUnformatted(fileDialogError.c_str());
 
     if (programState.activeLevelSet) {
         ImGui::ProgressBar(programState.activeLevelSet->progress());

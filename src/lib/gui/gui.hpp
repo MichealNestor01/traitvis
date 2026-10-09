@@ -1,6 +1,8 @@
 #pragma once
 #include "imgui.h"
 
+#include <string>
+
 #include "../../main/state.hpp" 
 #include "../multiField/multiField.hpp"
 
@@ -14,7 +16,8 @@ class GUI {
 private:
     ProgramState &programState;
     // textbox state
-    char inputTextBuffer[256] = "dataset/timestep02/config.txt";
+    char inputTextBuffer[4096] = "dataset/timestep02/config.txt";
+    std::string fileDialogError;
     // attribute widgets
     std::vector<AttributeWidget> attributeWidgets;
     // level set slider values
