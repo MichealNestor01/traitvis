@@ -80,6 +80,6 @@ void LevelSetJob::finishCancelled() {
 
 void LevelSetJob::finishSurface() {
     Surface surface = extractSurface(std::move(field).take(), isoValue);
-    result = FeatureLevelSet(points, std::move(surface), colour, id);
+    result = FeatureLevelSet(points, std::move(surface), colour, id, dataset);
     complete.store(true, std::memory_order_release);
 }

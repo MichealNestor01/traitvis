@@ -1,15 +1,19 @@
 #pragma once
 #include "imgui.h"
 
+#include <memory>
 #include <string>
 
 #include "../../main/state.hpp" 
 #include "../multiField/multiField.hpp"
 
 struct AttributeWidget {
-    Attribute & attribute;
-    bool active;
-    float value;
+    std::shared_ptr<MultiField> dataset;
+    int attributeIndex = 0;
+    bool active = false;
+    float value = 0.f;
+
+    Attribute& attribute() { return dataset->attributeDomain[attributeIndex]; }
 };
 
 class GUI {

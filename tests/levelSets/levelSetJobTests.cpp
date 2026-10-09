@@ -37,7 +37,7 @@ TEST_F(LevelSetJobTests, CancelBeforeStartYieldsNoResult) {
 }
 
 TEST_F(LevelSetJobTests, MainThreadSteppingProducesSameSurfaceAsSynchronousPath) {
-    FeatureLevelSet expected(points, *dataset, 0.5f, {1.f, 0.f, 0.f}, "a");
+    FeatureLevelSet expected(points, dataset, 0.5f, {1.f, 0.f, 0.f}, "a");
     ASSERT_GT(expected.surface.vertices.size(), 0u);
 
     LevelSetJob job(points, dataset, 0.5f, {1.f, 0.f, 0.f}, "a");
@@ -48,7 +48,7 @@ TEST_F(LevelSetJobTests, MainThreadSteppingProducesSameSurfaceAsSynchronousPath)
 }
 
 TEST_F(LevelSetJobTests, BackgroundJobProducesSameSurfaceAsSynchronousPath) {
-    FeatureLevelSet expected(points, *dataset, 0.5f, {1.f, 0.f, 0.f}, "a");
+    FeatureLevelSet expected(points, dataset, 0.5f, {1.f, 0.f, 0.f}, "a");
     LevelSetJob job(points, dataset, 0.5f, {1.f, 0.f, 0.f}, "a");
     job.start();
     while (!job.finished()) std::this_thread::yield();

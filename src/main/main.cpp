@@ -329,7 +329,7 @@ int main() {
         glDepthMask(GL_TRUE);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        for (auto& levelSet : state.levelSets) {
+        for (auto& levelSet : state.session.levelSets) {
             if (levelSet.active && levelSet.transparency >= 1.f)
                 drawLevelSet(lightingShader, levelSet, cubeVAO, colourGreen, colourRed);
         }
@@ -338,7 +338,7 @@ int main() {
         int fbHeight = 0;
         glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
         bool anyTransparent = false;
-        for (const auto& levelSet : state.levelSets)
+        for (const auto& levelSet : state.session.levelSets)
             if (levelSet.active && levelSet.transparency > 0.f && levelSet.transparency < 1.f) anyTransparent = true;
 
         int peelCount = 0;
@@ -366,7 +366,7 @@ int main() {
                 glBindTexture(GL_TEXTURE_2D, peel > 0 ? peels.depth[(peel + 1) % 2] : peels.dummyDepth);
 
                 glBeginQuery(GL_ANY_SAMPLES_PASSED, peels.query);
-                for (auto& levelSet : state.levelSets) {
+                for (auto& levelSet : state.session.levelSets) {
                     if (levelSet.active && levelSet.transparency > 0.f && levelSet.transparency < 1.f)
                         drawLevelSet(lightingShader, levelSet, cubeVAO, colourGreen, colourRed);
                 }

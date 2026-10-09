@@ -1,5 +1,6 @@
 #pragma once
 #include <glm.hpp>
+#include <memory>
 #include <vector>
 #include "../multiField/multiField.hpp"
 #include "../marchingCubes/marchingCubes.hpp"
@@ -13,12 +14,14 @@ public:
     float transparency = 1.f;
     bool active = true;
     std::string id;
+    // Keeps the attributes alive after this dataset is removed from the session.
+    std::shared_ptr<const MultiField> dataset;
     unsigned int VAO = 0;
     unsigned int activeInstanceVBO = 0;
     unsigned int inactiveInstanceVBO = 0;
     bool showActiveInactivePixels = false;
     bool invertNormals = false;
     
-    FeatureLevelSet(std::vector<TraitPoint> points, MultiField & dataset, float euclideanDistance, glm::vec3 colour, std::string id);
-    FeatureLevelSet(std::vector<TraitPoint> points, Surface surface, glm::vec3 colour, std::string id);
+    FeatureLevelSet(std::vector<TraitPoint> points, std::shared_ptr<const MultiField> dataset, float euclideanDistance, glm::vec3 colour, std::string id);
+    FeatureLevelSet(std::vector<TraitPoint> points, Surface surface, glm::vec3 colour, std::string id, std::shared_ptr<const MultiField> dataset);
 };

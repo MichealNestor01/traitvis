@@ -14,7 +14,7 @@
 #include "../lib/parsingData/datasetReader.hpp"
 #include "../lib/multiField/multiField.hpp"
 #include "../lib/marchingCubes/marchingCubes.hpp"
-#include "../lib/levelSets/featureLevelSet.hpp"
+#include "../lib/levelSets/datasetSession.hpp"
 #include "../lib/levelSets/levelSetJob.hpp"
 
 struct ProgramState {
@@ -43,23 +43,20 @@ struct ProgramState {
     bool drawWireframe = false;
     bool backFaceCulling = false;
     // dataset variables
-    bool loadedDataset = false;
-    std::shared_ptr<MultiField> dataset = std::make_shared<MultiField>();
+    DatasetSession session;
     std::optional<DatasetReadJob> activeLoad;
-    // levelset variables
-    std::vector<TraitPoint> attributeSpacePointsBuffer;
-    std::vector<FeatureLevelSet> levelSets;
     std::optional<LevelSetJob> activeLevelSet;
 
 
     void generateLevelSet(float euclideanDistance, glm::vec3 colour, std::string id) {
-        if (activeLevelSet || !dataset || !dataset->ok()) return;
-        activeLevelSet.emplace(attributeSpacePointsBuffer, std::shared_ptr<const MultiField>(dataset), euclideanDistance, colour, std::move(id));
+        const std::shared_ptr<MultiField> field = session.activeDataset();
+        if (activeLevelSet || !field || !field->ok()) return;
+        activeLevelSet.emplace(session.attributeSpacePointsBuffer, std::shared_ptr<const MultiField>(field), euclideanDistance, colour, std::move(id));
         activeLevelSet->start();
     }
 
     void addAttributeSpacePointToBuffer(TraitPoint point) {
-        attributeSpacePointsBuffer.push_back(point);
+        session.attributeSpacePointsBuffer.push_back(point);
     }
 
     void beginDatasetLoad(std::string path) {
@@ -68,9 +65,9 @@ struct ProgramState {
         activeLoad->start();
     }
 
-    // Steps a load that has no worker, then installs a finished dataset on this thread.
-    // Returns true when a new dataset replaced the previous one, so the interface can
-    // rebuild the attribute widgets. A cancel installs nothing.
+    // Steps a load that has no worker, then adds a finished dataset and makes it active.
+    // Returns true when the active dataset changed, so the interface can rebuild its sliders.
+    // A cancel installs nothing.
     bool pollDatasetLoad() {
 #if defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)
         if (activeLoad && !activeLoad->runsOnWorker() && !activeLoad->finished())
@@ -80,9 +77,7 @@ struct ProgramState {
         std::optional<MultiField> loaded = activeLoad->take();
         activeLoad.reset();
         if (!loaded) return false;
-        dataset = std::make_shared<MultiField>(std::move(*loaded));
-        loadedDataset = true;
-        attributeSpacePointsBuffer.clear();
+        session.addDataset(std::make_shared<MultiField>(std::move(*loaded)));
         return true;
     }
 
@@ -93,7 +88,7 @@ struct ProgramState {
 #endif
         if (!activeLevelSet || !activeLevelSet->finished()) return;
         if (std::optional<FeatureLevelSet> made = activeLevelSet->take())
-            levelSets.push_back(std::move(*made));
+            session.levelSets.push_back(std::move(*made));
         activeLevelSet.reset();
     }
 

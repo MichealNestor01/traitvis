@@ -138,26 +138,44 @@ void GUI::render() {
     }
 
     // Display the text from the input box underneath it)
-    if (not programState.loadedDataset) {
+    if (programState.session.datasets.empty()) {
         ImGui::End();
         return;
     }
 
-    if (!programState.dataset->ok()) {
-        ImGui::TextUnformatted(programState.dataset->error.c_str());
+    ImGui::Text("Datasets:");
+    int removeIndex = -1;
+    for (int datasetIndex = 0; datasetIndex < static_cast<int>(programState.session.datasets.size()); ++datasetIndex) {
+        const std::shared_ptr<MultiField>& loaded = programState.session.datasets[datasetIndex];
+        const std::string name = loaded->ok() ? loaded->name : loaded->name + " (failed)";
+        const std::string label = name + "##dataset" + std::to_string(datasetIndex);
+        if (ImGui::RadioButton(label.c_str(), programState.session.active == datasetIndex)) {
+            if (programState.session.setActiveDataset(datasetIndex)) createDatasetWidgets();
+        }
+        ImGui::SameLine();
+        if (ImGui::SmallButton(("Remove##dataset" + std::to_string(datasetIndex)).c_str()))
+            removeIndex = datasetIndex;
+    }
+    if (removeIndex >= 0 && programState.session.removeDataset(removeIndex)) createDatasetWidgets();
+
+    const std::shared_ptr<MultiField> active = programState.session.activeDataset();
+    if (!active) {
+        ImGui::End();
+        return;
+    }
+    if (!active->ok()) {
+        ImGui::TextUnformatted(active->error.c_str());
     } else {
-        std::string message = "Loaded dataset: " + programState.dataset->name;
-        ImGui::Text("%s", message.c_str());
         ImGui::Text(" ");
         ImGui::Text("Define Trait:");
-        // draw all the widgets in the attributeWidgets vector
         for (auto &widget : attributeWidgets) {
-            ImGui::Text("%s: ", widget.attribute.name.c_str());
+            const Attribute& attribute = widget.attribute();
+            ImGui::Text("%s: ", attribute.name.c_str());
             if (not widget.active) ImGui::BeginDisabled();
-            ImGui::SliderFloat(("##slider" + widget.attribute.name).c_str(), &widget.value, widget.attribute.bounds.lower, widget.attribute.bounds.upper, "%.7f");
+            ImGui::SliderFloat(("##slider" + attribute.name).c_str(), &widget.value, attribute.bounds.lower, attribute.bounds.upper, "%.7f");
             if (not widget.active) ImGui::EndDisabled();
             ImGui::SameLine();
-            ImGui::Checkbox(("##checkbox" + widget.attribute.name).c_str(), &widget.active);
+            ImGui::Checkbox(("##checkbox" + attribute.name).c_str(), &widget.active);
         }
     }
 
@@ -165,26 +183,26 @@ void GUI::render() {
         TraitPoint newVertex;
         for (auto &widget : attributeWidgets) {
             if (widget.active) {
-                newVertex.values.push_back({&widget.attribute, widget.value});
+                newVertex.values.push_back({&widget.attribute(), widget.value});
             }
         }
         if (newVertex.values.size() > 0) programState.addAttributeSpacePointToBuffer(newVertex);
     }
 
-    if (programState.attributeSpacePointsBuffer.size() != 0) {
+    if (programState.session.attributeSpacePointsBuffer.size() != 0) {
         ImGui::Text(" ");
         ImGui::Text("Attribute Vertices: ");
         int i = 0;
-        for (auto &vertex : programState.attributeSpacePointsBuffer) {
+        for (auto &vertex : programState.session.attributeSpacePointsBuffer) {
             if (ImGui::Button(std::string("Remove Vertex: " + std::to_string(i)).c_str())) {
-                programState.attributeSpacePointsBuffer.erase(programState.attributeSpacePointsBuffer.begin() + i);
+                programState.session.attributeSpacePointsBuffer.erase(programState.session.attributeSpacePointsBuffer.begin() + i);
             }
             ImGui::SameLine();
             if (ImGui::Button(std::string("Load Vertex: " + std::to_string(i)).c_str())) {
                 for (auto &widget : attributeWidgets) {
                     bool foundMatch = false;
                     for (auto &value : vertex.values) {
-                        if (widget.attribute.name == value.attribute->name) {
+                        if (widget.attribute().name == value.attribute->name) {
                             foundMatch = true;
                             widget.active = true;
                             widget.value = value.value;
@@ -207,7 +225,7 @@ void GUI::render() {
         if (ImGui::Button("Generate Feature Level Set")) {
             // check id is unique
             bool uniqueId = true;
-            for (auto &levelSet : programState.levelSets) {
+            for (auto &levelSet : programState.session.levelSets) {
                 if (std::string(levelSetIdBuffer) == levelSet.id) {
                     uniqueId = false;
                     break;
@@ -219,7 +237,7 @@ void GUI::render() {
         }
     }
 
-    if (programState.levelSets.size() == 0) {
+    if (programState.session.levelSets.size() == 0) {
         ImGui::End();
         return;
     }
@@ -227,13 +245,17 @@ void GUI::render() {
     ImGui::Text(" ");
     ImGui::Text("Level Set Controls: ");
     int i = 0;
-    for (auto &levelSet : programState.levelSets) {
-        ImGui::Text(levelSet.id.c_str());
+    for (auto &levelSet : programState.session.levelSets) {
+        ImGui::Text("%s", levelSet.id.c_str());
+        if (levelSet.dataset) {
+            ImGui::SameLine();
+            ImGui::TextDisabled("(%s)", levelSet.dataset->name.c_str());
+        }
         ImGui::SameLine();
         ImGui::Checkbox((std::string("##show") + levelSet.id).c_str(), &levelSet.active);
         ImGui::SameLine();
         if (ImGui::Button(std::string("Remove " + levelSet.id).c_str())) 
-            programState.levelSets.erase(programState.levelSets.begin() + i);
+            programState.session.levelSets.erase(programState.session.levelSets.begin() + i);
         ImGui::Text("Transparency: ");
         ImGui::SameLine();
         ImGui::SliderFloat((std::string("##Transparency") + levelSet.id).c_str(), &levelSet.transparency, 0, 1, "%.4f");
@@ -249,9 +271,10 @@ void GUI::render() {
 
 void GUI::createDatasetWidgets() {
     attributeWidgets.clear();
-    if (!programState.dataset || !programState.dataset->ok()) return;
-    for (Attribute& attribute : programState.dataset->attributeDomain)
-        attributeWidgets.push_back({attribute, false, attribute.bounds.lower});
+    const std::shared_ptr<MultiField> field = programState.session.activeDataset();
+    if (!field || !field->ok()) return;
+    for (int index = 0; index < static_cast<int>(field->attributeDomain.size()); ++index)
+        attributeWidgets.push_back({field, index, false, field->attributeDomain[index].bounds.lower});
 }
 
 void GUI::renderLightingControls() {
