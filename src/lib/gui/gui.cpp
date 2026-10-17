@@ -31,7 +31,7 @@ struct FileDialogOutcome {
     std::string path;
 };
 
-FileDialogOutcome runFileDialog(const std::vector<std::string>& args) {
+FileDialogOutcome runFileDialog(const std::vector<const char*>& args) {
     int pipeEnds[2] = {-1, -1};
     if (pipe(pipeEnds) != 0) return {FileDialogStatus::Unavailable, {}};
 
@@ -43,7 +43,7 @@ FileDialogOutcome runFileDialog(const std::vector<std::string>& args) {
 
     std::vector<char*> argv;
     argv.reserve(args.size() + 1);
-    for (const std::string& arg : args) argv.push_back(const_cast<char*>(arg.c_str()));
+    for (const char* arg : args) argv.push_back(const_cast<char*>(arg));
     argv.push_back(nullptr);
 
     pid_t pid = 0;
@@ -71,50 +71,58 @@ FileDialogOutcome runFileDialog(const std::vector<std::string>& args) {
 }
 
 FileDialogOutcome pickConfigFile(const std::string& current) {
-    std::vector<std::string> zenity = {
+    const std::string filename = "--filename=" + current;
+    std::vector<const char*> zenity = {
         "zenity", "--file-selection",
         "--title=Load dataset",
         "--file-filter=Dataset config | *.txt",
         "--file-filter=All files | *",
     };
-    if (!current.empty()) zenity.push_back("--filename=" + current);
+    if (!current.empty()) zenity.push_back(filename.c_str());
     const FileDialogOutcome zenityResult = runFileDialog(zenity);
     if (zenityResult.status != FileDialogStatus::Unavailable) return zenityResult;
 
-    return runFileDialog({
+    const std::string start = current.empty() ? std::string(".") : current;
+    const std::vector<const char*> kdialog = {
         "kdialog", "--getopenfilename",
-        current.empty() ? std::string(".") : current,
+        start.c_str(),
         "*.txt|Dataset config\n*|All files",
-    });
+    };
+    return runFileDialog(kdialog);
 }
 
 FileDialogOutcome pickMeshFile() {
-    const FileDialogOutcome zenity = runFileDialog({
+    const std::vector<const char*> zenity = {
         "zenity", "--file-selection",
         "--title=Import OBJ",
         "--file-filter=Wavefront OBJ | *.obj",
         "--file-filter=All files | *",
-    });
-    if (zenity.status != FileDialogStatus::Unavailable) return zenity;
-    return runFileDialog({
+    };
+    const FileDialogOutcome zenityResult = runFileDialog(zenity);
+    if (zenityResult.status != FileDialogStatus::Unavailable) return zenityResult;
+    const std::vector<const char*> kdialog = {
         "kdialog", "--getopenfilename", ".",
         "*.obj|Wavefront OBJ\n*|All files",
-    });
+    };
+    return runFileDialog(kdialog);
 }
 
 FileDialogOutcome pickSaveMesh(const std::string& suggested) {
-    const FileDialogOutcome zenity = runFileDialog({
+    const std::string filename = "--filename=" + suggested;
+    const std::vector<const char*> zenity = {
         "zenity", "--file-selection", "--save", "--confirm-overwrite",
         "--title=Export OBJ",
-        "--filename=" + suggested,
+        filename.c_str(),
         "--file-filter=Wavefront OBJ | *.obj",
         "--file-filter=All files | *",
-    });
-    if (zenity.status != FileDialogStatus::Unavailable) return zenity;
-    return runFileDialog({
-        "kdialog", "--getsavefilename", suggested,
+    };
+    const FileDialogOutcome zenityResult = runFileDialog(zenity);
+    if (zenityResult.status != FileDialogStatus::Unavailable) return zenityResult;
+    const std::vector<const char*> kdialog = {
+        "kdialog", "--getsavefilename", suggested.c_str(),
         "*.obj|Wavefront OBJ\n*|All files",
-    });
+    };
+    return runFileDialog(kdialog);
 }
 
 std::string uniqueMeshId(const SessionState& session, std::string stem) {
