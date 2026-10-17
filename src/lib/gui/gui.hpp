@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "../../main/state.hpp"
 #include "../levelSets/sessionState.hpp"
@@ -13,6 +14,8 @@ struct AttributeWidget {
     int attributeIndex = 0;
     bool active = false;
     float value = 0.f;
+    // Bin counts for the attribute's samples. Filled once when the widgets are built.
+    std::vector<int> histogram;
 
     Attribute& attribute() { return dataset->attributeDomain[attributeIndex]; }
 };

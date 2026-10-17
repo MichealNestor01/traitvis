@@ -4,6 +4,7 @@
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <string>
 
@@ -17,8 +18,9 @@ extern char** environ;
 #endif
 
 #include "gui.hpp"
-#include "../../main/state.hpp" 
+#include "../../main/state.hpp"
 #include "../meshTools/objMesh.hpp"
+#include "../multiField/histogram.hpp"
 #include "../multiField/multiField.hpp"
 
 #ifndef __EMSCRIPTEN__
@@ -142,6 +144,41 @@ std::string uniqueMeshId(const SessionState& session, std::string stem) {
 }
 #endif
 
+namespace {
+
+constexpr int kAttributeHistogramBins = 64;
+constexpr float kAttributeHistogramHeight = 40.f;
+
+// The samples are already normalised onto [0, 1] when the bounds have a span,
+// and the slider still runs over those bounds, so the bins line up with it.
+// A zero span skips normalisation and the samples stay at the bound.
+FloatRange histogramRange(const Attribute& attribute) {
+    if (attribute.bounds.upper > attribute.bounds.lower) return {0.f, 1.f};
+    return attribute.bounds;
+}
+
+void plotAttributeHistogram(AttributeWidget& widget) {
+    if (widget.histogram.empty()) return;
+
+    const auto countAt = [](void* data, int index) {
+        return static_cast<float>(static_cast<const int*>(data)[index]);
+    };
+    const int peak = std::max(1, std::ranges::max(widget.histogram));
+    const std::string label = "##histogram" + std::to_string(widget.attributeIndex);
+    ImGui::PlotHistogram(
+        label.c_str(),
+        countAt,
+        widget.histogram.data(),
+        static_cast<int>(widget.histogram.size()),
+        0,
+        nullptr,
+        0.f,
+        static_cast<float>(peak),
+        ImVec2(0.f, kAttributeHistogramHeight));
+}
+
+}
+
 void GUI::render() {
 
 
@@ -242,6 +279,7 @@ void GUI::render() {
                 if (not widget.active) ImGui::EndDisabled();
                 ImGui::SameLine();
                 ImGui::Checkbox(("##checkbox" + attribute.name).c_str(), &widget.active);
+                plotAttributeHistogram(widget);
             }
         }
 
@@ -356,8 +394,16 @@ void GUI::createDatasetWidgets() {
     attributeWidgets.clear();
     const std::shared_ptr<MultiField> field = session.activeDataset();
     if (!field || !field->ok()) return;
-    for (int index = 0; index < static_cast<int>(field->attributeDomain.size()); ++index)
-        attributeWidgets.push_back({field, index, false, field->attributeDomain[index].bounds.lower});
+    for (int index = 0; index < static_cast<int>(field->attributeDomain.size()); ++index) {
+        const Attribute& attribute = field->attributeDomain[index];
+        attributeWidgets.push_back({
+            field,
+            index,
+            false,
+            attribute.bounds.lower,
+            histogram(attribute.values, kAttributeHistogramBins, histogramRange(attribute)),
+        });
+    }
 }
 
 void GUI::renderLightingControls() {
