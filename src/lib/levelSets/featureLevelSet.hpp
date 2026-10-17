@@ -1,9 +1,11 @@
 #pragma once
 #include <glm.hpp>
 #include <memory>
+#include <optional>
 #include <vector>
 #include "../multiField/multiField.hpp"
 #include "../marchingCubes/marchingCubes.hpp"
+#include "../meshTools/gpuMesh.hpp"
 #include "distanceField.hpp"
 
 class FeatureLevelSet {
@@ -16,9 +18,8 @@ public:
     std::string id;
     // Keeps the attributes alive after this dataset is removed from the session.
     std::shared_ptr<const MultiField> dataset;
-    unsigned int VAO = 0;
-    unsigned int activeInstanceVBO = 0;
-    unsigned int inactiveInstanceVBO = 0;
+    // Filled on the main thread the first time the set is drawn. Empty until then.
+    std::optional<GpuMesh> mesh;
     bool showActiveInactivePixels = false;
     bool invertNormals = false;
     

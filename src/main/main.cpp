@@ -5,11 +5,8 @@
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
-#include <gtc/matrix_transform.hpp>
-#include <gtc/type_ptr.hpp>
 #include <iostream>
-#include <optional>
-#include <set>
+#include <span>
 #include <stdexcept>
 
 // my includes
@@ -17,7 +14,7 @@
 #include "callbacks.hpp"
 #include "inputProcessing.hpp"
 #include "../lib/shaderTools/shaderProgram.hpp"
-#include "../lib/meshTools/createVao.hpp"
+#include "../lib/meshTools/gpuMesh.hpp"
 #include "../lib/meshTools/cube.hpp"
 #include "../lib/marchingCubes/marchingCubes.hpp"
 #include "../lib/gui/gui.hpp"
@@ -118,44 +115,30 @@ void DepthPeelBuffers::destroy() {
     fbo = 0;
 }
 
-unsigned int boundaryCubeInstances(const std::set<glm::vec3, Vec3Comparator>& vertices);
-
-void drawLevelSet(ShaderProgram& shader, FeatureLevelSet& levelSet, unsigned int cubeVAO, const glm::vec3& activeColour, const glm::vec3& inactiveColour) {
-    if (levelSet.VAO == 0) {
-        const std::vector<float> interleaved = levelSet.surface.interleaved();
-        levelSet.VAO = createVAO(interleaved.data(), interleaved.size() * sizeof(float));
-        levelSet.activeInstanceVBO = boundaryCubeInstances(levelSet.surface.activeVertices);
-        levelSet.inactiveInstanceVBO = boundaryCubeInstances(levelSet.surface.inactiveVertices);
-    }
+void drawLevelSet(ShaderProgram& shader, FeatureLevelSet& levelSet, const GpuMesh& cube, const glm::vec3& activeColour, const glm::vec3& inactiveColour) {
+    if (!levelSet.mesh) levelSet.mesh = uploadMesh(levelSet.surface);
+    const GpuMesh& mesh = *levelSet.mesh;
     shader.setUniformb("invertNormal", levelSet.invertNormals);
     shader.setUniform3f("objectColor", levelSet.colour);
     shader.setUniformf("objectTransparency", levelSet.transparency);
     shader.setUniformb("useInstanceModel", false);
-    glBindVertexArray(levelSet.VAO);
-    glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(levelSet.surface.vertices.size()));
+    glBindVertexArray(mesh.vao.get());
+    glDrawArrays(GL_TRIANGLES, 0, mesh.vertexCount);
 
     if (!levelSet.showActiveInactivePixels) return;
     shader.setUniformb("useInstanceModel", true);
-    glBindVertexArray(cubeVAO);
-    if (levelSet.activeInstanceVBO != 0) {
+    glBindVertexArray(cube.vao.get());
+    if (mesh.activeInstances) {
         shader.setUniform3f("objectColor", activeColour);
-        bindInstanceBuffer(levelSet.activeInstanceVBO);
-        glDrawArraysInstanced(GL_TRIANGLES, 0, 6 * 2 * 3, static_cast<GLsizei>(levelSet.surface.activeVertices.size()));
+        bindInstanceBuffer(mesh.activeInstances.get());
+        glDrawArraysInstanced(GL_TRIANGLES, 0, cube.vertexCount, static_cast<GLsizei>(levelSet.surface.activeVertices.size()));
     }
-    if (levelSet.inactiveInstanceVBO != 0) {
+    if (mesh.inactiveInstances) {
         shader.setUniform3f("objectColor", inactiveColour);
-        bindInstanceBuffer(levelSet.inactiveInstanceVBO);
-        glDrawArraysInstanced(GL_TRIANGLES, 0, 6 * 2 * 3, static_cast<GLsizei>(levelSet.surface.inactiveVertices.size()));
+        bindInstanceBuffer(mesh.inactiveInstances.get());
+        glDrawArraysInstanced(GL_TRIANGLES, 0, cube.vertexCount, static_cast<GLsizei>(levelSet.surface.inactiveVertices.size()));
     }
     shader.setUniformb("useInstanceModel", false);
-}
-
-unsigned int boundaryCubeInstances(const std::set<glm::vec3, Vec3Comparator>& vertices) {
-    std::vector<glm::mat4> models;
-    models.reserve(vertices.size());
-    for (const glm::vec3& vertex : vertices)
-        models.push_back(glm::scale(glm::translate(glm::mat4(1.f), vertex), glm::vec3(0.1f)));
-    return createInstanceBuffer(models.data(), models.size());
 }
 
 // Define the error callback function
@@ -218,30 +201,17 @@ int main() {
     glEnable(GL_DEPTH_TEST);
     glClearColor(1.f, 1.f, 1.f, 0.f);
 
-    // create shader programs (constructed in place: ShaderProgram owns a GL
-    // program id, so it must not be copied or move-assigned)
-    std::optional<ShaderProgram> lightingShaderOpt;
-    std::optional<ShaderProgram> compositeShaderOpt;
+    // Shaders, meshes, and the session live in this block so their GPU ids are
+    // deleted while the context is still current, before glfwTerminate.
     try {
-        lightingShaderOpt.emplace(std::vector<ShaderProgram::ShaderSource>{
-            {GL_VERTEX_SHADER, "assets/litSurface.vert"},
-            {GL_FRAGMENT_SHADER, "assets/litSurface.frag"}
-        });
-        compositeShaderOpt.emplace(std::vector<ShaderProgram::ShaderSource>{
-            {GL_VERTEX_SHADER, "assets/compositeLayer.vert"},
-            {GL_FRAGMENT_SHADER, "assets/compositeLayer.frag"}
-        });
-    } catch (const std::runtime_error& e) {
-        std::cerr << "Fatal: " << e.what() << std::endl;
-        ImGui_ImplOpenGL3_Shutdown();
-        ImGui_ImplGlfw_Shutdown();
-        ImGui::DestroyContext();
-        glfwDestroyWindow(window);
-        glfwTerminate();
-        return -1;
-    }
-    ShaderProgram& lightingShader = lightingShaderOpt.value();
-    ShaderProgram& compositeShader = compositeShaderOpt.value();
+    ShaderProgram lightingShader({
+        {GL_VERTEX_SHADER, "assets/litSurface.vert"},
+        {GL_FRAGMENT_SHADER, "assets/litSurface.frag"}
+    });
+    ShaderProgram compositeShader({
+        {GL_VERTEX_SHADER, "assets/compositeLayer.vert"},
+        {GL_FRAGMENT_SHADER, "assets/compositeLayer.frag"}
+    });
     
     glm::vec3 colourRed(1.f, 0.f, 0.f);
     glm::vec3 colourGreen(0.f, 1.f, 0.f);
@@ -262,15 +232,15 @@ int main() {
     // setup gui 
     GUI gui(state);
 
-    unsigned int cubeVAO = createVAO(cubeVerticesWithNormals, sizeof(cubeVerticesWithNormals));
+    const GpuMesh cube = uploadMesh(std::span<const float>(cubeVerticesWithNormals));
 
     // setup static uniforms for the lighting shader that don't change
-    glUseProgram(lightingShader.program);
+    glUseProgram(lightingShader.program.get());
     lightingShader.setUniformf("objectTransparency", 1.f);
     lightingShader.setUniformb("useInstanceModel", false);
     lightingShader.setUniformb("hasPeelDepth", false);
     lightingShader.setUniformi("peelDepth", 0);
-    glUseProgram(compositeShader.program);
+    glUseProgram(compositeShader.program.get());
     compositeShader.setUniformi("layer", 0);
 
     DepthPeelBuffers peels;
@@ -312,7 +282,7 @@ int main() {
         else glDisable(GL_CULL_FACE);
 
         // switch to general lighting shader
-        glUseProgram(lightingShader.program);
+        glUseProgram(lightingShader.program.get());
         // update lighting uniforms
         lightingShader.setUniform3f("ambientLightColour", state.ambientLightColour);
         lightingShader.setUniformf("ambientLightStrength", state.ambientLightStrength);
@@ -331,7 +301,7 @@ int main() {
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         for (auto& levelSet : state.session.levelSets) {
             if (levelSet.active && levelSet.transparency >= 1.f)
-                drawLevelSet(lightingShader, levelSet, cubeVAO, colourGreen, colourRed);
+                drawLevelSet(lightingShader, levelSet, cube, colourGreen, colourRed);
         }
 
         int fbWidth = 0;
@@ -368,7 +338,7 @@ int main() {
                 glBeginQuery(GL_ANY_SAMPLES_PASSED, peels.query);
                 for (auto& levelSet : state.session.levelSets) {
                     if (levelSet.active && levelSet.transparency > 0.f && levelSet.transparency < 1.f)
-                        drawLevelSet(lightingShader, levelSet, cubeVAO, colourGreen, colourRed);
+                        drawLevelSet(lightingShader, levelSet, cube, colourGreen, colourRed);
                 }
                 glEndQuery(GL_ANY_SAMPLES_PASSED);
                 unsigned int passed = 0;
@@ -387,7 +357,7 @@ int main() {
                 glDisable(GL_DEPTH_TEST);
                 glEnable(GL_BLEND);
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                glUseProgram(compositeShader.program);
+                glUseProgram(compositeShader.program.get());
                 glBindVertexArray(peels.compositeVao);
                 for (int peel = peelCount - 1; peel >= 0; --peel) {
                     glBindTexture(GL_TEXTURE_2D, peels.colour[peel]);
@@ -402,7 +372,7 @@ int main() {
             else glDisable(GL_CULL_FACE);
             glEnable(GL_BLEND);
             glDepthMask(GL_TRUE);
-            glUseProgram(lightingShader.program);
+            glUseProgram(lightingShader.program.get());
         }
 
         // draw ui 
@@ -422,6 +392,15 @@ int main() {
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
     peels.destroy();
+    } catch (const std::runtime_error& e) {
+        std::cerr << "Fatal: " << e.what() << std::endl;
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+        glfwDestroyWindow(window);
+        glfwTerminate();
+        return -1;
+    }
     glfwTerminate();
     return 0;
 }
