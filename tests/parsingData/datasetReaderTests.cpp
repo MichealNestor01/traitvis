@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include <limits>
+#include <memory>
 #include <vector>
 
 TEST(DatasetReaderTests, TestDataset) {
@@ -24,7 +25,18 @@ TEST(DatasetReaderTests, TestDataset) {
 }
 
 TEST(DatasetReaderTests, SentinelBecomesNaNAndIsExcludedFromBounds) {
-    MultiField result = readDataset("tests/parsingData/sentinelDataset/config.txt");
+    DatasetDirConfig config;
+    config.name = "sentinel";
+    config.noData = 1e35f;
+    auto dataset = std::make_unique<AttributePerFileDataset>(8, 2, 2, 2, WIDTH_DEPTH_HEIGHT, ROWMAJOR);
+    dataset->addFile("unused.bin", "attr", 0.f, 1.f);
+    config.dataset = std::move(dataset);
+
+    const std::vector<float> bytes = {0.25f, 1e35f, 0.5f, 0.75f, 0.f, 1.f, 0.5f, 0.5f};
+    MultiField result = readDataset(config, [&](const std::filesystem::path&, std::size_t count) {
+        EXPECT_EQ(count, bytes.size());
+        return bytes;
+    });
 
     ASSERT_TRUE(result.ok());
     const auto& values = result.attributeDomain[0].values;

@@ -22,11 +22,15 @@ void prepareField(MultiField& multiField, const DatasetDirConfig& config, const 
     multiField.strides = makeStrides(dataset.scheme, dataset.dimOrder, dataset.xVals, dataset.yVals, dataset.zVals);
 }
 
+std::vector<float> readAttributeBytes(const std::filesystem::path& file, std::size_t count) {
+    return readFloatBinaryFile(file, count, true);
+}
+
 template <typename File>
-bool readAttributeFile(MultiField& multiField, const DatasetDirConfig& config, const File& file, int valuesPerFile) {
+bool readAttributeFile(MultiField& multiField, const DatasetDirConfig& config, const File& file, int valuesPerFile, const AttributeBytesProvider& provider) {
     const std::filesystem::path path = config.filePath / file.filename;
-    std::vector<float> vals = readFloatBinaryFile(path, static_cast<std::size_t>(valuesPerFile), true);
-    if (vals.size() == 0) {
+    std::vector<float> vals = provider(path, static_cast<std::size_t>(valuesPerFile));
+    if (vals.size() != static_cast<std::size_t>(valuesPerFile)) {
         multiField.error = "Failed to read values from " + path.string() + "\n";
         return false;
     }
@@ -54,7 +58,8 @@ bool readAttributeFile(MultiField& multiField, const DatasetDirConfig& config, c
 
 }
 
-DatasetReadJob::DatasetReadJob(std::string path) : path(std::move(path)) {}
+DatasetReadJob::DatasetReadJob(std::string path, AttributeBytesProvider provider)
+    : path(std::move(path)), provider(provider ? std::move(provider) : AttributeBytesProvider{readAttributeBytes}) {}
 
 void DatasetReadJob::start() {
     if (startedOnThread || complete.load()) return;
@@ -135,7 +140,7 @@ void DatasetReadJob::stepFile() {
         complete.store(true, std::memory_order_release);
         return;
     }
-    if (!readAttributeFile(result, config, files[nextFile], dataset->getValuesPerFile())) {
+    if (!readAttributeFile(result, config, files[nextFile], dataset->getValuesPerFile(), provider)) {
         complete.store(true, std::memory_order_release);
         return;
     }
@@ -147,10 +152,26 @@ void DatasetReadJob::stepFile() {
     }
 }
 
-MultiField readDataset(std::string filepath) {
-    DatasetReadJob job(std::move(filepath));
-    while (!job.finished()) job.stepOnMainThread();
-    auto loaded = job.take();
-    if (!loaded) return {};
-    return std::move(*loaded);
+MultiField readDataset(const DatasetDirConfig& config, const AttributeBytesProvider& provider) {
+    MultiField multiField;
+    if (!config.ok()) {
+        multiField.error = config.error;
+        return multiField;
+    }
+    if (!config.dataset || config.dataset->format != ATTRIBUTEPERFILE) {
+        multiField.error = "Dataset format not currently supported\n";
+        return multiField;
+    }
+    const auto* dataset = static_cast<const AttributePerFileDataset*>(config.dataset.get());
+    prepareField(multiField, config, *dataset);
+    for (const auto& file : dataset->getFiles()) {
+        if (!readAttributeFile(multiField, config, file, dataset->getValuesPerFile(), provider))
+            return multiField;
+    }
+    multiField.normaliseAttributes();
+    return multiField;
+}
+
+MultiField readDataset(const std::filesystem::path& configFile) {
+    return readDataset(parseConfig(configFile.string()), readAttributeBytes);
 }

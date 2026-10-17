@@ -1,8 +1,10 @@
 #include "datasetReader.hpp"
 
 #include <gtest/gtest.h>
+#include <filesystem>
 #include <optional>
 #include <thread>
+#include <vector>
 
 TEST(DatasetReadJobTests, CancelBeforeStartYieldsNoDataset) {
     DatasetReadJob job("tests/parsingData/testDataset/config.txt");
@@ -22,6 +24,19 @@ TEST(DatasetReadJobTests, MainThreadSteppingReadsTheDataset) {
     EXPECT_EQ(result->xVals, 2);
     EXPECT_EQ(result->attributeDomain.size(), 1u);
     EXPECT_EQ(result->attributeDomain[0].values.size(), 8u);
+}
+
+TEST(DatasetReadJobTests, ProviderSuppliesAttributeBytes) {
+    const std::vector<float> bytes(8, 0.25f);
+    DatasetReadJob job("tests/parsingData/testDataset/config.txt", [&](const std::filesystem::path&, std::size_t count) {
+        EXPECT_EQ(count, bytes.size());
+        return bytes;
+    });
+    while (!job.finished()) job.stepOnMainThread();
+    const std::optional<MultiField> result = job.take();
+    ASSERT_TRUE(result);
+    ASSERT_TRUE(result->ok());
+    EXPECT_FLOAT_EQ(result->attributeDomain[0].values[0], 0.25f);
 }
 
 TEST(DatasetReadJobTests, BackgroundReadMatchesTheDataset) {
