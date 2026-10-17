@@ -117,7 +117,7 @@ FileDialogOutcome pickSaveMesh(const std::string& suggested) {
     });
 }
 
-std::string uniqueMeshId(const DatasetSession& session, std::string stem) {
+std::string uniqueMeshId(const SessionState& session, std::string stem) {
     if (stem.empty()) stem = "mesh";
     auto taken = [&](const std::string& id) {
         for (const FeatureLevelSet& levelSet : session.levelSets)
@@ -139,23 +139,23 @@ void GUI::render() {
 
     // ImGui UI on the left 30%
     ImGui::SetNextWindowPos(ImVec2(0, 0)); // Position at top-left corner
-    ImGui::SetNextWindowSize(ImVec2(programState.windowWidth * (1-programState.renderWidthPercentage), programState.windowHeight)); // 30% width, full height
+    ImGui::SetNextWindowSize(ImVec2(rendering.windowWidth * (1-rendering.renderWidthPercentage), rendering.windowHeight)); // 30% width, full height
     ImGui::Begin("Controls");
     ImGui::SetWindowFontScale(1.f);
 
-    if (programState.pollDatasetLoad()) createDatasetWidgets();
-    programState.pollLevelSet();
+    if (session.pollDatasetLoad()) createDatasetWidgets();
+    session.pollLevelSet();
 
-    if (programState.activeLoad) {
-        ImGui::ProgressBar(programState.activeLoad->progress());
-        if (ImGui::Button("Cancel load")) programState.activeLoad->cancel();
+    if (session.activeLoad) {
+        ImGui::ProgressBar(session.activeLoad->progress());
+        if (ImGui::Button("Cancel load")) session.activeLoad->cancel();
     } else if (ImGui::Button("Load Dataset")) {
         fileDialogError.clear();
-        programState.beginDatasetLoad(std::string(inputTextBuffer));
+        session.beginDatasetLoad(std::string(inputTextBuffer));
     }
 #ifndef __EMSCRIPTEN__
     ImGui::SameLine();
-    const bool busy = programState.activeLoad.has_value() || programState.activeLevelSet.has_value();
+    const bool busy = session.activeLoad.has_value() || session.activeLevelSet.has_value();
     if (busy) ImGui::BeginDisabled();
     if (ImGui::Button("Browse")) {
         const FileDialogOutcome picked = pickConfigFile(inputTextBuffer);
@@ -165,7 +165,7 @@ void GUI::render() {
             } else {
                 std::snprintf(inputTextBuffer, sizeof(inputTextBuffer), "%s", picked.path.c_str());
                 fileDialogError.clear();
-                programState.beginDatasetLoad(inputTextBuffer);
+                session.beginDatasetLoad(inputTextBuffer);
             }
         } else if (picked.status == FileDialogStatus::Unavailable) {
             fileDialogError = "No file dialog is available. Type the config path instead.";
@@ -186,8 +186,8 @@ void GUI::render() {
                 meshError = std::move(mesh.error);
             } else {
                 meshError.clear();
-                const std::string id = uniqueMeshId(programState.session, std::filesystem::path(picked.path).stem().string());
-                programState.session.levelSets.emplace_back(
+                const std::string id = uniqueMeshId(session, std::filesystem::path(picked.path).stem().string());
+                session.levelSets.emplace_back(
                     std::vector<TraitPoint>{}, std::move(mesh.surface), glm::vec3{1.f, 0.f, 0.f}, id, std::shared_ptr<const MultiField>{});
             }
         } else if (picked.status == FileDialogStatus::Unavailable) {
@@ -195,32 +195,32 @@ void GUI::render() {
         }
     }
     if (busy) ImGui::EndDisabled();
-    if (programState.session.levelSets.empty() && !meshError.empty())
+    if (session.levelSets.empty() && !meshError.empty())
         ImGui::TextUnformatted(meshError.c_str());
 #endif
 
-    if (programState.activeLevelSet) {
-        ImGui::ProgressBar(programState.activeLevelSet->progress());
-        if (ImGui::Button("Cancel level set")) programState.activeLevelSet->cancel();
+    if (session.activeLevelSet) {
+        ImGui::ProgressBar(session.activeLevelSet->progress());
+        if (ImGui::Button("Cancel level set")) session.activeLevelSet->cancel();
     }
 
-    if (!programState.session.datasets.empty()) {
+    if (!session.datasets.empty()) {
         ImGui::Text("Datasets:");
         int removeIndex = -1;
-        for (int datasetIndex = 0; datasetIndex < static_cast<int>(programState.session.datasets.size()); ++datasetIndex) {
-            const std::shared_ptr<MultiField>& loaded = programState.session.datasets[datasetIndex];
+        for (int datasetIndex = 0; datasetIndex < static_cast<int>(session.datasets.size()); ++datasetIndex) {
+            const std::shared_ptr<MultiField>& loaded = session.datasets[datasetIndex];
             const std::string name = loaded->ok() ? loaded->name : loaded->name + " (failed)";
             const std::string label = name + "##dataset" + std::to_string(datasetIndex);
-            if (ImGui::RadioButton(label.c_str(), programState.session.active == datasetIndex)) {
-                if (programState.session.setActiveDataset(datasetIndex)) createDatasetWidgets();
+            if (ImGui::RadioButton(label.c_str(), session.active == datasetIndex)) {
+                if (session.setActiveDataset(datasetIndex)) createDatasetWidgets();
             }
             ImGui::SameLine();
             if (ImGui::SmallButton(("Remove##dataset" + std::to_string(datasetIndex)).c_str()))
                 removeIndex = datasetIndex;
         }
-        if (removeIndex >= 0 && programState.session.removeDataset(removeIndex)) createDatasetWidgets();
+        if (removeIndex >= 0 && session.removeDataset(removeIndex)) createDatasetWidgets();
 
-        const std::shared_ptr<MultiField> active = programState.session.activeDataset();
+        const std::shared_ptr<MultiField> active = session.activeDataset();
         if (active && !active->ok()) {
             ImGui::TextUnformatted(active->error.c_str());
         } else if (active) {
@@ -245,16 +245,16 @@ void GUI::render() {
                         newVertex.values.push_back({&widget.attribute(), widget.value});
                     }
                 }
-                if (newVertex.values.size() > 0) programState.addAttributeSpacePointToBuffer(newVertex);
+                if (newVertex.values.size() > 0) session.addAttributeSpacePointToBuffer(newVertex);
             }
 
-            if (programState.session.attributeSpacePointsBuffer.size() != 0) {
+            if (session.attributeSpacePointsBuffer.size() != 0) {
                 ImGui::Text(" ");
                 ImGui::Text("Attribute Vertices: ");
                 int i = 0;
-                for (auto &vertex : programState.session.attributeSpacePointsBuffer) {
+                for (auto &vertex : session.attributeSpacePointsBuffer) {
                     if (ImGui::Button(std::string("Remove Vertex: " + std::to_string(i)).c_str())) {
-                        programState.session.attributeSpacePointsBuffer.erase(programState.session.attributeSpacePointsBuffer.begin() + i);
+                        session.attributeSpacePointsBuffer.erase(session.attributeSpacePointsBuffer.begin() + i);
                     }
                     ImGui::SameLine();
                     if (ImGui::Button(std::string("Load Vertex: " + std::to_string(i)).c_str())) {
@@ -283,21 +283,21 @@ void GUI::render() {
 
                 if (ImGui::Button("Generate Feature Level Set")) {
                     bool uniqueId = true;
-                    for (auto &levelSet : programState.session.levelSets) {
+                    for (auto &levelSet : session.levelSets) {
                         if (std::string(levelSetIdBuffer) == levelSet.id) {
                             uniqueId = false;
                             break;
                         }
                     }
                     if (not uniqueId) ImGui::Text("Level set id must be unique.");
-                    else if (!programState.activeLevelSet)
-                        programState.generateLevelSet(levelSetDistance/100, levelSetColour, std::string(levelSetIdBuffer));
+                    else if (!session.activeLevelSet)
+                        session.generateLevelSet(levelSetDistance/100, levelSetColour, std::string(levelSetIdBuffer));
                 }
             }
         }
     }
 
-    if (programState.session.levelSets.size() == 0) {
+    if (session.levelSets.size() == 0) {
         ImGui::End();
         return;
     }
@@ -306,7 +306,7 @@ void GUI::render() {
     ImGui::Text(" ");
     ImGui::Text("Level Set Controls: ");
     int i = 0;
-    for (auto &levelSet : programState.session.levelSets) {
+    for (auto &levelSet : session.levelSets) {
         ImGui::Text("%s", levelSet.id.c_str());
         if (levelSet.dataset) {
             ImGui::SameLine();
@@ -330,7 +330,7 @@ void GUI::render() {
 #endif
         ImGui::SameLine();
         if (ImGui::Button(std::string("Remove " + levelSet.id).c_str())) 
-            programState.session.levelSets.erase(programState.session.levelSets.begin() + i);
+            session.levelSets.erase(session.levelSets.begin() + i);
         ImGui::Text("Transparency: ");
         ImGui::SameLine();
         ImGui::SliderFloat((std::string("##Transparency") + levelSet.id).c_str(), &levelSet.transparency, 0, 1, "%.4f");
@@ -346,7 +346,7 @@ void GUI::render() {
 
 void GUI::createDatasetWidgets() {
     attributeWidgets.clear();
-    const std::shared_ptr<MultiField> field = programState.session.activeDataset();
+    const std::shared_ptr<MultiField> field = session.activeDataset();
     if (!field || !field->ok()) return;
     for (int index = 0; index < static_cast<int>(field->attributeDomain.size()); ++index)
         attributeWidgets.push_back({field, index, false, field->attributeDomain[index].bounds.lower});
@@ -354,46 +354,46 @@ void GUI::createDatasetWidgets() {
 
 void GUI::renderLightingControls() {
     // ImGui UI on the left 30%
-    ImGui::SetNextWindowPos(ImVec2(programState.windowWidth - 300.f, 0)); // Position at top-right corner
+    ImGui::SetNextWindowPos(ImVec2(rendering.windowWidth - 300.f, 0)); // Position at top-right corner
     ImGui::SetNextWindowSize(ImVec2(300, 530)); 
 
     ImGui::Begin("Rendering Parameters");
     ImGui::SetWindowFontScale(1.f);
 
     ImGui::Text("Ambient Light:");
-    ImGui::SliderFloat("R##1", &programState.ambientLightColour.x, 0, 1, "%.2f");
-    ImGui::SliderFloat("G##1", &programState.ambientLightColour.y, 0, 1, "%.2f");
-    ImGui::SliderFloat("B##1", &programState.ambientLightColour.z, 0, 1, "%.2f");
-    ImGui::SliderFloat("Strength##1", &programState.ambientLightStrength, 0, 1, "%.2f");
+    ImGui::SliderFloat("R##1", &rendering.ambientLightColour.x, 0, 1, "%.2f");
+    ImGui::SliderFloat("G##1", &rendering.ambientLightColour.y, 0, 1, "%.2f");
+    ImGui::SliderFloat("B##1", &rendering.ambientLightColour.z, 0, 1, "%.2f");
+    ImGui::SliderFloat("Strength##1", &rendering.ambientLightStrength, 0, 1, "%.2f");
 
     ImGui::Text(" ");
     ImGui::Text("Diffuse Light:");
-    ImGui::SliderFloat("R##2", &programState.diffuseLightColour.x, 0, 1, "%.2f");
-    ImGui::SliderFloat("G##2", &programState.diffuseLightColour.y, 0, 1, "%.2f");
-    ImGui::SliderFloat("B##2", &programState.diffuseLightColour.z, 0, 1, "%.2f");
-    ImGui::SliderFloat("Strength##2", &programState.diffuseLightStrength, 0, 1, "%.2f");
+    ImGui::SliderFloat("R##2", &rendering.diffuseLightColour.x, 0, 1, "%.2f");
+    ImGui::SliderFloat("G##2", &rendering.diffuseLightColour.y, 0, 1, "%.2f");
+    ImGui::SliderFloat("B##2", &rendering.diffuseLightColour.z, 0, 1, "%.2f");
+    ImGui::SliderFloat("Strength##2", &rendering.diffuseLightStrength, 0, 1, "%.2f");
 
     ImGui::Text(" ");
     ImGui::Text("Diffuse Light Direction:");
-    ImGui::SliderFloat("X##1", &programState.diffuseLightDirection.x, -1, 1, "%.2f");    
-    ImGui::SliderFloat("Y##1", &programState.diffuseLightDirection.y, -1, 1, "%.2f");    
-    ImGui::SliderFloat("Z##1", &programState.diffuseLightDirection.z, -1, 1, "%.2f");    
+    ImGui::SliderFloat("X##1", &rendering.diffuseLightDirection.x, -1, 1, "%.2f");    
+    ImGui::SliderFloat("Y##1", &rendering.diffuseLightDirection.y, -1, 1, "%.2f");    
+    ImGui::SliderFloat("Z##1", &rendering.diffuseLightDirection.z, -1, 1, "%.2f");    
 
     ImGui::Text(" ");
-    ImGui::Checkbox("Back Face Culling", &programState.backFaceCulling);
+    ImGui::Checkbox("Back Face Culling", &rendering.backFaceCulling);
 #ifndef __EMSCRIPTEN__
     ImGui::Text(" ");
-    ImGui::Checkbox("Draw Wireframes", &programState.drawWireframe);
+    ImGui::Checkbox("Draw Wireframes", &rendering.drawWireframe);
 #endif
     ImGui::Text(" ");
     ImGui::Text("Camera Controls:");
-    ImGui::SliderFloat("SPEED##1", &programState.cam.speed, 0, 250, "%.0f");    
-    ImGui::SliderFloat("POS X##1", &programState.cam.pos.x, -10000, 10000, "%.0f");    
-    ImGui::SliderFloat("POS Y##1", &programState.cam.pos.y, -10000, 10000, "%.0f");    
-    ImGui::SliderFloat("POS Z##1", &programState.cam.pos.z, -10000, 10000, "%.0f");   
-    ImGui::SliderFloat("FRONT X##1", &programState.cam.front.x, -1, 1, "%.4f");    
-    ImGui::SliderFloat("FRONT Y##1", &programState.cam.front.y, sin(-89), sin(89), "%.4f");    
-    ImGui::SliderFloat("FRONT Z##1", &programState.cam.front.z, -1, 1, "%.4f"); 
-    ImGui::SliderFloat("FOV##1", &programState.fov, 0, 90, "%.0f"); 
+    ImGui::SliderFloat("SPEED##1", &rendering.cam.speed, 0, 250, "%.0f");    
+    ImGui::SliderFloat("POS X##1", &rendering.cam.pos.x, -10000, 10000, "%.0f");    
+    ImGui::SliderFloat("POS Y##1", &rendering.cam.pos.y, -10000, 10000, "%.0f");    
+    ImGui::SliderFloat("POS Z##1", &rendering.cam.pos.z, -10000, 10000, "%.0f");   
+    ImGui::SliderFloat("FRONT X##1", &rendering.cam.front.x, -1, 1, "%.4f");    
+    ImGui::SliderFloat("FRONT Y##1", &rendering.cam.front.y, sin(-89), sin(89), "%.4f");    
+    ImGui::SliderFloat("FRONT Z##1", &rendering.cam.front.z, -1, 1, "%.4f"); 
+    ImGui::SliderFloat("FOV##1", &rendering.fov, 0, 90, "%.0f"); 
     ImGui::End();
 }

@@ -11,6 +11,7 @@
 
 // my includes
 #include "state.hpp"
+#include "../lib/levelSets/sessionState.hpp"
 #include "callbacks.hpp"
 #include "inputProcessing.hpp"
 #include "../lib/shaderTools/shaderProgram.hpp"
@@ -223,14 +224,14 @@ int main() {
     glm::vec3 defaultCameraFront = glm::vec3(0.f, 0.f, -1.f);
     glm::vec3 defaultCameraUp = glm::vec3(0.f, 1.f, 0.f);
     // setup state
-    ProgramState state = {
+    RenderState state = {
         {defaultCameraPos, defaultCameraFront, defaultCameraUp},
         windowWidth,
         windowHeight
     };
+    SessionState session;
     glfwSetWindowUserPointer(window, &state);
-    // setup gui 
-    GUI gui(state);
+    GUI gui(session, state);
 
     const GpuMesh cube = uploadMesh(std::span<const float>(cubeVerticesWithNormals));
 
@@ -299,7 +300,7 @@ int main() {
         glDepthMask(GL_TRUE);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        for (auto& levelSet : state.session.levelSets) {
+        for (auto& levelSet : session.levelSets) {
             if (levelSet.active && levelSet.transparency >= 1.f)
                 drawLevelSet(lightingShader, levelSet, cube, colourGreen, colourRed);
         }
@@ -308,7 +309,7 @@ int main() {
         int fbHeight = 0;
         glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
         bool anyTransparent = false;
-        for (const auto& levelSet : state.session.levelSets)
+        for (const auto& levelSet : session.levelSets)
             if (levelSet.active && levelSet.transparency > 0.f && levelSet.transparency < 1.f) anyTransparent = true;
 
         int peelCount = 0;
@@ -336,7 +337,7 @@ int main() {
                 glBindTexture(GL_TEXTURE_2D, peel > 0 ? peels.depth[(peel + 1) % 2] : peels.dummyDepth);
 
                 glBeginQuery(GL_ANY_SAMPLES_PASSED, peels.query);
-                for (auto& levelSet : state.session.levelSets) {
+                for (auto& levelSet : session.levelSets) {
                     if (levelSet.active && levelSet.transparency > 0.f && levelSet.transparency < 1.f)
                         drawLevelSet(lightingShader, levelSet, cube, colourGreen, colourRed);
                 }

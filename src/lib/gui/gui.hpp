@@ -4,7 +4,8 @@
 #include <memory>
 #include <string>
 
-#include "../../main/state.hpp" 
+#include "../../main/state.hpp"
+#include "../levelSets/sessionState.hpp"
 #include "../multiField/multiField.hpp"
 
 struct AttributeWidget {
@@ -18,7 +19,8 @@ struct AttributeWidget {
 
 class GUI {
 private:
-    ProgramState &programState;
+    SessionState& session;
+    RenderState& rendering;
     // textbox state
     char inputTextBuffer[4096] = "dataset/timestep02/config.txt";
     std::string fileDialogError;
@@ -30,7 +32,7 @@ private:
     glm::vec3 levelSetColour{1.f, 0.f, 0.f};
     char levelSetIdBuffer[256] = "0";
 public:
-    GUI(ProgramState &state) : programState(state) {}
+    GUI(SessionState& session, RenderState& rendering) : session(session), rendering(rendering) {}
     void render();
     void renderLightingControls();
     void createDatasetWidgets();

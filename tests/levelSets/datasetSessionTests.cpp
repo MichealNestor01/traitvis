@@ -1,5 +1,5 @@
 #include "datasetReader.hpp"
-#include "datasetSession.hpp"
+#include "sessionState.hpp"
 
 #include <gtest/gtest.h>
 #include <memory>
@@ -12,8 +12,8 @@ std::shared_ptr<MultiField> loadTestDataset() {
 
 }
 
-TEST(DatasetSessionTests, RemovingADatasetKeepsLevelSetsBuiltFromItAlive) {
-    DatasetSession session;
+TEST(SessionStateTests, RemovingADatasetKeepsLevelSetsBuiltFromItAlive) {
+    SessionState session;
     const std::shared_ptr<MultiField> first = loadTestDataset();
     const std::shared_ptr<MultiField> second = loadTestDataset();
     ASSERT_TRUE(first->ok());
