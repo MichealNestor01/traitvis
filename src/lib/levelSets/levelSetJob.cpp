@@ -14,23 +14,25 @@ constexpr int kSlabsPerStep = 8;
 }
 
 LevelSetJob::LevelSetJob(std::vector<TraitPoint> pointsIn, std::shared_ptr<const MultiField> datasetIn,
-                         float isoValueIn, glm::vec3 colourIn, std::string idIn, bool keepFieldIn)
+                         float isoValueIn, glm::vec3 colourIn, std::string idIn, bool keepFieldIn, bool closeAtMissingDataIn)
     : dataset(std::move(datasetIn))
     , points(normalised(std::move(pointsIn)))
     , field(std::make_unique<DistanceFieldJob>(points, *dataset))
     , isoValue(isoValueIn)
     , keepField(keepFieldIn)
+    , closeAtMissingData(closeAtMissingDataIn)
     , colour(colourIn)
     , id(std::move(idIn)) {}
 
 LevelSetJob::LevelSetJob(std::vector<TraitPoint> pointsIn, std::shared_ptr<const MultiField> datasetIn,
                          float isoValueIn, glm::vec3 colourIn, std::string idIn, bool keepFieldIn,
-                         ScalarField precomputed)
+                         ScalarField precomputed, bool closeAtMissingDataIn)
     : dataset(std::move(datasetIn))
     , points(normalised(std::move(pointsIn)))
     , prepared(std::move(precomputed))
     , isoValue(isoValueIn)
     , keepField(keepFieldIn)
+    , closeAtMissingData(closeAtMissingDataIn)
     , colour(colourIn)
     , id(std::move(idIn)) {}
 
@@ -94,8 +96,8 @@ void LevelSetJob::finishCancelled() {
 void LevelSetJob::finishSurface() {
     ScalarField distance = prepared ? std::move(*prepared) : std::move(*field).take();
     prepared.reset();
-    Surface surface = extractSurface(distance, isoValue);
-    result = FeatureLevelSet(points, std::move(surface), colour, id, dataset);
+    Surface surface = extractSurface(distance, isoValue, NormalMode::Gradient, closeAtMissingData);
+    result = FeatureLevelSet(points, std::move(surface), colour, id, dataset, closeAtMissingData);
     result->isoValue = isoValue;
     if (keepField) result->distanceField = std::move(distance);
     complete.store(true, std::memory_order_release);

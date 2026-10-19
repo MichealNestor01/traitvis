@@ -7,6 +7,8 @@
 #include <map>
 #include <fstream>
 #include <algorithm>
+#include <cmath>
+#include <limits>
 
 namespace {
 
@@ -53,7 +55,7 @@ std::vector<float> Surface::interleaved() const {
     return positionsAndNormals;
 }
 
-void examineCube(Surface &triangles, const ScalarField &field, int vertex0, float isoValue, NormalMode normals) {
+void examineCube(Surface &triangles, const ScalarField &field, int vertex0, float isoValue, NormalMode normals, bool closeAtMissingData) {
     const GridLayout &layout = field.layout;
     int vertices[8];
     // find the index in the coordinate grid of each vertex of the cube
@@ -65,6 +67,14 @@ void examineCube(Surface &triangles, const ScalarField &field, int vertex0, floa
     vertices[5] = vertex0 + (layout.z * layout.y) + 1;
     vertices[6] = vertex0 + (layout.z * layout.y) + layout.z;
     vertices[7] = vertex0 + (layout.z * layout.y) + layout.z + 1;
+
+    // FLT_MAX is finite, so the missing-data marker has to be named as well as NaN.
+    if (!closeAtMissingData) {
+        for (int corner : vertices) {
+            const float distance = field.values[corner];
+            if (!std::isfinite(distance) || distance == std::numeric_limits<float>::max()) return;
+        }
+    }
 
     // find the case this cube matches with
     int cubeIndex = 0;
@@ -127,14 +137,14 @@ void examineCube(Surface &triangles, const ScalarField &field, int vertex0, floa
     }
 }
 
-Surface extractSurface(const ScalarField &field, float isoValue, NormalMode normals) {
+Surface extractSurface(const ScalarField &field, float isoValue, NormalMode normals, bool closeAtMissingData) {
     Surface surface;
     const GridLayout &layout = field.layout;
 
     for (int x = 0; x < layout.x - 1; ++x) {
     for (int y = 0; y < layout.y - 1; ++y) {
     for (int z = 0; z < layout.z - 1; ++z) {
-        examineCube(surface, field, layout.index(x, y, z), isoValue, normals);
+        examineCube(surface, field, layout.index(x, y, z), isoValue, normals, closeAtMissingData);
     }}}
 
     return surface;

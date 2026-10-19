@@ -53,10 +53,10 @@ struct SessionState {
     void removeAttributeSpacePoint(int index);
     // Synchronous. Tests build a level set without a background job.
     // keepField retains the distance grid so the isovalue can change without computing it again.
-    void generateLevelSet(std::vector<TraitPoint> points, float euclideanDistance, glm::vec3 colour, std::string id, bool keepField = false);
+    void generateLevelSet(std::vector<TraitPoint> points, float euclideanDistance, glm::vec3 colour, std::string id, bool keepField = false, bool closeAtMissingData = true);
     // Uses the trait buffer and finishes on a background job.
     // When gpuDistanceField returns a field, the slabs are skipped and the job only extracts the surface.
-    void generateLevelSet(float euclideanDistance, glm::vec3 colour, std::string id, bool keepField = false);
+    void generateLevelSet(float euclideanDistance, glm::vec3 colour, std::string id, bool keepField = false, bool closeAtMissingData = true);
     void addLevelSet(FeatureLevelSet levelSet);
     void removeLevelSet(int index);
     // `before` is the value at the start of the edit. The level set already holds `after`.

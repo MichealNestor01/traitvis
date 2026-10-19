@@ -31,5 +31,7 @@ struct Surface {
 	std::vector<float> interleaved() const;
 };
 
-void examineCube(Surface &triangles, const ScalarField &field, int vertex0, float isoValue, NormalMode normals = NormalMode::Gradient);
-Surface extractSurface(const ScalarField &field, float isoValue, NormalMode normals = NormalMode::Gradient);
+// closeAtMissingData keeps a cube that touches a missing sample. Missing samples are
+// FLT_MAX or non-finite; with the flag off those cubes are skipped.
+void examineCube(Surface &triangles, const ScalarField &field, int vertex0, float isoValue, NormalMode normals = NormalMode::Gradient, bool closeAtMissingData = true);
+Surface extractSurface(const ScalarField &field, float isoValue, NormalMode normals = NormalMode::Gradient, bool closeAtMissingData = true);

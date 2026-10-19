@@ -34,6 +34,7 @@ private:
     // level set slider values
     float levelSetDistance = 0.0f;
     bool keepDistanceField = false;
+    bool closeAtMissingData = true;
     glm::vec3 levelSetColour{1.f, 0.f, 0.f};
     char levelSetIdBuffer[256] = "0";
     // One drag is one undo step. The start value is captured when the widget is pressed.

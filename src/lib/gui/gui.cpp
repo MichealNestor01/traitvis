@@ -381,6 +381,7 @@ void GUI::render() {
 
                 ImGui::Text("Normalised Euclidean distance for level set: ");
                 ImGui::SliderFloat("##distance", &levelSetDistance, 0, 100, "%.4f");
+                ImGui::Checkbox("Close surface at missing data", &closeAtMissingData);
                 ImGui::Checkbox("Keep distance field", &keepDistanceField);
                 ImGui::Text("Select level set colour: ");
                 ImGui::ColorEdit3("##levelSetColour", &levelSetColour.x);
@@ -398,7 +399,7 @@ void GUI::render() {
                     }
                     if (not uniqueId) ImGui::Text("Level set id must be unique.");
                     else if (!session.activeLevelSet)
-                        session.generateLevelSet(levelSetDistance/100, levelSetColour, std::string(levelSetIdBuffer), keepDistanceField);
+                        session.generateLevelSet(levelSetDistance/100, levelSetColour, std::string(levelSetIdBuffer), keepDistanceField, closeAtMissingData);
                 }
             }
         }

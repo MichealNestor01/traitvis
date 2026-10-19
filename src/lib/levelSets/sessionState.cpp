@@ -174,13 +174,13 @@ void SessionState::removeAttributeSpacePoint(int index) {
     execute(std::make_unique<RemoveTraitPointCommand>(index));
 }
 
-void SessionState::generateLevelSet(std::vector<TraitPoint> points, float euclideanDistance, glm::vec3 colour, std::string id, bool keepField) {
+void SessionState::generateLevelSet(std::vector<TraitPoint> points, float euclideanDistance, glm::vec3 colour, std::string id, bool keepField, bool closeAtMissingData) {
     const std::shared_ptr<MultiField> field = activeDataset();
     if (!field || !field->ok()) return;
-    addLevelSet(FeatureLevelSet(std::move(points), std::shared_ptr<const MultiField>(field), euclideanDistance, colour, std::move(id), keepField));
+    addLevelSet(FeatureLevelSet(std::move(points), std::shared_ptr<const MultiField>(field), euclideanDistance, colour, std::move(id), keepField, closeAtMissingData));
 }
 
-void SessionState::generateLevelSet(float euclideanDistance, glm::vec3 colour, std::string id, bool keepField) {
+void SessionState::generateLevelSet(float euclideanDistance, glm::vec3 colour, std::string id, bool keepField, bool closeAtMissingData) {
     const std::shared_ptr<MultiField> field = activeDataset();
     if (activeLevelSet || !field || !field->ok()) return;
     const std::shared_ptr<const MultiField> dataset(field);
@@ -192,13 +192,13 @@ void SessionState::generateLevelSet(float euclideanDistance, glm::vec3 colour, s
         std::vector<TraitPoint> normalisedPoints = attributeSpacePointsBuffer;
         for (TraitPoint& point : normalisedPoints) point.normalise();
         if (std::optional<ScalarField> computed = gpuDistanceField(normalisedPoints, *field)) {
-            activeLevelSet.emplace(attributeSpacePointsBuffer, dataset, euclideanDistance, colour, std::move(id), keepField, std::move(*computed));
+            activeLevelSet.emplace(attributeSpacePointsBuffer, dataset, euclideanDistance, colour, std::move(id), keepField, std::move(*computed), closeAtMissingData);
             activeLevelSet->start();
             return;
         }
     }
 
-    activeLevelSet.emplace(attributeSpacePointsBuffer, dataset, euclideanDistance, colour, std::move(id), keepField);
+    activeLevelSet.emplace(attributeSpacePointsBuffer, dataset, euclideanDistance, colour, std::move(id), keepField, closeAtMissingData);
     activeLevelSet->start();
 }
 

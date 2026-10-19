@@ -26,9 +26,11 @@ public:
     float isoValue = 0.f;
     // Present only when the user asked to keep it. Isabel's field is about 100 MB, so this is opt-in.
     std::optional<ScalarField> distanceField;
+    // Re-slices use the same choice. Checked closes the surface where a sample is missing.
+    bool closeAtMissingData = true;
 
-    FeatureLevelSet(std::vector<TraitPoint> points, std::shared_ptr<const MultiField> dataset, float euclideanDistance, glm::vec3 colour, std::string id, bool keepField = false);
-    FeatureLevelSet(std::vector<TraitPoint> points, Surface surface, glm::vec3 colour, std::string id, std::shared_ptr<const MultiField> dataset);
+    FeatureLevelSet(std::vector<TraitPoint> points, std::shared_ptr<const MultiField> dataset, float euclideanDistance, glm::vec3 colour, std::string id, bool keepField = false, bool closeAtMissingData = true);
+    FeatureLevelSet(std::vector<TraitPoint> points, Surface surface, glm::vec3 colour, std::string id, std::shared_ptr<const MultiField> dataset, bool closeAtMissingData = true);
     // Extracts a new surface from the kept field. Drops the uploaded mesh so the next draw uploads the new one.
     // Returns false when no field was kept.
     bool reslice(float newIsoValue);

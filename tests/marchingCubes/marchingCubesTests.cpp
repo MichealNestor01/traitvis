@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 #include <algorithm>
 #include <glm.hpp>
+#include <limits>
 
 TEST(MarchingCubesTests, TestNoActiveVertices) {
     ScalarField field{{3, 3, 3}, std::vector<float>(27, 1.f)};
@@ -85,6 +86,29 @@ TEST(MarchingCubesTests, IsovalueSelectsSphereRadius) {
         ASSERT_GT(s.vertices.size(), 0u);
         for (const glm::vec3& v : s.vertices) EXPECT_NEAR(glm::distance(v, glm::vec3(4.f)), iso, 0.1f);
     }
+}
+
+TEST(MarchingCubesTests, ClosingAtMissingDataMeshesTheJump) {
+    ScalarField field{{2, 2, 2}, std::vector<float>(8, 0.f)};
+    field.values[0] = std::numeric_limits<float>::max();
+    const Surface result = extractSurface(field, 0.5f, NormalMode::Gradient, true);
+    EXPECT_GT(result.vertices.size(), 0u);
+}
+
+TEST(MarchingCubesTests, LeavingMissingDataOpenDropsThoseCubes) {
+    ScalarField field{{2, 2, 2}, std::vector<float>(8, 0.f)};
+    field.values[0] = std::numeric_limits<float>::max();
+    const Surface result = extractSurface(field, 0.5f, NormalMode::Gradient, false);
+    EXPECT_EQ(result.vertices.size(), 0u);
+}
+
+TEST(MarchingCubesTests, AnAllFiniteCubeIsUnchangedWhenMissingDataIsLeftOpen) {
+    ScalarField field{{3, 3, 3}, std::vector<float>(27, 1.f)};
+    field.values[13] = -1.f;
+    const Surface closed = extractSurface(field, 0.f, NormalMode::Gradient, true);
+    const Surface open = extractSurface(field, 0.f, NormalMode::Gradient, false);
+    ASSERT_GT(closed.vertices.size(), 0u);
+    EXPECT_EQ(open.vertices.size(), closed.vertices.size());
 }
 
 TEST(SurfaceTests, InterleavedVerticesArePositionThenNormal) {
