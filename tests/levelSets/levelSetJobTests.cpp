@@ -47,6 +47,31 @@ TEST_F(LevelSetJobTests, MainThreadSteppingProducesSameSurfaceAsSynchronousPath)
     EXPECT_EQ(result->surface.vertices, expected.surface.vertices);
 }
 
+TEST_F(LevelSetJobTests, KeptFieldReslicesWithoutChangingSamples) {
+    LevelSetJob job(points, dataset, 0.5f, {1.f, 0.f, 0.f}, "a", true);
+    while (!job.finished()) job.stepOnMainThread(1);
+    std::optional<FeatureLevelSet> result = job.take();
+    ASSERT_TRUE(result);
+    ASSERT_TRUE(result->distanceField);
+    const std::vector<float> samples = result->distanceField->values;
+    const std::vector<glm::vec3> first = result->surface.vertices;
+    ASSERT_FALSE(first.empty());
+
+    ASSERT_TRUE(result->reslice(0.9f));
+    EXPECT_EQ(result->distanceField->values, samples);
+    EXPECT_NE(result->surface.vertices, first);
+    EXPECT_FLOAT_EQ(result->isoValue, 0.9f);
+}
+
+TEST_F(LevelSetJobTests, FieldIsDiscardedUnlessKept) {
+    LevelSetJob job(points, dataset, 0.5f, {1.f, 0.f, 0.f}, "a");
+    while (!job.finished()) job.stepOnMainThread(1);
+    std::optional<FeatureLevelSet> result = job.take();
+    ASSERT_TRUE(result);
+    EXPECT_FALSE(result->distanceField);
+    EXPECT_FALSE(result->reslice(0.9f));
+}
+
 TEST_F(LevelSetJobTests, BackgroundJobProducesSameSurfaceAsSynchronousPath) {
     FeatureLevelSet expected(points, dataset, 0.5f, {1.f, 0.f, 0.f}, "a");
     LevelSetJob job(points, dataset, 0.5f, {1.f, 0.f, 0.f}, "a");

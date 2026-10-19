@@ -330,6 +330,7 @@ void GUI::render() {
 
                 ImGui::Text("Normalised Euclidean distance for level set: ");
                 ImGui::SliderFloat("##distance", &levelSetDistance, 0, 100, "%.4f");
+                ImGui::Checkbox("Keep distance field", &keepDistanceField);
                 ImGui::Text("Select level set colour: ");
                 ImGui::ColorEdit3("##levelSetColour", &levelSetColour.x);
                 ImGui::Text("Level set name: ");
@@ -346,7 +347,7 @@ void GUI::render() {
                     }
                     if (not uniqueId) ImGui::Text("Level set id must be unique.");
                     else if (!session.activeLevelSet)
-                        session.generateLevelSet(levelSetDistance/100, levelSetColour, std::string(levelSetIdBuffer));
+                        session.generateLevelSet(levelSetDistance/100, levelSetColour, std::string(levelSetIdBuffer), keepDistanceField);
                 }
             }
         }
@@ -395,6 +396,21 @@ void GUI::render() {
         const glm::vec3 colourBefore = levelSet.colour;
         ImGui::ColorEdit3((std::string("##colour") + levelSet.id).c_str(), &levelSet.colour.x);
         trackColourEdit(i, colourBefore, levelSet.colour);
+        if (levelSet.distanceField) {
+            ImGui::Text("Distance: ");
+            ImGui::SameLine();
+            const float isoBefore = levelSet.isoValue;
+            float shown = isoBefore * 100.f;
+            if (levelSetEdit == LevelSetEdit::IsoValue && levelSetEditIndex == i)
+                shown = levelSetEditShown;
+            ImGui::SliderFloat((std::string("##iso") + levelSet.id).c_str(), &shown, 0.f, 100.f, "%.4f");
+            if (ImGui::IsItemActive()) levelSetEditShown = shown;
+            const float nextIso = shown / 100.f;
+            // Rebuild while the drag is in progress. The undo step is still one command, recorded on release.
+            if (nextIso != levelSet.isoValue && (ImGui::IsItemActive() || ImGui::IsItemDeactivated()))
+                levelSet.reslice(nextIso);
+            trackIsoEdit(i, isoBefore, nextIso);
+        }
         ImGui::Checkbox((std::string("Show boundary vertices##") + levelSet.id).c_str(), &levelSet.showActiveInactivePixels);
         ImGui::Checkbox((std::string("Invert Normals##") + levelSet.id).c_str(), &levelSet.invertNormals);
         ImGui::Text(" ");
@@ -414,6 +430,18 @@ void GUI::trackTransparencyEdit(int index, float before, float after) {
     if (levelSetEdit != LevelSetEdit::Transparency || levelSetEditIndex != index) return;
     if (ImGui::IsItemDeactivatedAfterEdit())
         session.setLevelSetTransparency(index, levelSetEditTransparency, after);
+    if (ImGui::IsItemDeactivated()) levelSetEdit = LevelSetEdit::None;
+}
+
+void GUI::trackIsoEdit(int index, float before, float after) {
+    if (ImGui::IsItemActivated()) {
+        levelSetEdit = LevelSetEdit::IsoValue;
+        levelSetEditIndex = index;
+        levelSetEditIso = before;
+    }
+    if (levelSetEdit != LevelSetEdit::IsoValue || levelSetEditIndex != index) return;
+    if (ImGui::IsItemDeactivatedAfterEdit())
+        session.setLevelSetIso(index, levelSetEditIso, after);
     if (ImGui::IsItemDeactivated()) levelSetEdit = LevelSetEdit::None;
 }
 

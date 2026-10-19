@@ -99,6 +99,18 @@ struct SetLevelSetColourCommand : SessionCommand {
     void undo(SessionState& session) override { session.levelSets[static_cast<std::size_t>(index)].colour = before; }
 };
 
+struct SetLevelSetIsoCommand : SessionCommand {
+    int index;
+    float before;
+    float after;
+
+    SetLevelSetIsoCommand(int index, float before, float after)
+        : index(index), before(before), after(after) {}
+
+    void redo(SessionState& session) override { session.levelSets[static_cast<std::size_t>(index)].reslice(after); }
+    void undo(SessionState& session) override { session.levelSets[static_cast<std::size_t>(index)].reslice(before); }
+};
+
 struct SetLevelSetTransparencyCommand : SessionCommand {
     int index;
     float before;
@@ -162,16 +174,16 @@ void SessionState::removeAttributeSpacePoint(int index) {
     execute(std::make_unique<RemoveTraitPointCommand>(index));
 }
 
-void SessionState::generateLevelSet(std::vector<TraitPoint> points, float euclideanDistance, glm::vec3 colour, std::string id) {
+void SessionState::generateLevelSet(std::vector<TraitPoint> points, float euclideanDistance, glm::vec3 colour, std::string id, bool keepField) {
     const std::shared_ptr<MultiField> field = activeDataset();
     if (!field || !field->ok()) return;
-    addLevelSet(FeatureLevelSet(std::move(points), std::shared_ptr<const MultiField>(field), euclideanDistance, colour, std::move(id)));
+    addLevelSet(FeatureLevelSet(std::move(points), std::shared_ptr<const MultiField>(field), euclideanDistance, colour, std::move(id), keepField));
 }
 
-void SessionState::generateLevelSet(float euclideanDistance, glm::vec3 colour, std::string id) {
+void SessionState::generateLevelSet(float euclideanDistance, glm::vec3 colour, std::string id, bool keepField) {
     const std::shared_ptr<MultiField> field = activeDataset();
     if (activeLevelSet || !field || !field->ok()) return;
-    activeLevelSet.emplace(attributeSpacePointsBuffer, std::shared_ptr<const MultiField>(field), euclideanDistance, colour, std::move(id));
+    activeLevelSet.emplace(attributeSpacePointsBuffer, std::shared_ptr<const MultiField>(field), euclideanDistance, colour, std::move(id), keepField);
     activeLevelSet->start();
 }
 
@@ -192,6 +204,12 @@ void SessionState::setLevelSetColour(int index, glm::vec3 before, glm::vec3 afte
 void SessionState::setLevelSetTransparency(int index, float before, float after) {
     if (index < 0 || index >= static_cast<int>(levelSets.size()) || before == after) return;
     execute(std::make_unique<SetLevelSetTransparencyCommand>(index, before, after));
+}
+
+void SessionState::setLevelSetIso(int index, float before, float after) {
+    if (index < 0 || index >= static_cast<int>(levelSets.size()) || before == after) return;
+    if (!levelSets[static_cast<std::size_t>(index)].distanceField) return;
+    execute(std::make_unique<SetLevelSetIsoCommand>(index, before, after));
 }
 
 void SessionState::undo() {

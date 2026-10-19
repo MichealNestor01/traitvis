@@ -78,6 +78,15 @@ TEST(MarchingCubesTests, GradientNormalsOnASphereAreRadialUnitVectors) {
     }
 }
 
+TEST(MarchingCubesTests, IsovalueSelectsSphereRadius) {
+    const ScalarField f = radialField(9);
+    for (float iso : {2.f, 3.f}) {
+        Surface s = extractSurface(f, iso);
+        ASSERT_GT(s.vertices.size(), 0u);
+        for (const glm::vec3& v : s.vertices) EXPECT_NEAR(glm::distance(v, glm::vec3(4.f)), iso, 0.1f);
+    }
+}
+
 TEST(SurfaceTests, InterleavedVerticesArePositionThenNormal) {
     Surface s;
     s.vertices = {{1, 2, 3}, {4, 5, 6}};

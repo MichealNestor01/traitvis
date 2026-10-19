@@ -16,7 +16,7 @@
 class LevelSetJob {
 public:
     LevelSetJob(std::vector<TraitPoint> points, std::shared_ptr<const MultiField> dataset,
-                float isoValue, glm::vec3 colour, std::string id);
+                float isoValue, glm::vec3 colour, std::string id, bool keepField = false);
     void start();
     void stepOnMainThread(int slabs);
     [[nodiscard]] float progress() const;
@@ -34,6 +34,7 @@ private:
     std::vector<TraitPoint> points;
     DistanceFieldJob field;
     float isoValue = 0.f;
+    bool keepField = false;
     glm::vec3 colour{};
     std::string id;
     std::optional<FeatureLevelSet> result;

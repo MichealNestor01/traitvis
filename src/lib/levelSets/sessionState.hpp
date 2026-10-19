@@ -46,14 +46,17 @@ struct SessionState {
     void addAttributeSpacePointToBuffer(TraitPoint point);
     void removeAttributeSpacePoint(int index);
     // Synchronous. Tests build a level set without a background job.
-    void generateLevelSet(std::vector<TraitPoint> points, float euclideanDistance, glm::vec3 colour, std::string id);
+    // keepField retains the distance grid so the isovalue can change without computing it again.
+    void generateLevelSet(std::vector<TraitPoint> points, float euclideanDistance, glm::vec3 colour, std::string id, bool keepField = false);
     // Uses the trait buffer and finishes on a background job.
-    void generateLevelSet(float euclideanDistance, glm::vec3 colour, std::string id);
+    void generateLevelSet(float euclideanDistance, glm::vec3 colour, std::string id, bool keepField = false);
     void addLevelSet(FeatureLevelSet levelSet);
     void removeLevelSet(int index);
     // `before` is the value at the start of the edit. The level set already holds `after`.
     void setLevelSetColour(int index, glm::vec3 before, glm::vec3 after);
     void setLevelSetTransparency(int index, float before, float after);
+    // Re-extracts the surface from a kept distance field. No command is recorded when the field was discarded.
+    void setLevelSetIso(int index, float before, float after);
     void undo();
     void redo();
     [[nodiscard]] bool canUndo() const noexcept { return !undoStack.empty(); }

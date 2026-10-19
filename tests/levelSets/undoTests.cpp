@@ -1,3 +1,4 @@
+#include "levelSets/fieldFixtures.hpp"
 #include "sessionState.hpp"
 
 #include <gtest/gtest.h>
@@ -163,6 +164,26 @@ TEST(UndoTests, UndoRestoresARemovedLevelSetBeforeRevertingItsColour) {
     session.undo();
     EXPECT_FLOAT_EQ(session.levelSets[1].colour.x, 1.f);
     EXPECT_FLOAT_EQ(session.levelSets[1].colour.z, 0.f);
+}
+
+TEST(UndoTests, IsoValueChangeRoundTrips) {
+    SessionState session;
+    FeatureLevelSet shell({}, Surface{}, {1.f, 0.f, 0.f}, "a", {});
+    shell.distanceField = radialField(9);
+    ASSERT_TRUE(shell.reslice(2.f));
+    const std::vector<glm::vec3> atTwo = shell.surface.vertices;
+    session.addLevelSet(std::move(shell));
+
+    session.setLevelSetIso(0, 2.f, 3.f);
+    EXPECT_NE(session.levelSets[0].surface.vertices, atTwo);
+    EXPECT_FLOAT_EQ(session.levelSets[0].isoValue, 3.f);
+
+    session.undo();
+    EXPECT_EQ(session.levelSets[0].surface.vertices, atTwo);
+    EXPECT_FLOAT_EQ(session.levelSets[0].isoValue, 2.f);
+
+    session.redo();
+    EXPECT_FLOAT_EQ(session.levelSets[0].isoValue, 3.f);
 }
 
 TEST(UndoTests, SwitchingDatasetDropsTraitCommandsAndKeepsLevelSetCommands) {
