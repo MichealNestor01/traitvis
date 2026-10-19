@@ -72,6 +72,24 @@ TEST_F(LevelSetJobTests, FieldIsDiscardedUnlessKept) {
     EXPECT_FALSE(result->reslice(0.9f));
 }
 
+TEST_F(LevelSetJobTests, PrecomputedFieldSkipsTheSlabs) {
+    ScalarField field = generateDistanceField(points, *dataset);
+    const std::vector<float> samples = field.values;
+    FeatureLevelSet expected(points, dataset, 0.5f, {1.f, 0.f, 0.f}, "a", true);
+
+    LevelSetJob job(points, dataset, 0.5f, {1.f, 0.f, 0.f}, "a", true, std::move(field));
+    EXPECT_FLOAT_EQ(job.progress(), 1.f);
+    EXPECT_FALSE(job.finished());
+    job.stepOnMainThread(1);
+    ASSERT_TRUE(job.finished());
+
+    std::optional<FeatureLevelSet> result = job.take();
+    ASSERT_TRUE(result);
+    ASSERT_TRUE(result->distanceField);
+    EXPECT_EQ(result->distanceField->values, samples);
+    EXPECT_EQ(result->surface.vertices, expected.surface.vertices);
+}
+
 TEST_F(LevelSetJobTests, BackgroundJobProducesSameSurfaceAsSynchronousPath) {
     FeatureLevelSet expected(points, dataset, 0.5f, {1.f, 0.f, 0.f}, "a");
     LevelSetJob job(points, dataset, 0.5f, {1.f, 0.f, 0.f}, "a");

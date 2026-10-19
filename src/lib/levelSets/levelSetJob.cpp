@@ -17,7 +17,18 @@ LevelSetJob::LevelSetJob(std::vector<TraitPoint> pointsIn, std::shared_ptr<const
                          float isoValueIn, glm::vec3 colourIn, std::string idIn, bool keepFieldIn)
     : dataset(std::move(datasetIn))
     , points(normalised(std::move(pointsIn)))
-    , field(points, *dataset)
+    , field(std::make_unique<DistanceFieldJob>(points, *dataset))
+    , isoValue(isoValueIn)
+    , keepField(keepFieldIn)
+    , colour(colourIn)
+    , id(std::move(idIn)) {}
+
+LevelSetJob::LevelSetJob(std::vector<TraitPoint> pointsIn, std::shared_ptr<const MultiField> datasetIn,
+                         float isoValueIn, glm::vec3 colourIn, std::string idIn, bool keepFieldIn,
+                         ScalarField precomputed)
+    : dataset(std::move(datasetIn))
+    , points(normalised(std::move(pointsIn)))
+    , prepared(std::move(precomputed))
     , isoValue(isoValueIn)
     , keepField(keepFieldIn)
     , colour(colourIn)
@@ -34,16 +45,17 @@ void LevelSetJob::start() {
 void LevelSetJob::stepOnMainThread(int slabs) {
     if (complete.load(std::memory_order_acquire)) return;
     if (stop.load()) { finishCancelled(); return; }
-    if (!field.done()) {
-        field.step(slabs);
-        if (!field.done()) return;
+    if (field && !field->done()) {
+        field->step(slabs);
+        if (!field->done()) return;
     }
     if (stop.load()) { finishCancelled(); return; }
     finishSurface();
 }
 
 float LevelSetJob::progress() const {
-    return field.progress();
+    if (!field) return 1.f;
+    return field->progress();
 }
 
 bool LevelSetJob::finished() const {
@@ -62,9 +74,9 @@ std::optional<FeatureLevelSet> LevelSetJob::take() {
 
 void LevelSetJob::run(std::stop_token token) {
     if (stopRequested(token)) { finishCancelled(); return; }
-    while (!field.done()) {
+    while (field && !field->done()) {
         if (stopRequested(token)) { finishCancelled(); return; }
-        field.step(kSlabsPerStep);
+        field->step(kSlabsPerStep);
     }
     if (stopRequested(token)) { finishCancelled(); return; }
     finishSurface();
@@ -80,7 +92,8 @@ void LevelSetJob::finishCancelled() {
 }
 
 void LevelSetJob::finishSurface() {
-    ScalarField distance = std::move(field).take();
+    ScalarField distance = prepared ? std::move(*prepared) : std::move(*field).take();
+    prepared.reset();
     Surface surface = extractSurface(distance, isoValue);
     result = FeatureLevelSet(points, std::move(surface), colour, id, dataset);
     result->isoValue = isoValue;

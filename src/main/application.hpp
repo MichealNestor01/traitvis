@@ -3,6 +3,7 @@
 #include "../lib/shaderTools/shaderProgram.hpp"
 #include "../lib/gui/gui.hpp"
 #include "../lib/meshTools/gpuMesh.hpp"
+#include "../lib/meshTools/gpuDistanceField.hpp"
 
 #include <glm.hpp>
 #include <optional>
@@ -52,6 +53,7 @@ private:
     std::optional<GUI> gui;
     std::optional<ShaderProgram> lighting;
     std::optional<ShaderProgram> composite;
+    std::optional<GpuDistanceField> distanceField;
     std::optional<GpuMesh> cube;
     DepthPeelBuffers peels;
     glm::vec3 colourRed{1.f, 0.f, 0.f};

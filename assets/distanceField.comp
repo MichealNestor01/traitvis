@@ -1,0 +1,86 @@
+#version 430 core
+
+// One invocation per voxel. The invocation id is the GridLayout index
+// (x outermost, z innermost). The sample index uses IndexStrides, which is a
+// different order. The distance is the same one computeSlab writes: the square
+// root of the nearest trait's sum of squared differences, or the float max when
+// no trait is finite. A running-sum early-out is not needed here. Squares cannot
+// shrink the sum, so a partial sum that has already lost still loses, and a
+// non-finite component rejects the trait either way.
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+struct Component {
+    uint attributeIndex;
+    float target;
+};
+
+struct PointSpan {
+    uint begin;
+    uint count;
+};
+
+layout(std430, binding = 0) readonly buffer ValueBuffer {
+    float values[];
+};
+
+layout(std430, binding = 1) readonly buffer ComponentBuffer {
+    Component components[];
+};
+
+layout(std430, binding = 2) readonly buffer PointBuffer {
+    PointSpan points[];
+};
+
+layout(std430, binding = 3) writeonly buffer DistanceBuffer {
+    float distances[];
+};
+
+uniform int voxelCount;
+uniform ivec3 gridSize;
+uniform ivec3 strides;
+uniform int sampleCount;
+uniform int pointCount;
+
+void main() {
+    // The dispatch is a row of work groups, wrapped onto Y when X would exceed
+    // the implementation's work-group limit. local_size_y is 1, so Y is the row.
+    uint span = gl_NumWorkGroups.x * gl_WorkGroupSize.x;
+    uint id = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * span;
+    if (id >= uint(voxelCount)) return;
+
+    int linear = int(id);
+    int iz = linear % gridSize.z;
+    int iy = (linear / gridSize.z) % gridSize.y;
+    int ix = linear / (gridSize.y * gridSize.z);
+    int sampleIndex = ix * strides.x + iy * strides.y + iz * strides.z;
+
+    // Same bit pattern as std::numeric_limits<float>::max().
+    const float kNoDistance = uintBitsToFloat(0x7F7FFFFFu);
+    const float kInfinity = intBitsToFloat(0x7F800000);
+
+    float minDistSq = kInfinity;
+    for (int p = 0; p < pointCount; ++p) {
+        PointSpan point = points[p];
+        float sum = 0.0;
+        bool rejected = false;
+        for (uint c = 0u; c < point.count; ++c) {
+            if (sampleIndex < 0 || sampleIndex >= sampleCount) {
+                rejected = true;
+                break;
+            }
+            Component component = components[point.begin + c];
+            float sampled = values[component.attributeIndex * uint(sampleCount) + uint(sampleIndex)];
+            float difference = sampled - component.target;
+            float squared = difference * difference;
+            if (isnan(squared) || isinf(squared)) {
+                rejected = true;
+                break;
+            }
+            sum += squared;
+        }
+        if (!rejected && sum < minDistSq) minDistSq = sum;
+    }
+
+    distances[id] = isinf(minDistSq) ? kNoDistance : sqrt(minDistSq);
+}

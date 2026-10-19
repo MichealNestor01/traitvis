@@ -189,6 +189,10 @@ bool Application::init() {
             {GL_VERTEX_SHADER, "assets/compositeLayer.vert"},
             {GL_FRAGMENT_SHADER, "assets/compositeLayer.frag"}
         });
+        distanceField.emplace();
+        session.gpuDistanceField = [this](std::span<const TraitPoint> points, const MultiField& field) {
+            return distanceField->compute(points, field);
+        };
     } catch (const std::runtime_error& error) {
         std::cerr << "Fatal: " << error.what() << std::endl;
         shutdown();
@@ -364,6 +368,8 @@ void Application::shutdown() {
         cube.reset();
         session.clearHistory();
         session.levelSets.clear();
+        session.gpuDistanceField = nullptr;
+        distanceField.reset();
         lighting.reset();
         composite.reset();
         glReady = false;

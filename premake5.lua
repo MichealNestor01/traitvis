@@ -105,6 +105,8 @@ project "main"
         "src/lib/gui/**",
         "src/lib/meshTools/gpuMesh.cpp",
         "src/lib/meshTools/gpuMesh.hpp",
+        "src/lib/meshTools/gpuDistanceField.cpp",
+        "src/lib/meshTools/gpuDistanceField.hpp",
         "src/lib/meshTools/cube.hpp",
         "src/lib/shaderTools/shaderProgram.cpp",
         "src/lib/shaderTools/shaderProgram.hpp",

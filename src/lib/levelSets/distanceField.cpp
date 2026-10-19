@@ -39,6 +39,9 @@ void DistanceFieldJob::computeSlab(int x) {
         const int indexInDataset = field.getIndexInDataset(x, y, z);
         // Squared length keeps the same nearest point as the Euclidean length, so the
         // square root is taken once. A partial sum that is already no closer can stop.
+        // Summing every component and then comparing is the same result: a later square
+        // cannot shrink the sum, and a non-finite component rejects the point either way.
+        // The compute shader uses that form.
         float minDistSq = std::numeric_limits<float>::infinity();
         for (const TraitPoint& vertex : points) {
             float sum = 0.f;
@@ -70,4 +73,38 @@ ScalarField generateDistanceField(std::span<const TraitPoint> points, const Mult
     DistanceFieldJob job({points.begin(), points.end()}, field);
     while (!job.step(std::numeric_limits<int>::max())) {}
     return std::move(job).take();
+}
+
+std::optional<DistanceFieldDispatch> packDistanceField(std::span<const TraitPoint> points, const MultiField& field) {
+    DistanceFieldDispatch dispatch;
+    dispatch.layout = {field.xVals, field.yVals, field.zVals};
+    dispatch.strides = field.strides;
+
+    if (!field.attributeDomain.empty()) {
+        const std::size_t samples = field.attributeDomain[0].values.size();
+        if (samples > static_cast<std::size_t>(std::numeric_limits<int>::max())) return std::nullopt;
+        for (const Attribute& attribute : field.attributeDomain)
+            if (attribute.values.size() != samples) return std::nullopt;
+        dispatch.sampleCount = static_cast<int>(samples);
+    }
+
+    const auto indexOf = [&field](const Attribute* attribute) {
+        if (attribute == nullptr) return -1;
+        for (int i = 0; i < static_cast<int>(field.attributeDomain.size()); ++i)
+            if (&field.attributeDomain[i] == attribute) return i;
+        return -1;
+    };
+
+    for (const TraitPoint& point : points) {
+        // An empty attribute array has nothing a component can read.
+        if (dispatch.sampleCount == 0 && !point.values.empty()) return std::nullopt;
+        const int begin = static_cast<int>(dispatch.components.size());
+        for (const TraitPointComponent& component : point.values) {
+            const int attribute = indexOf(component.attribute);
+            if (attribute < 0) return std::nullopt;
+            dispatch.components.push_back(DistanceFieldComponent{attribute, component.value});
+        }
+        dispatch.points.push_back(DistanceFieldPoint{begin, static_cast<int>(point.values.size())});
+    }
+    return dispatch;
 }

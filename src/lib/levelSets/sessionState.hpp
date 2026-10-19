@@ -4,8 +4,10 @@
 #include "levelSetJob.hpp"
 #include "../parsingData/datasetReader.hpp"
 
+#include <functional>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -35,6 +37,10 @@ struct SessionState {
     // level set is released while its dataset is still alive.
     std::optional<DatasetReadJob> activeLoad;
     std::optional<LevelSetJob> activeLevelSet;
+    // Desktop sets this to a GL 4.3 compute dispatch. It runs on the thread that calls
+    // generateLevelSet, which is the thread with the context. Empty, or a nullopt result,
+    // keeps the CPU slabs. The core library does not call OpenGL itself.
+    std::function<std::optional<ScalarField>(std::span<const TraitPoint>, const MultiField&)> gpuDistanceField;
     std::vector<std::unique_ptr<SessionCommand>> undoStack;
     std::vector<std::unique_ptr<SessionCommand>> redoStack;
 
@@ -49,6 +55,7 @@ struct SessionState {
     // keepField retains the distance grid so the isovalue can change without computing it again.
     void generateLevelSet(std::vector<TraitPoint> points, float euclideanDistance, glm::vec3 colour, std::string id, bool keepField = false);
     // Uses the trait buffer and finishes on a background job.
+    // When gpuDistanceField returns a field, the slabs are skipped and the job only extracts the surface.
     void generateLevelSet(float euclideanDistance, glm::vec3 colour, std::string id, bool keepField = false);
     void addLevelSet(FeatureLevelSet levelSet);
     void removeLevelSet(int index);

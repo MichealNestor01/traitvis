@@ -183,7 +183,22 @@ void SessionState::generateLevelSet(std::vector<TraitPoint> points, float euclid
 void SessionState::generateLevelSet(float euclideanDistance, glm::vec3 colour, std::string id, bool keepField) {
     const std::shared_ptr<MultiField> field = activeDataset();
     if (activeLevelSet || !field || !field->ok()) return;
-    activeLevelSet.emplace(attributeSpacePointsBuffer, std::shared_ptr<const MultiField>(field), euclideanDistance, colour, std::move(id), keepField);
+    const std::shared_ptr<const MultiField> dataset(field);
+
+    if (gpuDistanceField) {
+        // Samples are already normalised. Targets in the buffer are still in the slider's
+        // units, and the job normalises its own copy for the level set. The shader has to
+        // see those same normalised targets, so this copy is separate from the one the job keeps.
+        std::vector<TraitPoint> normalisedPoints = attributeSpacePointsBuffer;
+        for (TraitPoint& point : normalisedPoints) point.normalise();
+        if (std::optional<ScalarField> computed = gpuDistanceField(normalisedPoints, *field)) {
+            activeLevelSet.emplace(attributeSpacePointsBuffer, dataset, euclideanDistance, colour, std::move(id), keepField, std::move(*computed));
+            activeLevelSet->start();
+            return;
+        }
+    }
+
+    activeLevelSet.emplace(attributeSpacePointsBuffer, dataset, euclideanDistance, colour, std::move(id), keepField);
     activeLevelSet->start();
 }
 
