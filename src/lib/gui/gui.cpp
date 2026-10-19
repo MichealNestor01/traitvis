@@ -191,6 +191,14 @@ void GUI::render() {
     if (session.pollDatasetLoad()) createDatasetWidgets();
     session.pollLevelSet();
 
+    ImGui::BeginDisabled(!session.canUndo());
+    if (ImGui::Button("Undo")) session.undo();
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!session.canRedo());
+    if (ImGui::Button("Redo")) session.redo();
+    ImGui::EndDisabled();
+
     if (session.activeLoad) {
         ImGui::ProgressBar(session.activeLoad->progress());
         if (ImGui::Button("Cancel load")) session.activeLoad->cancel();
@@ -232,8 +240,8 @@ void GUI::render() {
             } else {
                 meshError.clear();
                 const std::string id = uniqueMeshId(session, std::filesystem::path(picked.path).stem().string());
-                session.levelSets.emplace_back(
-                    std::vector<TraitPoint>{}, std::move(mesh.surface), glm::vec3{1.f, 0.f, 0.f}, id, std::shared_ptr<const MultiField>{});
+                session.addLevelSet(FeatureLevelSet(
+                    {}, std::move(mesh.surface), glm::vec3{1.f, 0.f, 0.f}, id, {}));
             }
         } else if (picked.status == FileDialogStatus::Unavailable) {
             meshError = "No file dialog is available.";
@@ -297,11 +305,11 @@ void GUI::render() {
             if (session.attributeSpacePointsBuffer.size() != 0) {
                 ImGui::Text(" ");
                 ImGui::Text("Attribute Vertices: ");
+                int removePoint = -1;
                 int i = 0;
                 for (auto &vertex : session.attributeSpacePointsBuffer) {
-                    if (ImGui::Button(std::string("Remove Vertex: " + std::to_string(i)).c_str())) {
-                        session.attributeSpacePointsBuffer.erase(session.attributeSpacePointsBuffer.begin() + i);
-                    }
+                    if (ImGui::Button(std::string("Remove Vertex: " + std::to_string(i)).c_str()))
+                        removePoint = i;
                     ImGui::SameLine();
                     if (ImGui::Button(std::string("Load Vertex: " + std::to_string(i)).c_str())) {
                         for (auto &widget : attributeWidgets) {
@@ -318,6 +326,7 @@ void GUI::render() {
                     }
                     i++;
                 }
+                if (removePoint >= 0) session.removeAttributeSpacePoint(removePoint);
 
                 ImGui::Text("Normalised Euclidean distance for level set: ");
                 ImGui::SliderFloat("##distance", &levelSetDistance, 0, 100, "%.4f");
@@ -351,6 +360,7 @@ void GUI::render() {
     if (!meshError.empty()) ImGui::TextUnformatted(meshError.c_str());
     ImGui::Text(" ");
     ImGui::Text("Level Set Controls: ");
+    int removeLevelSetIndex = -1;
     int i = 0;
     for (auto &levelSet : session.levelSets) {
         ImGui::Text("%s", levelSet.id.c_str());
@@ -375,19 +385,48 @@ void GUI::render() {
         if (busy) ImGui::EndDisabled();
 #endif
         ImGui::SameLine();
-        if (ImGui::Button(std::string("Remove " + levelSet.id).c_str())) 
-            session.levelSets.erase(session.levelSets.begin() + i);
+        if (ImGui::Button(std::string("Remove " + levelSet.id).c_str()))
+            removeLevelSetIndex = i;
         ImGui::Text("Transparency: ");
         ImGui::SameLine();
+        const float transparencyBefore = levelSet.transparency;
         ImGui::SliderFloat((std::string("##Transparency") + levelSet.id).c_str(), &levelSet.transparency, 0, 1, "%.4f");
+        trackTransparencyEdit(i, transparencyBefore, levelSet.transparency);
+        const glm::vec3 colourBefore = levelSet.colour;
         ImGui::ColorEdit3((std::string("##colour") + levelSet.id).c_str(), &levelSet.colour.x);
+        trackColourEdit(i, colourBefore, levelSet.colour);
         ImGui::Checkbox((std::string("Show boundary vertices##") + levelSet.id).c_str(), &levelSet.showActiveInactivePixels);
         ImGui::Checkbox((std::string("Invert Normals##") + levelSet.id).c_str(), &levelSet.invertNormals);
         ImGui::Text(" ");
         i++;
     }
+    if (removeLevelSetIndex >= 0) session.removeLevelSet(removeLevelSetIndex);
 
     ImGui::End();
+}
+
+void GUI::trackTransparencyEdit(int index, float before, float after) {
+    if (ImGui::IsItemActivated()) {
+        levelSetEdit = LevelSetEdit::Transparency;
+        levelSetEditIndex = index;
+        levelSetEditTransparency = before;
+    }
+    if (levelSetEdit != LevelSetEdit::Transparency || levelSetEditIndex != index) return;
+    if (ImGui::IsItemDeactivatedAfterEdit())
+        session.setLevelSetTransparency(index, levelSetEditTransparency, after);
+    if (ImGui::IsItemDeactivated()) levelSetEdit = LevelSetEdit::None;
+}
+
+void GUI::trackColourEdit(int index, glm::vec3 before, glm::vec3 after) {
+    if (ImGui::IsItemActivated()) {
+        levelSetEdit = LevelSetEdit::Colour;
+        levelSetEditIndex = index;
+        levelSetEditColour = before;
+    }
+    if (levelSetEdit != LevelSetEdit::Colour || levelSetEditIndex != index) return;
+    if (ImGui::IsItemDeactivatedAfterEdit())
+        session.setLevelSetColour(index, levelSetEditColour, after);
+    if (ImGui::IsItemDeactivated()) levelSetEdit = LevelSetEdit::None;
 }
 
 void GUI::createDatasetWidgets() {

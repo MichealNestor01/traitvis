@@ -362,6 +362,7 @@ void Application::shutdown() {
         }
         peels.destroy();
         cube.reset();
+        session.clearHistory();
         session.levelSets.clear();
         lighting.reset();
         composite.reset();

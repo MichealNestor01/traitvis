@@ -9,17 +9,34 @@
 #include <string>
 #include <vector>
 
+struct SessionState;
+
+// One edit. Concrete commands live in sessionState.cpp; the session only stores this base.
+struct SessionCommand {
+    virtual ~SessionCommand() = default;
+    virtual void undo(SessionState& session) = 0;
+    virtual void redo(SessionState& session) = 0;
+    // Trait vertices point into the active dataset. They are dropped when that dataset changes.
+    [[nodiscard]] virtual bool changesTraitPoints() const { return false; }
+};
+
 // Datasets, trait vertices, and level sets. No window, camera, or OpenGL.
 // A level set holds its own shared_ptr, so removing a dataset does not free a surface
 // that was built from it. Trait vertices always refer to the active dataset.
+// Undo covers adding and removing those vertices and level sets, and a level set's colour
+// and transparency. Switching dataset drops the vertex history: the vertices' attribute
+// pointers address the dataset that was active, and that buffer is cleared.
 struct SessionState {
     std::vector<std::shared_ptr<MultiField>> datasets;
     int active = -1;
     std::vector<TraitPoint> attributeSpacePointsBuffer;
     std::vector<FeatureLevelSet> levelSets;
-    // Declared last so a running read joins before the datasets are destroyed.
+    // The read joins before the datasets are destroyed. History is last so a parked
+    // level set is released while its dataset is still alive.
     std::optional<DatasetReadJob> activeLoad;
     std::optional<LevelSetJob> activeLevelSet;
+    std::vector<std::unique_ptr<SessionCommand>> undoStack;
+    std::vector<std::unique_ptr<SessionCommand>> redoStack;
 
     [[nodiscard]] std::shared_ptr<MultiField> activeDataset() const;
     void addDataset(std::shared_ptr<MultiField> dataset);
@@ -27,13 +44,30 @@ struct SessionState {
     bool setActiveDataset(int index);
     bool removeDataset(int index);
     void addAttributeSpacePointToBuffer(TraitPoint point);
+    void removeAttributeSpacePoint(int index);
     // Synchronous. Tests build a level set without a background job.
     void generateLevelSet(std::vector<TraitPoint> points, float euclideanDistance, glm::vec3 colour, std::string id);
     // Uses the trait buffer and finishes on a background job.
     void generateLevelSet(float euclideanDistance, glm::vec3 colour, std::string id);
+    void addLevelSet(FeatureLevelSet levelSet);
+    void removeLevelSet(int index);
+    // `before` is the value at the start of the edit. The level set already holds `after`.
+    void setLevelSetColour(int index, glm::vec3 before, glm::vec3 after);
+    void setLevelSetTransparency(int index, float before, float after);
+    void undo();
+    void redo();
+    [[nodiscard]] bool canUndo() const noexcept { return !undoStack.empty(); }
+    [[nodiscard]] bool canRedo() const noexcept { return !redoStack.empty(); }
+    // Drops parked level sets. Call while the GL context is current, so a mesh that was
+    // undone after being drawn deletes its buffers before the context goes away.
+    void clearHistory();
     void beginDatasetLoad(std::string path);
     // Steps a load that has no worker, then adds a finished dataset and makes it active.
     // Returns true when the active dataset changed. A cancel installs nothing.
     bool pollDatasetLoad();
     void pollLevelSet();
+
+private:
+    void execute(std::unique_ptr<SessionCommand> command);
+    void clearTraitPoints();
 };
