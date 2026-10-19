@@ -6,6 +6,9 @@
 
 #include "../lib/camera/camera.hpp"
 
+// Front and back of eight shells. The slider cannot ask for more colour textures than this.
+constexpr int kMaxDepthPeelCap = 16;
+
 // Camera, window, and lighting. The datasets live in SessionState.
 struct RenderState {
     Camera cam;
@@ -25,6 +28,8 @@ struct RenderState {
     glm::vec3 diffuseLightDirection = glm::vec3(-0.44f, -0.82f, -1.f);
     bool drawWireframe = false;
     bool backFaceCulling = false;
+    // How many transparent layers to peel. The loop still stops when a layer is empty.
+    int maxDepthPeels = kMaxDepthPeelCap;
     // One clip plane in grid coordinates. Axis 0, 1, 2 is X, Y, Z.
     // The fragment on the positive side of clipPosition is dropped.
     bool clipEnabled = false;

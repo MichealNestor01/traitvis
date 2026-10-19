@@ -7,13 +7,12 @@
 
 #include <glm.hpp>
 #include <optional>
-
-constexpr int kMaxDepthPeels = 16;
+#include <vector>
 
 struct DepthPeelBuffers {
     unsigned int fbo = 0;
     unsigned int depth[2] = {};
-    unsigned int colour[kMaxDepthPeels] = {};
+    std::vector<unsigned int> colour;
     unsigned int dummyDepth = 0;
     unsigned int query = 0;
     unsigned int compositeVao = 0;
@@ -22,7 +21,9 @@ struct DepthPeelBuffers {
     int height = 0;
     bool reportedIncomplete = false;
 
-    bool ensure(int newWidth, int newHeight);
+    // Allocates `peelCount` colour textures. A smaller count deletes the extras.
+    // The two depth textures stay; peel i writes depth[i % 2] and reads the other.
+    bool ensure(int newWidth, int newHeight, int peelCount);
     void destroy();
 };
 

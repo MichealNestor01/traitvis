@@ -541,7 +541,7 @@ static float clipAxisExtent(const SessionState& session, int axis) {
 void GUI::renderLightingControls() {
     // ImGui UI on the left 30%
     ImGui::SetNextWindowPos(ImVec2(rendering.windowWidth - 300.f, 0)); // Position at top-right corner
-    ImGui::SetNextWindowSize(ImVec2(300, 640)); 
+    ImGui::SetNextWindowSize(ImVec2(300, 680)); 
 
     ImGui::Begin("Rendering Parameters");
     ImGui::SetWindowFontScale(1.f);
@@ -566,6 +566,7 @@ void GUI::renderLightingControls() {
     ImGui::SliderFloat("Z##1", &rendering.diffuseLightDirection.z, -1, 1, "%.2f");    
 
     ImGui::Text(" ");
+    ImGui::SliderInt("Depth layers", &rendering.maxDepthPeels, 1, kMaxDepthPeelCap);
     ImGui::Checkbox("Back Face Culling", &rendering.backFaceCulling);
 #ifndef __EMSCRIPTEN__
     ImGui::Text(" ");

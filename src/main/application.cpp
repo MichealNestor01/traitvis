@@ -57,14 +57,18 @@ void errorCallback(int error, const char* description) {
 
 }
 
-bool DepthPeelBuffers::ensure(int newWidth, int newHeight) {
+bool DepthPeelBuffers::ensure(int newWidth, int newHeight, int peelCount) {
     if (newWidth <= 0 || newHeight <= 0) return false;
-    if (fbo != 0 && width == newWidth && height == newHeight) return true;
+    if (peelCount < 1) peelCount = 1;
+    if (peelCount > kMaxDepthPeelCap) peelCount = kMaxDepthPeelCap;
 
-    if (fbo == 0) {
+    const bool first = fbo == 0;
+    const bool sizeChanged = !first && (width != newWidth || height != newHeight);
+    if (!first && !sizeChanged && static_cast<int>(colour.size()) == peelCount) return true;
+
+    if (first) {
         glGenFramebuffers(1, &fbo);
         glGenTextures(2, depth);
-        glGenTextures(kMaxDepthPeels, colour);
         glGenTextures(1, &dummyDepth);
         glGenQueries(1, &query);
         glBindTexture(GL_TEXTURE_2D, dummyDepth);
@@ -82,13 +86,28 @@ bool DepthPeelBuffers::ensure(int newWidth, int newHeight) {
         glBindVertexArray(0);
     }
 
-    for (unsigned int texture : depth) {
-        glBindTexture(GL_TEXTURE_2D, texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, newWidth, newHeight, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
-        bindDepthTexture(texture);
+    if (first || sizeChanged) {
+        for (unsigned int texture : depth) {
+            glBindTexture(GL_TEXTURE_2D, texture);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, newWidth, newHeight, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
+            bindDepthTexture(texture);
+        }
     }
-    for (unsigned int texture : colour) {
-        glBindTexture(GL_TEXTURE_2D, texture);
+
+    int have = static_cast<int>(colour.size());
+    if (have > peelCount) {
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glDeleteTextures(have - peelCount, colour.data() + peelCount);
+        colour.resize(static_cast<std::size_t>(peelCount));
+        have = peelCount;
+    }
+    if (have < peelCount) {
+        colour.resize(static_cast<std::size_t>(peelCount));
+        glGenTextures(peelCount - have, colour.data() + have);
+    }
+    const int uploadFrom = (first || sizeChanged) ? 0 : have;
+    for (int index = uploadFrom; index < peelCount; ++index) {
+        glBindTexture(GL_TEXTURE_2D, colour[static_cast<std::size_t>(index)]);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, newWidth, newHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -118,14 +137,16 @@ bool DepthPeelBuffers::ensure(int newWidth, int newHeight) {
 void DepthPeelBuffers::destroy() {
     if (fbo != 0) glDeleteFramebuffers(1, &fbo);
     glDeleteTextures(2, depth);
-    glDeleteTextures(kMaxDepthPeels, colour);
+    if (!colour.empty()) glDeleteTextures(static_cast<GLsizei>(colour.size()), colour.data());
     if (dummyDepth != 0) glDeleteTextures(1, &dummyDepth);
     if (query != 0) glDeleteQueries(1, &query);
     if (compositeVbo != 0) glDeleteBuffers(1, &compositeVbo);
     if (compositeVao != 0) glDeleteVertexArrays(1, &compositeVao);
     fbo = 0;
     depth[0] = depth[1] = 0;
-    for (unsigned int& texture : colour) texture = 0;
+    colour.clear();
+    width = 0;
+    height = 0;
     dummyDepth = 0;
     query = 0;
     compositeVbo = 0;
@@ -285,7 +306,7 @@ void Application::frame() {
         if (levelSet.active && levelSet.transparency > 0.f && levelSet.transparency < 1.f) anyTransparent = true;
 
     int peelCount = 0;
-    if (anyTransparent && peels.ensure(fbWidth, fbHeight)) {
+    if (anyTransparent && peels.ensure(fbWidth, fbHeight, state.maxDepthPeels)) {
         glDisable(GL_CULL_FACE);
         glDisable(GL_BLEND);
         glDepthMask(GL_TRUE);
@@ -293,7 +314,7 @@ void Application::frame() {
         const glm::vec4 sceneClear = glm::vec4(1.f, 1.f, 1.f, 0.f);
         glClearColor(0.f, 0.f, 0.f, 0.f);
 
-        for (int peel = 0; peel < kMaxDepthPeels; ++peel) {
+        for (int peel = 0; peel < state.maxDepthPeels; ++peel) {
             const unsigned int writeDepth = peels.depth[peel % 2];
             glBindFramebuffer(GL_FRAMEBUFFER, peels.fbo);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, peels.colour[peel], 0);
