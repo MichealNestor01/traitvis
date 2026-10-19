@@ -18,6 +18,8 @@ extern char** environ;
 #endif
 
 #include "gui.hpp"
+#include "../../main/screenshot.hpp"
+#include "../util/pngImage.hpp"
 #include "../../main/state.hpp"
 #include "../meshTools/objMesh.hpp"
 #include "../multiField/histogram.hpp"
@@ -125,6 +127,32 @@ FileDialogOutcome pickSaveMesh(const std::string& suggested) {
         "*.obj|Wavefront OBJ\n*|All files",
     };
     return runFileDialog(kdialog);
+}
+
+FileDialogOutcome pickSavePng(const std::string& suggested) {
+    const std::string filename = "--filename=" + suggested;
+    const std::vector<const char*> zenity = {
+        "zenity", "--file-selection", "--save", "--confirm-overwrite",
+        "--title=Save screenshot",
+        filename.c_str(),
+        "--file-filter=PNG image | *.png",
+        "--file-filter=All files | *",
+    };
+    const FileDialogOutcome zenityResult = runFileDialog(zenity);
+    if (zenityResult.status != FileDialogStatus::Unavailable) return zenityResult;
+    const std::vector<const char*> kdialog = {
+        "kdialog", "--getsavefilename", suggested.c_str(),
+        "*.png|PNG image\n*|All files",
+    };
+    return runFileDialog(kdialog);
+}
+
+std::string withPngExtension(std::string path) {
+    if (path.size() >= 4) {
+        const std::string suffix = path.substr(path.size() - 4);
+        if (suffix == ".png" || suffix == ".PNG") return path;
+    }
+    return path + ".png";
 }
 
 std::string uniqueMeshId(const SessionState& session, std::string stem) {
@@ -250,6 +278,29 @@ void GUI::render() {
     if (busy) ImGui::EndDisabled();
     if (session.levelSets.empty() && !meshError.empty())
         ImGui::TextUnformatted(meshError.c_str());
+    if (ImGui::Button("Screenshot")) {
+        screenshotStatus.clear();
+        const std::optional<CapturedFrame> frame = captureFramebuffer();
+        if (!frame) {
+            screenshotStatus = "Failed to read the view.";
+        } else {
+            const FileDialogOutcome picked = pickSavePng("traitvis.png");
+            if (picked.status == FileDialogStatus::Selected) {
+                const std::string path = withPngExtension(picked.path);
+                if (writePng(path, frame->width, frame->height, frame->rgb)) screenshotStatus = "Saved " + path;
+                else screenshotStatus = "Failed to write " + path;
+            } else if (picked.status == FileDialogStatus::Unavailable) {
+                screenshotStatus = "No file dialog is available.";
+            }
+        }
+    }
+    if (!screenshotStatus.empty()) ImGui::TextUnformatted(screenshotStatus.c_str());
+#else
+    if (ImGui::Button("Screenshot")) {
+        downloadCanvasPng();
+        screenshotStatus = "Downloading traitvis.png";
+    }
+    if (!screenshotStatus.empty()) ImGui::TextUnformatted(screenshotStatus.c_str());
 #endif
 
     if (session.activeLevelSet) {
