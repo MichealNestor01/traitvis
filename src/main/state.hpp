@@ -25,6 +25,11 @@ struct RenderState {
     glm::vec3 diffuseLightDirection = glm::vec3(-0.44f, -0.82f, -1.f);
     bool drawWireframe = false;
     bool backFaceCulling = false;
+    // One clip plane in grid coordinates. Axis 0, 1, 2 is X, Y, Z.
+    // The fragment on the positive side of clipPosition is dropped.
+    bool clipEnabled = false;
+    int clipAxis = 1;
+    float clipPosition = 0.f;
 
     void toggleCam(GLFWwindow* window) {
         enableCam = not enableCam;

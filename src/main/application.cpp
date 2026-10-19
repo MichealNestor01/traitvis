@@ -259,6 +259,13 @@ void Application::frame() {
     lightingShader.setUniformMat4f("view", &view);
     lightingShader.setUniformMat4f("model", &defaultModel);
     lightingShader.setUniformb("hasPeelDepth", false);
+    glm::vec3 clipNormal(0.f);
+    if (state.clipAxis == 0) clipNormal.x = 1.f;
+    else if (state.clipAxis == 2) clipNormal.z = 1.f;
+    else clipNormal.y = 1.f;
+    lightingShader.setUniformb("clipEnabled", state.clipEnabled);
+    lightingShader.setUniform3f("clipNormal", clipNormal);
+    lightingShader.setUniformf("clipDistance", state.clipPosition);
     glActiveTexture(GL_TEXTURE0);
     if (peels.dummyDepth != 0) glBindTexture(GL_TEXTURE_2D, peels.dummyDepth);
 

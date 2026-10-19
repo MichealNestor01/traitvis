@@ -473,10 +473,23 @@ void GUI::createDatasetWidgets() {
     }
 }
 
+static float clipAxisExtent(const SessionState& session, int axis) {
+    int extent = 1;
+    const auto consider = [&](const MultiField* field) {
+        if (field == nullptr) return;
+        const int size = axis == 0 ? field->xVals : axis == 1 ? field->yVals : field->zVals;
+        extent = std::max(extent, size);
+    };
+    if (const std::shared_ptr<MultiField> active = session.activeDataset()) consider(active.get());
+    for (const FeatureLevelSet& levelSet : session.levelSets)
+        if (levelSet.dataset) consider(levelSet.dataset.get());
+    return static_cast<float>(std::max(extent - 1, 0));
+}
+
 void GUI::renderLightingControls() {
     // ImGui UI on the left 30%
     ImGui::SetNextWindowPos(ImVec2(rendering.windowWidth - 300.f, 0)); // Position at top-right corner
-    ImGui::SetNextWindowSize(ImVec2(300, 530)); 
+    ImGui::SetNextWindowSize(ImVec2(300, 640)); 
 
     ImGui::Begin("Rendering Parameters");
     ImGui::SetWindowFontScale(1.f);
@@ -506,6 +519,23 @@ void GUI::renderLightingControls() {
     ImGui::Text(" ");
     ImGui::Checkbox("Draw Wireframes", &rendering.drawWireframe);
 #endif
+    ImGui::Text(" ");
+    ImGui::Text("Clip plane:");
+    const bool clipWasEnabled = rendering.clipEnabled;
+    ImGui::Checkbox("Enable##clip", &rendering.clipEnabled);
+    if (rendering.clipEnabled) {
+        const int previousAxis = rendering.clipAxis;
+        if (ImGui::RadioButton("X##clip", rendering.clipAxis == 0)) rendering.clipAxis = 0;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Y##clip", rendering.clipAxis == 1)) rendering.clipAxis = 1;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Z##clip", rendering.clipAxis == 2)) rendering.clipAxis = 2;
+        const float upper = clipAxisExtent(session, rendering.clipAxis);
+        if (rendering.clipAxis != previousAxis || (rendering.clipEnabled && !clipWasEnabled))
+            rendering.clipPosition = upper * 0.5f;
+        rendering.clipPosition = std::clamp(rendering.clipPosition, 0.f, upper);
+        ImGui::SliderFloat("Position##clip", &rendering.clipPosition, 0.f, upper, "%.1f");
+    }
     ImGui::Text(" ");
     ImGui::Text("Camera Controls:");
     ImGui::SliderFloat("SPEED##1", &rendering.cam.speed, 0, 250, "%.0f");    

@@ -11,12 +11,19 @@ uniform float diffuseLightStrength;
 uniform vec3 diffuseLightDirection;
 uniform sampler2D peelDepth;
 uniform bool hasPeelDepth;
+// A plane through grid space. Fragments on the positive side are dropped.
+// discard is the GLSL ES 3.00 form of this clip; gl_ClipDistance is desktop-only.
+uniform bool clipEnabled;
+uniform vec3 clipNormal;
+uniform float clipDistance;
 
 in vec3 Normal;
 in vec3 FragPos;
 
 void main()
 {
+    if (clipEnabled && dot(clipNormal, FragPos) > clipDistance) discard;
+
     // A nearer peel already owns this fragment. The bias keeps the same surface
     // from being captured again when the stored depth is not bit-identical.
     if (hasPeelDepth) {
