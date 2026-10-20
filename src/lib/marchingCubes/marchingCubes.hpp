@@ -1,9 +1,9 @@
 #pragma once
 #include <stdlib.h>
-#include <glm.hpp>
 #include <vector>
 #include <map>
 #include <set>
+#include "../levelSets/scalarField.hpp"
 
 struct Vec3Comparator {
     bool operator()(const glm::vec3& a, const glm::vec3& b) const {
@@ -16,11 +16,9 @@ struct Vec3Comparator {
     }
 };
 
-struct GridLayout {
-	int x, y, z, total;
-	GridLayout(int x, int y, int z): x(x), y(y), z(z) {
-		total = x*y*z;
-	}
+enum class NormalMode {
+    Flat,      // one normal per triangle, from the cross product of its edges
+    Gradient   // the distance field's slope, interpolated along the crossed edge
 };
 
 struct Surface {
@@ -30,8 +28,10 @@ struct Surface {
 	std::set<glm::vec3, Vec3Comparator> activeVertices;
 	std::set<glm::vec3, Vec3Comparator> inactiveVertices;
 
-	std::vector<float> getVertices();
+	std::vector<float> interleaved() const;
 };
 
-void examineCube(Surface &triangles, const GridLayout &layout, const  std::vector<std::vector<float>> &grid, int vertex0, float isoValue);
-Surface extractSurface(const std::vector<std::vector<float>> &grid, const GridLayout &layout, float isoValue);
+// closeAtMissingData keeps a cube that touches a missing sample. Missing samples are
+// FLT_MAX or non-finite; with the flag off those cubes are skipped.
+void examineCube(Surface &triangles, const ScalarField &field, int vertex0, float isoValue, NormalMode normals = NormalMode::Gradient, bool closeAtMissingData = true);
+Surface extractSurface(const ScalarField &field, float isoValue, NormalMode normals = NormalMode::Gradient, bool closeAtMissingData = true);

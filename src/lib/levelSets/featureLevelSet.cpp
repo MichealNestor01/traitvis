@@ -1,16 +1,23 @@
-#include <iostream>
 #include "featureLevelSet.hpp"
 
+#include <utility>
 
-FeatureLevelSet::FeatureLevelSet(std::vector<TraitPoint> points, MultiField & dataset, float euclideanDistance, glm::vec3 colour, std::string id) {
-    this->colour = colour;
-    this->id = id;
-    this->points = points;
-    // first normalise the values of the points chosen
-    for (TraitPoint & point : this->points) point.normalise();
-    // create the distance field
-    std::vector<std::vector<float>> distanceField = generateDistanceField(this->points, dataset);
-    // extract the surface given the normalised eucliean distance
-    surface = extractSurface(distanceField, {dataset.xVals, dataset.yVals, dataset.zVals}, euclideanDistance);
-    surfaceVertices = surface.getVertices();
+
+FeatureLevelSet::FeatureLevelSet(std::vector<TraitPoint> points, std::shared_ptr<const MultiField> dataset, float euclideanDistance, glm::vec3 colour, std::string id, bool keepField, bool closeAtMissingDataIn)
+    : points(std::move(points)), colour(colour), id(std::move(id)), dataset(std::move(dataset)), isoValue(euclideanDistance), closeAtMissingData(closeAtMissingDataIn) {
+    for (TraitPoint& point : this->points) point.normalise();
+    ScalarField distance = generateDistanceField(this->points, *this->dataset);
+    surface = extractSurface(distance, isoValue, NormalMode::Gradient, closeAtMissingData);
+    if (keepField) distanceField = std::move(distance);
 }
+
+bool FeatureLevelSet::reslice(float newIsoValue) {
+    if (!distanceField) return false;
+    isoValue = newIsoValue;
+    surface = extractSurface(*distanceField, isoValue, NormalMode::Gradient, closeAtMissingData);
+    mesh.reset();
+    return true;
+}
+
+FeatureLevelSet::FeatureLevelSet(std::vector<TraitPoint> points, Surface surface, glm::vec3 colour, std::string id, std::shared_ptr<const MultiField> dataset, bool closeAtMissingDataIn)
+    : points(std::move(points)), surface(std::move(surface)), colour(colour), id(std::move(id)), dataset(std::move(dataset)), closeAtMissingData(closeAtMissingDataIn) {}

@@ -3,80 +3,52 @@
 #include <GLFW/glfw3.h>
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
-#include <gtc/type_ptr.hpp>
-#include <set>
-#include <vector>
 
 #include "../lib/camera/camera.hpp"
-#include "../lib/parsingData/datasetReader.hpp"
-#include "../lib/multiField/multiField.hpp"
-#include "../lib/marchingCubes/marchingCubes.hpp"
-#include "../lib/levelSets/featureLevelSet.hpp"
 
-struct ProgramState {
-    // camera object
+// Front and back of eight shells. The slider cannot ask for more colour textures than this.
+constexpr int kMaxDepthPeelCap = 16;
+
+// Camera, window, and lighting. The datasets live in SessionState.
+struct RenderState {
     Camera cam;
-    // window state
     int windowWidth, windowHeight;
     float renderWidthPercentage = 1.f;
-    // control toggling
     bool enableCam = false;
-    // projection matrix variables
     float fov = 45.f;
     float aspectRatio = (renderWidthPercentage*windowWidth)/windowHeight;
     float nearPlane = 0.1f;
     float farPlane = 3000.f;
-    // frametime variables
     float deltaTime = 0.f;
     float lastFrame = 0.f;
-    // lighting controls
     glm::vec3 ambientLightColour = glm::vec3(1.f, 1.f, 1.f);
     float ambientLightStrength = 0.28f;
-    glm::vec3 diffuseLightColour = glm::vec3(1.f, 1.f, 1.f); 
+    glm::vec3 diffuseLightColour = glm::vec3(1.f, 1.f, 1.f);
     float diffuseLightStrength = 0.58f;
+    // One direction for the whole frame. This is the cheap light; the point light is opt-in.
     glm::vec3 diffuseLightDirection = glm::vec3(-0.44f, -0.82f, -1.f);
-    // other rendering parameters
+    bool pointLight = false;
+    // Off the Isabel grid (0..500, 0..100, 0..500), on the side the old direction pointed from.
+    glm::vec3 lightPosition = glm::vec3(200.f, -400.f, -200.f);
+    float lightSize = 20.f;
+    float lightRange = 2000.f;
+    bool shadowsEnabled = false;
+    float shadowFloor = 0.35f;
     bool drawWireframe = false;
     bool backFaceCulling = false;
-    // dataset variables
-    bool loadedDataset = false;
-    MultiField dataset;
-    // levelset variables
-    std::vector<TraitPoint> attributeSpacePointsBuffer;
-    std::vector<FeatureLevelSet> levelSets;
-
-
-    void generateLevelSet(float euclideanDistance, glm::vec3 colour, std::string id) {
-        FeatureLevelSet newLevelSet(attributeSpacePointsBuffer, dataset, euclideanDistance, colour, id);
-        levelSets.push_back(newLevelSet);
-    }
-
-    void addAttributeSpacePointToBuffer(TraitPoint point) {
-        attributeSpacePointsBuffer.push_back(point);
-    }
-
-    void loadDataset(std::string path) {
-        dataset = readDataset(path);
-        loadedDataset = true;
-    }
+    // How many transparent layers to peel. The loop still stops when a layer is empty.
+    int maxDepthPeels = kMaxDepthPeelCap;
+    // One clip plane in grid coordinates. Axis 0, 1, 2 is X, Y, Z.
+    // The fragment on the positive side of clipPosition is dropped.
+    bool clipEnabled = false;
+    int clipAxis = 1;
+    float clipPosition = 0.f;
 
     void toggleCam(GLFWwindow* window) {
         enableCam = not enableCam;
-        cam.dissableActions();
+        cam.disableActions();
         if (enableCam) glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         else glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    }
-
-    void toggleDrawWireframe() {
-        if (drawWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        else glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        drawWireframe = not drawWireframe;
-    }
-
-    void toggleBackFaceCulling() {
-        if (backFaceCulling) glEnable(GL_CULL_FACE);
-        else glDisable(GL_CULL_FACE);
-        backFaceCulling = not backFaceCulling;
     }
 
     void updateTime() {

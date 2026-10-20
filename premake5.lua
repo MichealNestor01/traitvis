@@ -1,6 +1,13 @@
 -- premake5.lua
 workspace "TraitVis"
-    configurations { "Debug", "Release" }
+    configurations { "Debug", "Release", "ThreadSanitize" }
+    cppdialect "C++20"
+
+    filter "configurations:ThreadSanitize"
+        symbols "On"
+        buildoptions { "-fsanitize=thread" }
+        linkoptions { "-fsanitize=thread" }
+    filter {}
 
 project "GoogleTest"
     location "_build_/googletest"
@@ -16,6 +23,39 @@ project "GoogleTest"
     includedirs {
         "third_party/googletest/googletest",
         "third_party/googletest/googletest/include"
+    }
+
+    filter "configurations:Debug"
+        defines {"DEBUG"}
+        symbols "On"
+
+    filter "configurations:Release"
+        defines {"NDEBUG"}
+        optimize "On"
+
+-- GL-free library: parsing, the multifield model, distance fields, marching cubes,
+-- and the shader file reader. No GL, GLFW, or ImGui on the include path, so a
+-- platform include in here fails the build.
+project "core"
+    location "_build_/core"
+    kind "StaticLib"
+    language "C++"
+    targetdir "bin/%{cfg.buildcfg}"
+
+    files {
+        "src/lib/parsingData/**",
+        "src/lib/multiField/**",
+        "src/lib/levelSets/**",
+        "src/lib/marchingCubes/**",
+        "src/lib/camera/**",
+        "src/lib/util/**",
+        "src/lib/shaderTools/shaderSource.*",
+        "src/lib/meshTools/objMesh.cpp",
+        "src/lib/meshTools/objMesh.hpp",
+    }
+
+    includedirs {
+        "third_party/glm",
     }
 
     filter "configurations:Debug"
@@ -56,14 +96,20 @@ project "main"
         "pthread", 
         "dl",
         "GL",
-        "GoogleTest",
+        "core",
     }
 
     files {
         "src/main/*.cpp", 
         "src/main/*.hpp", 
-        "src/lib/**.cpp",
-        "src/lib/**.hpp",
+        "src/lib/gui/**",
+        "src/lib/meshTools/gpuMesh.cpp",
+        "src/lib/meshTools/gpuMesh.hpp",
+        "src/lib/meshTools/gpuDistanceField.cpp",
+        "src/lib/meshTools/gpuDistanceField.hpp",
+        "src/lib/meshTools/cube.hpp",
+        "src/lib/shaderTools/shaderProgram.cpp",
+        "src/lib/shaderTools/shaderProgram.hpp",
         "third_party/glad/src/glad.c",
         "third_party/imgui/*.cpp",
         "third_party/imgui/backends/imgui_impl_glfw.cpp",
@@ -79,40 +125,35 @@ project "main"
         optimize "On"
 
 project "tests"
-        location "_build_/tests"
-        kind "ConsoleApp"
-        language "C++"
-        targetdir "bin/%{cfg.buildcfg}"
+    location "_build_/tests"
+    kind "ConsoleApp"
+    language "C++"
+    targetdir "bin/%{cfg.buildcfg}"
 
-        files {
-            "tests/**.cpp",
-            "src/lib/marchingCubes/**",
-            "src/lib/parsingData/**",
-            "src/lib/levelSets/**",
-        }
+    files {
+        "tests/**.cpp",
+    }
 
-        links {
-            "GoogleTest",
-            "main",
-        }
-    
-        includedirs {
-            "third_party/googletest/googletest/include",
-            "third_party/glm",
-            "src/**",
-        }
+    links {
+        "GoogleTest",
+        "core",
+        "pthread",
+    }
 
-        libdirs {
-            "third_party/glfw/src"
-        }
+    includedirs {
+        "third_party/googletest/googletest/include",
+        "third_party/glm",
+        "src/**",
+        "tests"
+    }
 
-        filter "configurations:Debug"
-            defines {"DEBUG"}
-            symbols "On"
+    filter "configurations:Debug"
+        defines {"DEBUG"}
+        symbols "On"
 
-        filter "configurations:Release"
-            defines {"NDEBUG"}
-            optimize "On"
+    filter "configurations:Release"
+        defines {"NDEBUG"}
+        optimize "On"
 
 project "read_binary"
     location "_build_/read_binary"
@@ -124,9 +165,9 @@ project "read_binary"
     files { 
         "src/read_binary/*.cpp",
         "src/read_binary/*.hpp",
-        "src/lib/parsingData/*.hpp", 
-        "src/lib/parsingData/*.cpp" 
     }
+
+    links { "core" }
 
     filter "configurations:Debug"
         defines { "DEBUG" }
@@ -137,25 +178,23 @@ project "read_binary"
         optimize "On"
 
 project "read_multifield"
-        location "_build_/read_multifield"
-        kind "ConsoleApp"
-        language "C++"
-        targetdir "bin/%{cfg.buildcfg}"
+    location "_build_/read_multifield"
+    kind "ConsoleApp"
+    language "C++"
+    targetdir "bin/%{cfg.buildcfg}"
+
     
-        
-        files { 
-            "src/read_multifield/*.cpp",
-            "src/read_multifield/*.hpp",
-            "src/lib/multiField/*.hpp",
-            "src/lib/multiField/*.cpp",
-            "src/lib/parsingData/*.hpp", 
-            "src/lib/parsingData/*.cpp", 
-        }
-    
-        filter "configurations:Debug"
-            defines { "DEBUG" }
-            symbols "On"
-    
-        filter "configurations:Release"
-            defines { "NDEBUG" }
-            optimize "On"
+    files { 
+        "src/read_multifield/*.cpp",
+        "src/read_multifield/*.hpp",
+    }
+
+    links { "core" }
+
+    filter "configurations:Debug"
+        defines { "DEBUG" }
+        symbols "On"
+
+    filter "configurations:Release"
+        defines { "NDEBUG" }
+        optimize "On"

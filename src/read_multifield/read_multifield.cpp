@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <vector>
 
@@ -6,13 +8,16 @@
 #include "../lib/parsingData/datasetReader.hpp"
 
 
-const float NO_DATA_VAL = 1.0000000e+35;
 
 int main(int argc, char **argv) {
-    MultiField isabel = readDataset("/home/michealnestor/University/final-project/dataset/timestep02/config.txt");
+    if (argc < 2) {
+        std::cerr << "Usage: " << argv[0] << " <config.txt>\n";
+        return 2;
+    }
+    MultiField isabel = readDataset(argv[1]);
 
-    if (isabel.readError) {
-        std::cerr << "Error reading dataset" << std::endl;
+    if (!isabel.ok()) {
+        std::cerr << isabel.error;
         return 1;
     }
 
@@ -25,17 +30,20 @@ int main(int argc, char **argv) {
         // check if any of the values are outside of the allowed range for this file
         std::vector<int> invalid_indexes = {};
         for (int valIndex = 0; valIndex < curr.values.size(); ++valIndex) {
-            if (
-                curr.values[valIndex] != NO_DATA_VAL and (
-                    curr.bounds.lower > curr.values[valIndex] or 
-                    curr.values[valIndex] > curr.bounds.upper
-                )) {
-                    invalid_indexes.push_back(valIndex);                
+            if (std::isnan(curr.values[valIndex])) continue;
+            if (curr.bounds.lower > curr.values[valIndex] or curr.values[valIndex] > curr.bounds.upper) {
+                invalid_indexes.push_back(valIndex);
             }
         }
         std::cout << "\tFound " << invalid_indexes.size() << " points outside of the allowed range" << std::endl;
-        if (invalid_indexes.size() > 0) {
-            std::cout << "\tExample Values: " << curr.values[invalid_indexes[0]] << ", " << curr.values[invalid_indexes[1]] << std::endl; 
+        if (!invalid_indexes.empty()) {
+            const std::size_t exampleCount = std::min<std::size_t>(2, invalid_indexes.size());
+            std::cout << "\tExample Values:";
+            for (std::size_t i = 0; i < exampleCount; ++i) {
+                if (i != 0) std::cout << ",";
+                std::cout << " " << curr.values[invalid_indexes[i]];
+            }
+            std::cout << std::endl;
         }
     }
     return 0;

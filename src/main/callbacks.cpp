@@ -9,7 +9,7 @@
 
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-    if (auto* state = static_cast<ProgramState*>(glfwGetWindowUserPointer(window))) {
+    if (auto* state = static_cast<RenderState*>(glfwGetWindowUserPointer(window))) {
         state->setWidthHeight(width, height);
     }
 }

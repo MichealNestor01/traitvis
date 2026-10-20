@@ -4,7 +4,9 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include <functional>
+#include <filesystem>
+#include <memory>
+#include <optional>
 
 enum DatasetFormat {BLOCK, ATTRIBUTEPERFILE};
 enum IndexScheme {ROWMAJOR, COLUMNMAJOR};
@@ -26,6 +28,14 @@ inline std::string dimensionOrderToString(DimensionOrder order) {
     return "";
 }
 
+// Row major: the first-listed dimension varies fastest. Column major: the last-listed does.
+[[nodiscard]] constexpr IndexStrides makeStrides(IndexScheme scheme, DimensionOrder order, int xVals, int yVals, int zVals) {
+    const bool heightBeforeDepth = order == WIDTH_HEIGHT_DEPTH;
+    if (scheme == ROWMAJOR)
+        return heightBeforeDepth ? IndexStrides{1, xVals, xVals * yVals} : IndexStrides{1, xVals * zVals, xVals};
+    return heightBeforeDepth ? IndexStrides{yVals * zVals, zVals, 1} : IndexStrides{yVals * zVals, 1, yVals};
+}
+
 class Dataset {
 public:
     DatasetFormat format;
@@ -34,32 +44,8 @@ public:
     IndexScheme scheme;
     // Constructor to initialize format
     Dataset(DatasetFormat fmt, int xVals, int yVals, int zVals, DimensionOrder order, IndexScheme scheme) : format(fmt), xVals(xVals), yVals(yVals), zVals(zVals), scheme(scheme), dimOrder(order) {}
-    ~Dataset() {}
+    virtual ~Dataset() = default;
     void virtual printDataset() const = 0;
-    std::function<int(int, int, int, int, int, int)> getIndexFunction() const {
-        switch (scheme) {
-            case ROWMAJOR:
-                switch (dimOrder) {
-                    case WIDTH_HEIGHT_DEPTH:
-                        return [this](int x, int y, int z, int xVals, int yVals, int zVals) { return x + (y * xVals) + (z * xVals * yVals); };
-                    case WIDTH_DEPTH_HEIGHT:
-                        return [this](int x, int y, int z, int xVals, int yVals, int zVals) { return x + (z * xVals) + (y * xVals * zVals); };
-                    default:
-                        throw std::invalid_argument("Unknown dimension order");
-                }
-            case COLUMNMAJOR:
-                switch (dimOrder) {
-                    case WIDTH_HEIGHT_DEPTH:
-                        return [this](int x, int y, int z, int xVals, int yVals, int zVals) { return z + zVals * (y + yVals * x); };
-                    case WIDTH_DEPTH_HEIGHT:
-                        return [this](int x, int y, int z, int xVals, int yVals, int zVals) { return y + yVals * (z + zVals * x); };
-                    default:
-                        throw std::invalid_argument("Unknown dimension order");
-                }
-            default:
-                throw std::invalid_argument("Unknown index scheme");
-        }
-    }
 };
 
 class AttributePerFileDataset : public Dataset {
@@ -95,10 +81,10 @@ public:
     void printDataset() const {
         std::cout << "AttributePerFileDataset" << std::endl;
         std::cout << "xVals: " << xVals << "; yVals: " << yVals << "; zVals: " << zVals << std::endl;
-        std::cout << "demsionOrder: " << dimensionOrderToString(dimOrder) << std::endl;
+        std::cout << "dimensionOrder: " << dimensionOrderToString(dimOrder) << std::endl;
         std::cout << "indexingScheme: " << indexSchemeToString(scheme) << std::endl;
         std::cout << "valuesPerFile: " << valuesPerFile << std::endl;
-        for (auto file : files) {
+        for (const auto& file : files) {
             std::cout << "filename: " << file.filename << "; name: " << file.name << "; lowerBound: " << file.lowerBound << "; upperBound: " << file.upperBound << std::endl;
         }
     }
@@ -118,26 +104,28 @@ public:
     BlockDataset(int xVals, int yVals, int zVals, DimensionOrder order, IndexScheme scheme) : Dataset(BLOCK, xVals, yVals, zVals, order, scheme) {}
     void printDataset() const {
         std::cout << "BlockDataset" << std::endl;
-        std::cout << "demsionOrder: " << dimensionOrderToString(dimOrder) << std::endl;
+        std::cout << "dimensionOrder: " << dimensionOrderToString(dimOrder) << std::endl;
         std::cout << "indexingScheme: " << indexSchemeToString(scheme) << std::endl;
         std::cout << "xVals: " << xVals << "; yVals: " << yVals << "; zVals: " << zVals << std::endl;
     }
 };
 
 struct DatasetDirConfig {
-    bool parseError = true;
-    std::string filePath;
+    std::string error;
+    [[nodiscard]] bool ok() const { return error.empty(); }
+    std::filesystem::path filePath;
     std::string name;
-    Dataset *dataset = nullptr;
-
-    ~DatasetDirConfig() {
-        if (dataset != nullptr) delete dataset;
-    }
+    // Absent means the dataset has no fill value. Present means that exact
+    // float is missing data and becomes NaN when the attribute files are read.
+    std::optional<float> noData;
+    std::unique_ptr<Dataset> dataset;
 
     void printConfig() const {
         std::cout << "DatasetDirConfig" << std::endl;
         std::cout << "filePath: " << filePath << "; name: " << name << std::endl;
-        dataset->printDataset();
+        if (noData) std::cout << "noData: " << *noData << std::endl;
+        if (dataset) dataset->printDataset();
+        else std::cout << "Dataset obj is null" << std::endl;
     }
 };
 
