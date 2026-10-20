@@ -1,4 +1,3 @@
-#version 330 core
 uniform sampler2D layer;
 out vec4 FragColor;
 

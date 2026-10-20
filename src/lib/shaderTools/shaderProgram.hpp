@@ -1,7 +1,7 @@
 // This was heavily modified from Markus Bileter's COMP3811 Computer Graphics module.
 #pragma once
 
-#include <glad/glad.h>
+#include "../../platform/gl.hpp"
 #include <glm.hpp>
 #include <gtc/type_ptr.hpp>
 

@@ -1,8 +1,6 @@
 #include "shaderProgram.hpp"
 #include "shaderSource.hpp"
 
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
 #include <glm.hpp>
 #include <gtc/type_ptr.hpp>
 
@@ -13,7 +11,15 @@
 #include <sstream>
 
 GLuint loadShader(GLenum type, const char * path) {
-    const std::string sourceStr = readShaderSource(path);
+    const std::string fileSource = readShaderSource(path);
+    // Compute shaders are desktop-only and keep the #version line in the file.
+    // Vertex and fragment stages share one file across GL 3.3 and GLSL ES 3.00.
+#if defined(GL_COMPUTE_SHADER)
+    const std::string sourceStr = type == GL_COMPUTE_SHADER ? fileSource : std::string(kGlslHeader) + fileSource;
+#else
+    (void)type;
+    const std::string sourceStr = std::string(kGlslHeader) + fileSource;
+#endif
     std::vector<GLchar> sourceCode(sourceStr.begin(), sourceStr.end());
 
     GLuint shader = glCreateShader(type);

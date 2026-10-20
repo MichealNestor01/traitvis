@@ -1,4 +1,5 @@
 #include "application.hpp"
+#include "../platform/gl.hpp"
 
 #include <GLFW/glfw3.h>
 #include <glm.hpp>
@@ -145,7 +146,7 @@ void blitDepth(unsigned int readFbo, unsigned int readName, bool readArray, int 
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, drawFbo);
     glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
     attachDepth(GL_DRAW_FRAMEBUFFER, drawName, drawArray, drawLayer);
-    glDrawBuffer(GL_NONE);
+    setDrawBuffer(GL_NONE);
     glBlitFramebuffer(0, 0, size, size, 0, 0, size, size, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 }
 
@@ -183,7 +184,7 @@ LitFromLight renderLightShadows(LightShadowBuffers& shadows, SessionState& sessi
     glBindFramebuffer(GL_FRAMEBUFFER, shadows.fbo);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
     glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadows.depthArray, 0, 0);
-    glDrawBuffer(GL_NONE);
+    setDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
     glClear(GL_DEPTH_BUFFER_BIT);
     drawOpaqueLevelSets(shader, session, cubeMesh, activeColour, inactiveColour);
@@ -197,7 +198,7 @@ LitFromLight renderLightShadows(LightShadowBuffers& shadows, SessionState& sessi
         glBindFramebuffer(GL_FRAMEBUFFER, shadows.fbo);
         glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, shadows.alphaArray, 0, peel);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, writeDepth, 0);
-        glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        setDrawBuffer(GL_COLOR_ATTACHMENT0);
         glReadBuffer(GL_COLOR_ATTACHMENT0);
         glClear(GL_COLOR_BUFFER_BIT);
 
@@ -383,7 +384,7 @@ bool LightShadowBuffers::ensure(int newResolution, int peelCount) {
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, alphaArray, 0, 0);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth[0], 0);
-    glDrawBuffer(GL_COLOR_ATTACHMENT0);
+    setDrawBuffer(GL_COLOR_ATTACHMENT0);
     glReadBuffer(GL_COLOR_ATTACHMENT0);
     const bool peelComplete = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
 
@@ -391,7 +392,7 @@ bool LightShadowBuffers::ensure(int newResolution, int peelCount) {
         glBindFramebuffer(GL_FRAMEBUFFER, target);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
         attachDepth(GL_FRAMEBUFFER, name, array, layer);
-        glDrawBuffer(GL_NONE);
+        setDrawBuffer(GL_NONE);
         glReadBuffer(GL_NONE);
         return glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
     };
@@ -462,9 +463,15 @@ bool Application::init() {
         return false;
     }
     glfwReady = true;
+#ifdef __EMSCRIPTEN__
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+#else
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#endif
 
     const int windowWidth = 800;
     const int windowHeight = 600;
@@ -476,18 +483,23 @@ bool Application::init() {
     }
     glfwMakeContextCurrent(window);
 
+#ifndef __EMSCRIPTEN__
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
         std::cout << "Failed to initialize GLAD" << std::endl;
         shutdown();
         return false;
     }
+#endif
     glReady = true;
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init("#version 130");
+    ImGui_ImplOpenGL3_Init(kImGuiGlslVersion);
+#ifdef __EMSCRIPTEN__
+    ImGui_ImplGlfw_InstallEmscriptenCanvasResizeCallback("#canvas");
+#endif
     imguiReady = true;
     ImFont* font = io.Fonts->AddFontFromFileTTF("assets/fonts/OpenSans-VariableFont_wdth,wght.ttf", 24.0f);
     if (font != nullptr) io.FontDefault = font;
