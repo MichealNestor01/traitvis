@@ -7,9 +7,11 @@
 #include <filesystem>
 #include <functional>
 #include <optional>
-#include <stop_token>
 #include <string>
+#if !defined(__EMSCRIPTEN__) || defined(__EMSCRIPTEN_PTHREADS__)
+#include <stop_token>
 #include <thread>
+#endif
 #include <vector>
 
 // Supplies one attribute file. Desktop reads the file; a browser build returns bytes from JavaScript.
@@ -31,7 +33,9 @@ public:
     void cancel();
     [[nodiscard]] std::optional<MultiField> take();
 private:
+#if !defined(__EMSCRIPTEN__) || defined(__EMSCRIPTEN_PTHREADS__)
     void run(std::stop_token token);
+#endif
     void stepFile();
     void markCancelled();
 
@@ -47,5 +51,7 @@ private:
     std::atomic<int> filesDone{0};
     std::atomic<bool> stop{false};
     std::atomic<bool> complete{false};
+#if !defined(__EMSCRIPTEN__) || defined(__EMSCRIPTEN_PTHREADS__)
     std::jthread worker;
+#endif
 };

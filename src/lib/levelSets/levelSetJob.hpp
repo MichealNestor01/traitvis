@@ -5,9 +5,11 @@
 #include <atomic>
 #include <memory>
 #include <optional>
-#include <stop_token>
 #include <string>
+#if !defined(__EMSCRIPTEN__) || defined(__EMSCRIPTEN_PTHREADS__)
+#include <stop_token>
 #include <thread>
+#endif
 #include <vector>
 
 // Builds one level set without blocking the interface. Distance-field slabs run on a
@@ -30,8 +32,10 @@ public:
     void cancel();
     [[nodiscard]] std::optional<FeatureLevelSet> take();
 private:
+#if !defined(__EMSCRIPTEN__) || defined(__EMSCRIPTEN_PTHREADS__)
     void run(std::stop_token token);
     bool stopRequested(std::stop_token token) const;
+#endif
     void finishCancelled();
     void finishSurface();
 
@@ -49,5 +53,7 @@ private:
     bool startedOnThread = false;
     std::atomic<bool> stop{false};
     std::atomic<bool> complete{false};
+#if !defined(__EMSCRIPTEN__) || defined(__EMSCRIPTEN_PTHREADS__)
     std::jthread worker;
+#endif
 };

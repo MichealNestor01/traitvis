@@ -37,7 +37,14 @@ struct RenderState {
     bool drawWireframe = false;
     bool backFaceCulling = false;
     // How many transparent layers to peel. The loop still stops when a layer is empty.
+    // WebGL2 cannot read an occlusion query in the same frame, so it always peels
+    // this many layers. Four is the default there: sixteen full-window colour
+    // textures at a high device pixel ratio is a large allocation.
+#ifdef __EMSCRIPTEN__
+    int maxDepthPeels = 4;
+#else
     int maxDepthPeels = kMaxDepthPeelCap;
+#endif
     // One clip plane in grid coordinates. Axis 0, 1, 2 is X, Y, Z.
     // The fragment on the positive side of clipPosition is dropped.
     bool clipEnabled = false;

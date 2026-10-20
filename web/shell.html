@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TraitVis</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #fff; }
+      /* No border or padding: either one shifts mouse coordinates. */
+      #canvas { width: 100%; height: 100%; display: block; background: #fff; }
+      #webgl-fallback { display: none; margin: 0; padding: 1.5rem; font-family: sans-serif; }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+    <p id="webgl-fallback">WebGL2 is not available in this browser.</p>
+    <script>
+      var canvas = document.getElementById('canvas');
+      var fallback = document.getElementById('webgl-fallback');
+      var Module = {
+        canvas: canvas,
+        print: function () { console.log.apply(console, arguments); },
+        printErr: function () {
+          console.error.apply(console, arguments);
+          var text = Array.prototype.join.call(arguments, ' ');
+          if (text.indexOf('WebGL') !== -1) {
+            canvas.style.display = 'none';
+            fallback.style.display = 'block';
+          }
+        }
+      };
+    </script>
+    {{{ SCRIPT }}}
+  </body>
+</html>

@@ -17,6 +17,14 @@ struct DepthPeelBuffers {
     unsigned int query = 0;
     unsigned int compositeVao = 0;
     unsigned int compositeVbo = 0;
+#ifdef __EMSCRIPTEN__
+    // The canvas depth buffer is not DEPTH_COMPONENT24, so the opaque pass is
+    // drawn here and peels copy depth from this target.
+    unsigned int sceneFbo = 0;
+    unsigned int sceneColour = 0;
+    unsigned int sceneDepth = 0;
+    bool sceneBlitChecked = false;
+#endif
     int width = 0;
     int height = 0;
     bool reportedIncomplete = false;

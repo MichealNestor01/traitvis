@@ -1,12 +1,19 @@
 -- premake5.lua
 workspace "TraitVis"
-    configurations { "Debug", "Release", "ThreadSanitize" }
+    configurations { "Debug", "Release", "ThreadSanitize", "Web" }
     cppdialect "C++20"
 
     filter "configurations:ThreadSanitize"
         symbols "On"
         buildoptions { "-fsanitize=thread" }
         linkoptions { "-fsanitize=thread" }
+    -- symbols "On" stops Premake emitting a bare -s. emcc treats that as the
+    -- start of a setting. -g0 drops the debug info that symbols "On" adds.
+    filter "configurations:Web"
+        defines { "NDEBUG" }
+        symbols "On"
+        buildoptions { "-O2", "-g0", "-msimd128", "--use-port=contrib.glfw3" }
+        linkoptions { "-O2", "-g0", "--use-port=contrib.glfw3" }
     filter {}
 
 project "GoogleTest"
@@ -124,6 +131,25 @@ project "main"
         defines {"NDEBUG"}
         optimize "On"
 
+    -- Link flags that name this executable stay here. The workspace Web filter
+    -- must not export symbols or preload files, or core and tests fail to link.
+    filter "configurations:Web"
+        targetname "traitvis"
+        targetextension ".html"
+        defines { "IMGUI_IMPL_OPENGL_ES3" }
+        removeincludedirs { "third_party/glfw/include" }
+        removelinks { "glfw3", "X11", "Xrandr", "Xinerama", "Xi", "Xxf86vm", "Xcursor", "dl", "GL", "pthread" }
+        removefiles { "third_party/glad/src/glad.c" }
+        linkoptions {
+            "-sMIN_WEBGL_VERSION=2", "-sMAX_WEBGL_VERSION=2",
+            "-sALLOW_MEMORY_GROWTH=1", "-sMAXIMUM_MEMORY=4GB",
+            "-sSTACK_SIZE=1MB",
+            "@%{wks.location}/web/exports.rsp",
+            "--preload-file %{wks.location}/assets@/assets",
+            "--shell-file %{wks.location}/web/shell.html",
+        }
+    filter {}
+
 project "tests"
     location "_build_/tests"
     kind "ConsoleApp"
@@ -154,6 +180,11 @@ project "tests"
     filter "configurations:Release"
         defines {"NDEBUG"}
         optimize "On"
+
+    filter "configurations:Web"
+        removelinks { "pthread" }
+        linkoptions { "-sNODERAWFS=1" }
+    filter {}
 
 project "read_binary"
     location "_build_/read_binary"

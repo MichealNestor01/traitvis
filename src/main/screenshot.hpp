@@ -16,5 +16,6 @@ struct CapturedFrame {
 
 #ifdef __EMSCRIPTEN__
 // WebGL2 saves through the page canvas rather than a framebuffer read.
-void downloadCanvasPng();
+// EM_JS gives this C linkage.
+extern "C" void downloadCanvasPng();
 #endif

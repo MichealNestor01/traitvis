@@ -155,6 +155,27 @@ struct LitFromLight {
     int layers = 0;
 };
 
+// WebGL2 does not publish an occlusion-query result until the browser regains
+// control, so a same-frame read is always zero and the peel stops immediately.
+// On that target every requested layer is drawn. An empty layer is cleared to
+// transparent and does not change the composite.
+template <typename Draw>
+bool drawPeel(unsigned int query, Draw&& draw) {
+#ifndef __EMSCRIPTEN__
+    glBeginQuery(GL_ANY_SAMPLES_PASSED, query);
+#endif
+    draw();
+#ifndef __EMSCRIPTEN__
+    glEndQuery(GL_ANY_SAMPLES_PASSED);
+    unsigned int passed = 0;
+    glGetQueryObjectuiv(query, GL_QUERY_RESULT, &passed);
+    return passed != 0;
+#else
+    (void)query;
+    return true;
+#endif
+}
+
 LitFromLight renderLightShadows(LightShadowBuffers& shadows, SessionState& session, ShaderProgram& shader,
                                 const GpuMesh& cubeMesh, const LightFrustum& frustum, int maxDepthPeels,
                                 const glm::vec3& activeColour, const glm::vec3& inactiveColour) {
@@ -206,12 +227,10 @@ LitFromLight renderLightShadows(LightShadowBuffers& shadows, SessionState& sessi
         shader.setUniformb("hasPeelDepth", peel > 0);
         glBindTexture(GL_TEXTURE_2D, peel > 0 ? shadows.depth[(peel + 1) % 2] : shadows.dummyDepth);
 
-        glBeginQuery(GL_ANY_SAMPLES_PASSED, shadows.query);
-        drawTransparentLevelSets(shader, session, cubeMesh, activeColour, inactiveColour);
-        glEndQuery(GL_ANY_SAMPLES_PASSED);
-        unsigned int passed = 0;
-        glGetQueryObjectuiv(shadows.query, GL_QUERY_RESULT, &passed);
-        if (passed == 0) break;
+        const bool drew = drawPeel(shadows.query, [&] {
+            drawTransparentLevelSets(shader, session, cubeMesh, activeColour, inactiveColour);
+        });
+        if (!drew) break;
 
         // The winning depth is copied with the array unbound from every sampler.
         glActiveTexture(GL_TEXTURE1);
@@ -301,6 +320,39 @@ bool DepthPeelBuffers::ensure(int newWidth, int newHeight, int peelCount) {
     }
     glBindTexture(GL_TEXTURE_2D, 0);
 
+#ifdef __EMSCRIPTEN__
+    if (first) {
+        glGenFramebuffers(1, &sceneFbo);
+        glGenTextures(1, &sceneColour);
+        glGenTextures(1, &sceneDepth);
+    }
+    if (first || sizeChanged) {
+        glBindTexture(GL_TEXTURE_2D, sceneColour);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, newWidth, newHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glBindTexture(GL_TEXTURE_2D, sceneDepth);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, newWidth, newHeight, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
+        bindDepthTexture(sceneDepth);
+        glBindFramebuffer(GL_FRAMEBUFFER, sceneFbo);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sceneColour, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, sceneDepth, 0);
+        setDrawBuffer(GL_COLOR_ATTACHMENT0);
+        const bool sceneComplete = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        if (!sceneComplete) {
+            if (!reportedIncomplete) {
+                std::cerr << "Scene framebuffer is incomplete\n";
+                reportedIncomplete = true;
+            }
+            return false;
+        }
+    }
+#endif
+
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colour[0], 0);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth[0], 0);
@@ -327,6 +379,15 @@ void DepthPeelBuffers::destroy() {
     if (query != 0) glDeleteQueries(1, &query);
     if (compositeVbo != 0) glDeleteBuffers(1, &compositeVbo);
     if (compositeVao != 0) glDeleteVertexArrays(1, &compositeVao);
+#ifdef __EMSCRIPTEN__
+    if (sceneFbo != 0) glDeleteFramebuffers(1, &sceneFbo);
+    if (sceneColour != 0) glDeleteTextures(1, &sceneColour);
+    if (sceneDepth != 0) glDeleteTextures(1, &sceneDepth);
+    sceneFbo = 0;
+    sceneColour = 0;
+    sceneDepth = 0;
+    sceneBlitChecked = false;
+#endif
     fbo = 0;
     depth[0] = depth[1] = 0;
     colour.clear();
@@ -467,6 +528,8 @@ bool Application::init() {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    glfwWindowHint(GLFW_SAMPLES, 0);
+    glfwWindowHint(GLFW_STENCIL_BITS, 0);
 #else
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
@@ -623,6 +686,13 @@ void Application::frame() {
         lightingShader.setUniform3f("diffuseLightDirection", glm::normalize(direction));
     }
 
+    int fbWidth = 0;
+    int fbHeight = 0;
+    glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
+    bool anyTransparent = false;
+    for (const auto& levelSet : session.levelSets)
+        if (levelSet.active && levelSet.transparency > 0.f && levelSet.transparency < 1.f) anyTransparent = true;
+
     glViewport(state.windowWidth * (1.f - state.renderWidthPercentage), 0,
                state.windowWidth * state.renderWidthPercentage, state.windowHeight);
 #ifndef __EMSCRIPTEN__
@@ -645,18 +715,39 @@ void Application::frame() {
     if (peels.dummyDepth != 0) glBindTexture(GL_TEXTURE_2D, peels.dummyDepth);
 
     glDepthMask(GL_TRUE);
+#ifdef __EMSCRIPTEN__
+    const bool useSceneTarget = anyTransparent && peels.ensure(fbWidth, fbHeight, state.maxDepthPeels);
+    if (useSceneTarget) {
+        glBindFramebuffer(GL_FRAMEBUFFER, peels.sceneFbo);
+        glClearColor(1.f, 1.f, 1.f, 0.f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    }
+#endif
+
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     drawOpaqueLevelSets(lightingShader, session, *cube, colourGreen, colourRed);
     if (state.pointLight)
         drawLightMarker(lightingShader, *cube, state.lightPosition, state.lightSize, state.diffuseLightColour, defaultModel);
 
-    int fbWidth = 0;
-    int fbHeight = 0;
-    glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
-    bool anyTransparent = false;
-    for (const auto& levelSet : session.levelSets)
-        if (levelSet.active && levelSet.transparency > 0.f && levelSet.transparency < 1.f) anyTransparent = true;
+#ifdef __EMSCRIPTEN__
+    if (useSceneTarget) {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, peels.sceneFbo);
+        glReadBuffer(GL_COLOR_ATTACHMENT0);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        if (!peels.sceneBlitChecked) {
+            while (glGetError() != GL_NO_ERROR) {}
+        }
+        glBlitFramebuffer(0, 0, fbWidth, fbHeight, 0, 0, fbWidth, fbHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        if (!peels.sceneBlitChecked) {
+            const GLenum blitError = glGetError();
+            peels.sceneBlitChecked = true;
+            if (blitError != GL_NO_ERROR)
+                std::cerr << "Scene colour blit failed: 0x" << std::hex << blitError << std::dec << "\n";
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+#endif
 
     int peelCount = 0;
     if (anyTransparent && peels.ensure(fbWidth, fbHeight, state.maxDepthPeels)) {
@@ -672,7 +763,11 @@ void Application::frame() {
             glBindFramebuffer(GL_FRAMEBUFFER, peels.fbo);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, peels.colour[peel], 0);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, writeDepth, 0);
+#ifdef __EMSCRIPTEN__
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, peels.sceneFbo);
+#else
             glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+#endif
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, peels.fbo);
             glBlitFramebuffer(0, 0, fbWidth, fbHeight, 0, 0, fbWidth, fbHeight, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
             glBindFramebuffer(GL_FRAMEBUFFER, peels.fbo);
@@ -682,12 +777,10 @@ void Application::frame() {
             lightingShader.setUniformb("hasPeelDepth", peel > 0);
             glBindTexture(GL_TEXTURE_2D, peel > 0 ? peels.depth[(peel + 1) % 2] : peels.dummyDepth);
 
-            glBeginQuery(GL_ANY_SAMPLES_PASSED, peels.query);
-            drawTransparentLevelSets(lightingShader, session, *cube, colourGreen, colourRed);
-            glEndQuery(GL_ANY_SAMPLES_PASSED);
-            unsigned int passed = 0;
-            glGetQueryObjectuiv(peels.query, GL_QUERY_RESULT, &passed);
-            if (passed == 0) break;
+            const bool drew = drawPeel(peels.query, [&] {
+                drawTransparentLevelSets(lightingShader, session, *cube, colourGreen, colourRed);
+            });
+            if (!drew) break;
             peelCount = peel + 1;
         }
 

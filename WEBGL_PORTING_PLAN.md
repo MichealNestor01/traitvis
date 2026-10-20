@@ -108,12 +108,10 @@ Do not reimplement these. They are in the tree and the desktop tests cover them.
 | Emscripten main loop | Done | `src/main/main.cpp` |
 | `DatasetReadJob::stepOnMainThread` / `LevelSetJob::stepOnMainThread` | Done | `start()` is a no-op without pthreads, which is the intended web path |
 
-Still to do, and only this, is the rest of this document. Commit 1 (platform header, version injection, `setDrawBuffer`, desktop context stays 4.6) is done.
+Still to do, and only this, is the rest of this document. Commits 1 and 2 are done. The page at `bin/Web/traitvis.html` shows the ImGui controls on a white canvas. A transparent peel has not been drawn yet: that needs a dataset, which is commit 4.
 
-- Premake `Web` configuration, correctly scoped
-- GLES behaviour still to prove on a real WebGL2 context: occlusion-query early-out, depth blit from the default framebuffer. `setDrawBuffer` already routes `glDrawBuffer` to `glDrawBuffers` under Emscripten.
 - web dataset C API that uses `beginDatasetLoad` and the existing byte-swap
-- `web/shell.html`, `upload.js`, sample fetch
+- `upload.js` and the sample fetch. `web/shell.html` already exists
 - wasm Node test helper so jobs do not hang
 - portfolio copy
 
@@ -171,8 +169,7 @@ project "main"
             "-sMIN_WEBGL_VERSION=2", "-sMAX_WEBGL_VERSION=2",
             "-sALLOW_MEMORY_GROWTH=1", "-sMAXIMUM_MEMORY=4GB",
             "-sSTACK_SIZE=1MB",
-            "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','FS','HEAPU8']",
-            "-sEXPORTED_FUNCTIONS=['_main','_malloc','_free','_traitvisBeginAttribute','_traitvisCancelPending','_traitvisDescribeConfig','_traitvisBeginLoad']",
+            "@%{wks.location}/web/exports.rsp",
             "--preload-file %{wks.location}/assets@/assets",
             "--shell-file %{wks.location}/web/shell.html",
         }
@@ -180,6 +177,10 @@ project "main"
 ```
 
 `targetname "traitvis"` is required. The C++ target is currently `main`, so the default outputs are `main.html` / `main.js` / `main.wasm` / `main.data`. Renaming those files after the build breaks the JS loader, which hard-codes the wasm and data names.
+
+`web/exports.rsp` holds the two list settings (`EXPORTED_RUNTIME_METHODS`, `EXPORTED_FUNCTIONS`). A shell would strip the quotes inside `[...]`, and Premake's `optimize "On"` emits a bare `-s` that emcc reads as a setting. The Web filter sets `symbols "On"` and then `-g0` instead. Commit 2 exports `_main`, `_malloc`, and `_free` only. Commit 3 appends the `traitvis*` names once those functions exist; exporting a missing symbol fails the link.
+
+Define `IMGUI_IMPL_OPENGL_ES3` on the Web filter. ImGui 1.90.4 otherwise selects ES2 for Emscripten. Do not use `optimize "On"` for this configuration.
 
 Premake runs the link from `_build_/main`, so `--preload-file assets` and `--shell-file web/shell.html` are wrong. Use `%{wks.location}`.
 
@@ -302,7 +303,7 @@ The bodies of the lighting and composite shaders are valid GLSL ES 3.00 (`layout
 | `glDrawArraysInstanced`, `glVertexAttribDivisor` | In WebGL2. Boundary cubes stay. |
 | `glDrawBuffer` | Does not exist. Use `setDrawBuffer` from `gl.hpp`. Five call sites in `application.cpp`. |
 | Occlusion queries | `glGetQueryObjectuiv(..., GL_QUERY_RESULT)` in the same frame as `glEndQuery` is a GPU sync on desktop. In WebGL2 the result is not available until control returns to the browser; the first peel therefore reads `0` and **breaks**, so no transparent surfaces and no shadow layers are drawn. On `__EMSCRIPTEN__`, skip the occupancy query and always peel `maxDepthPeels` layers. Optionally read last frame's result asynchronously later. |
-| Depth blit from the default framebuffer | Camera peels blit depth from framebuffer 0 into the peel FBO (`application.cpp`). WebGL2 requires the source and destination depth formats to match, and the backbuffer's depth format is up to the browser. **Test this in step 2.** If the blit is incomplete or the first peel is empty, render the opaque pass into an FBO whose depth texture is `DEPTH_COMPONENT24`, then blit from that. Light-space peels already blit between application textures; those should be fine. |
+| Depth blit from the default framebuffer | The canvas depth buffer is not `DEPTH_COMPONENT24`, so a blit from framebuffer 0 is invalid in WebGL2. On `__EMSCRIPTEN__`, a transparent frame draws the opaque pass into `DepthPeelBuffers`' scene target (RGBA8 + `DEPTH_COMPONENT24`) and peels copy depth from there. Light-space peels already blit between application textures. |
 | Depth peeling | WebGL2 has FBOs, `DEPTH_COMPONENT24`, and `discard`. Ping-pong two depth textures; a depth texture cannot be sampled while it is attached. No SSBOs. |
 | Light-space shadows | Same peels, into a `sampler2DArray`. Detach an array before sampling it (already done). The light marker cube uses `glPolygonMode` for its outline on desktop; on web the fill-only path already exists. |
 | Default peel count | 16 RGBA8 layers at a 4K HiDPI canvas is hundreds of MB of GPU memory. On web, default `maxDepthPeels` to 4. Keep the slider; cap stays `kMaxDepthPeelCap`. |
@@ -586,7 +587,7 @@ One commit per row, in order, on one branch. Do not start a commit until the pre
 | Commit | Message | Done when | Effort |
 | --- | --- | --- | --- |
 | 1. Done | Inject the GLSL version when a shader loads so desktop GL and WebGL can share one set of files. | `src/platform/gl.hpp`, include sweep, `setDrawBuffer`, version injection on `.vert`/`.frag` only, desktop context stays 4.6. `make config=debug tests` green. | 0.5 d |
-| 2 | Add a Premake Web configuration that links TraitVis for WebGL2 without changing the desktop build. | Flags scoped as in §5 (`targetname "traitvis"`, `%{wks.location}` paths, glfw include removed). `emmake make config=web core main` produces `bin/Web/traitvis.html`. Page shows the ImGui window, white canvas, no dataset. Depth blit / first peel checked. Occupancy queries skipped on web. Default `maxDepthPeels` 4. | 1 d |
+| 2. Done | Add a Premake Web configuration that links TraitVis for WebGL2 without changing the desktop build. | `bin/Web/traitvis.html` serves the ImGui window on a white canvas. Occupancy queries are skipped on web. Opaque colour for a transparent frame is drawn into a `DEPTH_COMPONENT24` scene target. Default `maxDepthPeels` is 4. A peel has not been seen yet; that needs a dataset. | 1 d |
 | 3 | Feed browser attribute bytes through the existing dataset loader, including the desktop byte swap. | C API in §7.2; `swapFloatEndianInPlace`; `beginDatasetLoad(path, provider, selectedFiles)`; `waitForJob` so wasm tests do not hang; `pollLevelSet` uses a timed slab count. Native tests pass. `emmake make config=web tests && node bin/Web/tests.js` passes. | 1 d |
 | 4 | Add the browser page that drops a dataset folder onto the WebGL build. | `web/shell.html`, `style.css`, `upload.js`. Path box and Load Dataset hidden on web. Escape and pointer-lock loss leave camera mode. Test-dataset drop loads and renders. Transparency still peels. | 1–1.5 d |
 | 5 | Let a visitor choose attributes and stream the Isabel wind sample without a second copy of the file. | Checkboxes from `traitvisDescribeConfig`. Progress, memory total, 2 GB cap. **Load sample** streams `velocity.bin`. A 14-attribute folder refuses an over-cap selection. | 1 d |

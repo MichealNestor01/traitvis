@@ -88,7 +88,9 @@ bool DatasetReadJob::finished() const {
 
 void DatasetReadJob::cancel() {
     stop.store(true);
+#if !defined(__EMSCRIPTEN__) || defined(__EMSCRIPTEN_PTHREADS__)
     if (worker.joinable()) worker.request_stop();
+#endif
 }
 
 std::optional<MultiField> DatasetReadJob::take() {
@@ -96,6 +98,7 @@ std::optional<MultiField> DatasetReadJob::take() {
     return std::move(result);
 }
 
+#if !defined(__EMSCRIPTEN__) || defined(__EMSCRIPTEN_PTHREADS__)
 void DatasetReadJob::run(std::stop_token token) {
     while (!complete.load(std::memory_order_acquire)) {
         if (stop.load() || token.stop_requested()) {
@@ -105,6 +108,7 @@ void DatasetReadJob::run(std::stop_token token) {
         stepFile();
     }
 }
+#endif
 
 void DatasetReadJob::markCancelled() {
     cancelled = true;
