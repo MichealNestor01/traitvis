@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 #include <cstddef>
+#include <span>
 #include <sstream>
 #include <vector>
 
@@ -29,6 +30,16 @@ TEST(FileReaderTests, TruncatedFileReturnsEmpty) {
 TEST(FileReaderTests, MissingFileReturnsEmpty) {
     std::vector<float> result = readFloatBinaryFile("tests/parsingData/does-not-exist.bin", 1, false);
     EXPECT_TRUE(result.empty());
+}
+
+TEST(FileReaderTests, SwapFloatEndianRoundTrips) {
+    const float original = 1.f;
+    std::vector<float> values{original, 2.f};
+    swapFloatEndianInPlace(values);
+    EXPECT_NE(values[0], original);
+    swapFloatEndianInPlace(std::span<float>(values));
+    EXPECT_FLOAT_EQ(values[0], original);
+    EXPECT_FLOAT_EQ(values[1], 2.f);
 }
 
 TEST(FileReaderTests, ReadingFewerFloatsThanPresentSucceeds) {

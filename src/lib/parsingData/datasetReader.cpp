@@ -58,8 +58,15 @@ bool readAttributeFile(MultiField& multiField, const DatasetDirConfig& config, c
 
 }
 
-DatasetReadJob::DatasetReadJob(std::string path, AttributeBytesProvider provider)
-    : path(std::move(path)), provider(provider ? std::move(provider) : AttributeBytesProvider{readAttributeBytes}) {}
+DatasetReadJob::DatasetReadJob(std::string path, AttributeBytesProvider provider, std::vector<std::string> selectedFiles)
+    : path(std::move(path))
+    , provider(provider ? std::move(provider) : AttributeBytesProvider{readAttributeBytes})
+    , selectedFiles(std::move(selectedFiles)) {}
+
+bool DatasetReadJob::included(const std::string& filename) const {
+    if (selectedFiles.empty()) return true;
+    return std::find(selectedFiles.begin(), selectedFiles.end(), filename) != selectedFiles.end();
+}
 
 void DatasetReadJob::start() {
     if (startedOnThread || complete.load()) return;
@@ -134,22 +141,34 @@ void DatasetReadJob::stepFile() {
         }
         const auto* dataset = static_cast<const AttributePerFileDataset*>(config.dataset.get());
         prepareField(result, config, *dataset);
-        fileCount.store(static_cast<int>(dataset->getFiles().size()));
+        int count = 0;
+        for (const auto& file : dataset->getFiles())
+            if (included(file.filename)) ++count;
+        if (!selectedFiles.empty() && count == 0) {
+            result.error = "None of the selected attributes are in the config\n";
+            complete.store(true, std::memory_order_release);
+            return;
+        }
+        fileCount.store(count);
     }
 
     const auto* dataset = static_cast<const AttributePerFileDataset*>(config.dataset.get());
     const auto& files = dataset->getFiles();
+    while (nextFile < static_cast<int>(files.size()) && !included(files[static_cast<std::size_t>(nextFile)].filename))
+        ++nextFile;
     if (nextFile >= static_cast<int>(files.size())) {
         result.normaliseAttributes();
         complete.store(true, std::memory_order_release);
         return;
     }
-    if (!readAttributeFile(result, config, files[nextFile], dataset->getValuesPerFile(), provider)) {
+    if (!readAttributeFile(result, config, files[static_cast<std::size_t>(nextFile)], dataset->getValuesPerFile(), provider)) {
         complete.store(true, std::memory_order_release);
         return;
     }
     ++nextFile;
-    filesDone.store(nextFile);
+    filesDone.store(filesDone.load() + 1);
+    while (nextFile < static_cast<int>(files.size()) && !included(files[static_cast<std::size_t>(nextFile)].filename))
+        ++nextFile;
     if (nextFile >= static_cast<int>(files.size())) {
         result.normaliseAttributes();
         complete.store(true, std::memory_order_release);

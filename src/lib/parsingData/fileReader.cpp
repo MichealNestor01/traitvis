@@ -1,6 +1,5 @@
 #include "fileReader.hpp"
 
-#include <algorithm>
 #include <fstream>
 
 // endianess reverser from Gregor Brandt at https://stackoverflow.com/questions/2782725/converting-float-values-from-big-endian-to-little-endian
@@ -15,7 +14,11 @@ float reverseFloat(float inFloat) {
    returnFloat[2] = floatToConvert[1];
    returnFloat[3] = floatToConvert[0];
 
-   return retVal;
+    return retVal;
+}
+
+void swapFloatEndianInPlace(std::span<float> values) {
+    for (float& value : values) value = reverseFloat(value);
 }
 
 std::vector<float> readFloatBinaryFile(const std::filesystem::path& file, std::size_t count, bool reverseByteOrder) {
@@ -28,8 +31,7 @@ std::vector<float> readFloatBinaryFile(const std::filesystem::path& file, std::s
     inputFile.read(reinterpret_cast<char*>(data.data()), static_cast<std::streamsize>(count * sizeof(float)));
     if (inputFile.gcount() != static_cast<std::streamsize>(count * sizeof(float))) return {};
 
-    if (reverseByteOrder)
-        std::transform(data.begin(), data.end(), data.begin(), [](float c){ return reverseFloat(c); });
+    if (reverseByteOrder) swapFloatEndianInPlace(data);
 
     return data;
 }

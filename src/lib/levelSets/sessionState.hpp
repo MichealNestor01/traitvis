@@ -71,7 +71,9 @@ struct SessionState {
     // Drops parked level sets. Call while the GL context is current, so a mesh that was
     // undone after being drawn deletes its buffers before the context goes away.
     void clearHistory();
-    void beginDatasetLoad(std::string path);
+    // Returns false when a load is already running. An empty provider reads the files.
+    // An empty `selectedFiles` reads every attribute.
+    bool beginDatasetLoad(std::string path, AttributeBytesProvider provider = {}, std::vector<std::string> selectedFiles = {});
     // Steps a load that has no worker, then adds a finished dataset and makes it active.
     // Returns true when the active dataset changed. A cancel installs nothing.
     bool pollDatasetLoad();

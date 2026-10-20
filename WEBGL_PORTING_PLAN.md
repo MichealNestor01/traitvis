@@ -178,7 +178,7 @@ project "main"
 
 `targetname "traitvis"` is required. The C++ target is currently `main`, so the default outputs are `main.html` / `main.js` / `main.wasm` / `main.data`. Renaming those files after the build breaks the JS loader, which hard-codes the wasm and data names.
 
-`web/exports.rsp` holds the two list settings (`EXPORTED_RUNTIME_METHODS`, `EXPORTED_FUNCTIONS`). A shell would strip the quotes inside `[...]`, and Premake's `optimize "On"` emits a bare `-s` that emcc reads as a setting. The Web filter sets `symbols "On"` and then `-g0` instead. Commit 2 exports `_main`, `_malloc`, and `_free` only. Commit 3 appends the `traitvis*` names once those functions exist; exporting a missing symbol fails the link.
+`web/exports.rsp` holds the two list settings (`EXPORTED_RUNTIME_METHODS`, `EXPORTED_FUNCTIONS`). A shell would strip the quotes inside `[...]`, and Premake's `optimize "On"` emits a bare `-s` that emcc reads as a setting. The Web filter sets `symbols "On"` and then `-g0` instead. The export list is `_main`, `_malloc`, `_free`, and the four `traitvis*` loaders. Exporting a missing symbol fails the link. The Web workspace flags also pass `-fexceptions`: without it, `try/catch` compiles and then Node aborts the test suite on the first throw.
 
 Define `IMGUI_IMPL_OPENGL_ES3` on the Web filter. ImGui 1.90.4 otherwise selects ES2 for Emscripten. Do not use `optimize "On"` for this configuration.
 
@@ -189,9 +189,9 @@ Premake runs the link from `_build_/main`, so `--preload-file assets` and `--she
 ```lua
 project "tests"
     filter "configurations:Web"
-        removeincludedirs { "third_party/glfw/include" }
+        targetextension ".js"
         removelinks { "pthread" }
-        linkoptions { "-sNODERAWFS=1" }
+        linkoptions { "-sNODERAWFS=1", "-sEXIT_RUNTIME=1", "-sALLOW_MEMORY_GROWTH=1" }
     filter {}
 ```
 
@@ -338,7 +338,7 @@ Lift the swap into `core` and use it from both paths:
 
 ```cpp
 // src/lib/parsingData/fileReader.hpp
-void swapFloatEndianInPlace(std::span<float> values);   // no-op if already little-endian host and flag false
+void swapFloatEndianInPlace(std::span<float> values);   // always reverses each float; the caller decides when
 std::vector<float> readFloatBinaryFile(...);            // reads the file, then swapFloatEndianInPlace
 ```
 
@@ -354,13 +354,13 @@ Calling `addDataset` from a keep-alive function skips progress, cancel, and `cre
 
 ```cpp
 // sessionState.hpp
-void beginDatasetLoad(std::string path, AttributeBytesProvider provider = {},
+bool beginDatasetLoad(std::string path, AttributeBytesProvider provider = {},
                       std::vector<std::string> selectedFiles = {});
 ```
 
 If `selectedFiles` is non-empty, the job skips every other `ATTRIBUTE` line. Do not rewrite `config.txt` in JavaScript.
 
-Store `Application*` in a file-static set from `init()` / cleared in `shutdown()`, so the keep-alives can reach `session`. Suggested C API (all `EMSCRIPTEN_KEEPALIVE`, listed in `EXPORTED_FUNCTIONS`):
+`src/main/webDataset.cpp` holds the keep-alives. `init()` stores the `Application*` and `shutdown()` clears it, so they can reach `session`. The same file compiles on desktop as a no-op bind. C API (`EMSCRIPTEN_KEEPALIVE`, listed in `EXPORTED_FUNCTIONS`):
 
 | Symbol | Role |
 | --- | --- |
@@ -588,7 +588,7 @@ One commit per row, in order, on one branch. Do not start a commit until the pre
 | --- | --- | --- | --- |
 | 1. Done | Inject the GLSL version when a shader loads so desktop GL and WebGL can share one set of files. | `src/platform/gl.hpp`, include sweep, `setDrawBuffer`, version injection on `.vert`/`.frag` only, desktop context stays 4.6. `make config=debug tests` green. | 0.5 d |
 | 2. Done | Add a Premake Web configuration that links TraitVis for WebGL2 without changing the desktop build. | `bin/Web/traitvis.html` serves the ImGui window on a white canvas. Occupancy queries are skipped on web. Opaque colour for a transparent frame is drawn into a `DEPTH_COMPONENT24` scene target. Default `maxDepthPeels` is 4. A peel has not been seen yet; that needs a dataset. | 1 d |
-| 3 | Feed browser attribute bytes through the existing dataset loader, including the desktop byte swap. | C API in §7.2; `swapFloatEndianInPlace`; `beginDatasetLoad(path, provider, selectedFiles)`; `waitForJob` so wasm tests do not hang; `pollLevelSet` uses a timed slab count. Native tests pass. `emmake make config=web tests && node bin/Web/tests.js` passes. | 1 d |
+| 3. Done | Feed browser attribute bytes through the existing dataset loader, including the desktop byte swap. | C API in §7.2; `swapFloatEndianInPlace`; `beginDatasetLoad(path, provider, selectedFiles)`; `waitForJob` so wasm tests do not hang; `pollLevelSet` uses a timed slab count. Native tests pass (109). `node bin/Web/tests.js` passes (109). | 1 d |
 | 4 | Add the browser page that drops a dataset folder onto the WebGL build. | `web/shell.html`, `style.css`, `upload.js`. Path box and Load Dataset hidden on web. Escape and pointer-lock loss leave camera mode. Test-dataset drop loads and renders. Transparency still peels. | 1–1.5 d |
 | 5 | Let a visitor choose attributes and stream the Isabel wind sample without a second copy of the file. | Checkboxes from `traitvisDescribeConfig`. Progress, memory total, 2 GB cap. **Load sample** streams `velocity.bin`. A 14-attribute folder refuses an over-cap selection. | 1 d |
 | 6 | Build the web page in CI and record how it is copied onto the portfolio site. | Emscripten pinned in README and CI. wasm Node job in CI. `projects.json` card. Optional in this commit: OBJ export via MEMFS download, ImGui bump. | 0.5 d |

@@ -1,4 +1,5 @@
 #include "application.hpp"
+#include "webDataset.hpp"
 #include "../platform/gl.hpp"
 
 #include <GLFW/glfw3.h>
@@ -620,6 +621,7 @@ bool Application::init() {
     lightShadows.bindForLighting(false);
     glUseProgram(composite->program.get());
     composite->setUniformi("layer", 0);
+    traitvisBindApplication(this);
     return true;
 }
 
@@ -826,6 +828,7 @@ void Application::frame() {
 void Application::shutdown() {
     if (shutDown) return;
     shutDown = true;
+    traitvisBindApplication(nullptr);
 
     // GPU ids have to be deleted while the context is still current.
     if (glReady) {

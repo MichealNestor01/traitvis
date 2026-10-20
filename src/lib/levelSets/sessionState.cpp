@@ -1,6 +1,7 @@
 #include "sessionState.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <memory>
 #include <utility>
 
@@ -248,10 +249,11 @@ void SessionState::clearHistory() {
     redoStack.clear();
 }
 
-void SessionState::beginDatasetLoad(std::string path) {
-    if (activeLoad) return;
-    activeLoad.emplace(std::move(path));
+bool SessionState::beginDatasetLoad(std::string path, AttributeBytesProvider provider, std::vector<std::string> selectedFiles) {
+    if (activeLoad) return false;
+    activeLoad.emplace(std::move(path), std::move(provider), std::move(selectedFiles));
     activeLoad->start();
+    return true;
 }
 
 bool SessionState::pollDatasetLoad() {
@@ -269,8 +271,20 @@ bool SessionState::pollDatasetLoad() {
 
 void SessionState::pollLevelSet() {
 #if defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)
-    if (activeLevelSet && !activeLevelSet->runsOnWorker() && !activeLevelSet->finished())
-        activeLevelSet->stepOnMainThread(1);
+    if (activeLevelSet && !activeLevelSet->runsOnWorker() && !activeLevelSet->finished()) {
+        // One Isabel slab can be slower than a frame, so the first call does a
+        // single slab and later calls in the same frame take more only while
+        // they are cheap. Marching cubes still runs to completion on the last step.
+        const auto budget = std::chrono::milliseconds(16);
+        const auto start = std::chrono::steady_clock::now();
+        int slabs = 1;
+        while (activeLevelSet && !activeLevelSet->finished()) {
+            activeLevelSet->stepOnMainThread(slabs);
+            const auto elapsed = std::chrono::steady_clock::now() - start;
+            if (elapsed >= budget) break;
+            if (elapsed < budget / 4) slabs = std::min(slabs * 2, 64);
+        }
+    }
 #endif
     if (!activeLevelSet || !activeLevelSet->finished()) return;
     if (std::optional<FeatureLevelSet> made = activeLevelSet->take())

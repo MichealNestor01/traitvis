@@ -22,9 +22,10 @@ using AttributeBytesProvider = std::function<std::vector<float>(const std::files
 
 // Reads a dataset off the interface thread. The result is published only by take(),
 // which the interface calls once finished() is true. An empty provider reads the files.
+// An empty `selectedFiles` reads every attribute. A non-empty list reads only those filenames.
 class DatasetReadJob {
 public:
-    explicit DatasetReadJob(std::string path, AttributeBytesProvider provider = {});
+    explicit DatasetReadJob(std::string path, AttributeBytesProvider provider = {}, std::vector<std::string> selectedFiles = {});
     void start();
     void stepOnMainThread();
     [[nodiscard]] float progress() const;
@@ -38,9 +39,11 @@ private:
 #endif
     void stepFile();
     void markCancelled();
+    [[nodiscard]] bool included(const std::string& filename) const;
 
     std::string path;
     AttributeBytesProvider provider;
+    std::vector<std::string> selectedFiles;
     DatasetDirConfig config;
     MultiField result;
     int nextFile = 0;

@@ -74,6 +74,8 @@ public:
     void frame();
     void shutdown();
     [[nodiscard]] bool shouldClose() const;
+    // The browser dataset callbacks load into this session.
+    [[nodiscard]] SessionState& sessionState() { return session; }
 
 private:
     GLFWwindow* window = nullptr;

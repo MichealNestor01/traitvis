@@ -12,8 +12,8 @@ workspace "TraitVis"
     filter "configurations:Web"
         defines { "NDEBUG" }
         symbols "On"
-        buildoptions { "-O2", "-g0", "-msimd128", "--use-port=contrib.glfw3" }
-        linkoptions { "-O2", "-g0", "--use-port=contrib.glfw3" }
+        buildoptions { "-O2", "-g0", "-fexceptions", "-msimd128", "--use-port=contrib.glfw3" }
+        linkoptions { "-O2", "-g0", "-fexceptions", "--use-port=contrib.glfw3" }
     filter {}
 
 project "GoogleTest"
@@ -182,8 +182,9 @@ project "tests"
         optimize "On"
 
     filter "configurations:Web"
+        targetextension ".js"
         removelinks { "pthread" }
-        linkoptions { "-sNODERAWFS=1" }
+        linkoptions { "-sNODERAWFS=1", "-sEXIT_RUNTIME=1", "-sALLOW_MEMORY_GROWTH=1" }
     filter {}
 
 project "read_binary"

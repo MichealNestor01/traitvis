@@ -31,8 +31,11 @@ std::shared_ptr<MultiField> tinyDataset() {
 
 void finishLevelSet(SessionState& session) {
     ASSERT_TRUE(session.activeLevelSet);
-    while (!session.activeLevelSet->finished()) std::this_thread::yield();
-    session.pollLevelSet();
+    while (session.activeLevelSet && !session.activeLevelSet->finished()) {
+        if (!session.activeLevelSet->runsOnWorker()) session.pollLevelSet();
+        else std::this_thread::yield();
+    }
+    if (session.activeLevelSet) session.pollLevelSet();
 }
 
 }
