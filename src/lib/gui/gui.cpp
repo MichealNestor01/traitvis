@@ -230,11 +230,12 @@ void GUI::render() {
     if (session.activeLoad) {
         ImGui::ProgressBar(session.activeLoad->progress());
         if (ImGui::Button("Cancel load")) session.activeLoad->cancel();
-    } else if (ImGui::Button("Load Dataset")) {
+    }
+#ifndef __EMSCRIPTEN__
+    else if (ImGui::Button("Load Dataset")) {
         fileDialogError.clear();
         session.beginDatasetLoad(std::string(inputTextBuffer));
     }
-#ifndef __EMSCRIPTEN__
     ImGui::SameLine();
     const bool busy = session.activeLoad.has_value() || session.activeLevelSet.has_value();
     if (busy) ImGui::BeginDisabled();
@@ -253,11 +254,9 @@ void GUI::render() {
         }
     }
     if (busy) ImGui::EndDisabled();
-#endif
     ImGui::SameLine();
     ImGui::InputText("##DatasetPath", inputTextBuffer, IM_ARRAYSIZE(inputTextBuffer));
     if (!fileDialogError.empty()) ImGui::TextUnformatted(fileDialogError.c_str());
-#ifndef __EMSCRIPTEN__
     if (busy) ImGui::BeginDisabled();
     if (ImGui::Button("Import OBJ")) {
         const FileDialogOutcome picked = pickMeshFile();

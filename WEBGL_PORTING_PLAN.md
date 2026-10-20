@@ -108,11 +108,9 @@ Do not reimplement these. They are in the tree and the desktop tests cover them.
 | Emscripten main loop | Done | `src/main/main.cpp` |
 | `DatasetReadJob::stepOnMainThread` / `LevelSetJob::stepOnMainThread` | Done | `start()` is a no-op without pthreads, which is the intended web path |
 
-Still to do, and only this, is the rest of this document. Commits 1 and 2 are done. The page at `bin/Web/traitvis.html` shows the ImGui controls on a white canvas. A transparent peel has not been drawn yet: that needs a dataset, which is commit 4.
+Still to do, and only this, is the rest of this document. Commits 1–3 are done. Commit 4 serves the drop page: `tests/parsingData/testDataset` shows up in Controls, and the desktop path box is hidden. A peel has still not been seen. That brick is eight identical samples, so marching cubes has no edge to draw, and the camera is framed on the Isabel grid.
 
-- web dataset C API that uses `beginDatasetLoad` and the existing byte-swap
-- `upload.js` and the sample fetch. `web/shell.html` already exists
-- wasm Node test helper so jobs do not hang
+- attribute checkboxes, the memory cap, and the Isabel sample fetch
 - portfolio copy
 
 `Sanitize` (ASan/UBSan) is named in the implementation plan and is **not** in `premake5.lua`. Only `Debug`, `Release`, and `ThreadSanitize` exist. The wasm Node test run is a Web filter, not a Sanitize filter.
@@ -366,7 +364,7 @@ If `selectedFiles` is non-empty, the job skips every other `ATTRIBUTE` line. Do 
 | --- | --- |
 | `float* traitvisBeginAttribute(const char* filename, size_t count)` | Allocate `count` floats, keyed by file name. Return a pointer into wasm memory. |
 | `char* traitvisDescribeConfig(const char* configPath)` | `parseConfig` on a MEMFS path; return a malloc'd string of `filename\\tname\\tcount\\n` lines (or an error prefixed with `!`). JS `ccall` with `free` on the result. |
-| `void traitvisBeginLoad(const char* configPath, const char* selectedCsv)` | Build a provider that `std::move`s pending buffers, then `session.beginDatasetLoad(configPath, provider, selected)`. |
+| `void traitvisBeginLoad(const char* configPath, const char* selectedCsv)` | Build a provider that `std::move`s pending buffers, then `session.beginDatasetLoad(configPath, provider, selected)`. Returns 1 when the session accepted the load. |
 | `void traitvisCancelPending()` | Destroy any buffers not yet taken by a load (failed pick, user cancel, error). |
 
 Free pending buffers on cancel, on a failed `beginLoad`, and in `traitvisCancelPending`. A 100 MB leak per abandoned file will OOM the tab.
@@ -456,7 +454,7 @@ async function loadFolder(files) {
                                  [attr.file, file.size / 4]) >>> 0;
         await copyInSlices(file, ptr, 8 << 20, p => progress(attr.name, p));
     }
-    Module.ccall('traitvisBeginLoad', null, ['string', 'string'],
+    const started = Module.ccall('traitvisBeginLoad', 'number', ['string', 'string'],
                  ['/dataset/config.txt', chosen.map(a => a.file).join(',')]);
 }
 
@@ -589,7 +587,7 @@ One commit per row, in order, on one branch. Do not start a commit until the pre
 | 1. Done | Inject the GLSL version when a shader loads so desktop GL and WebGL can share one set of files. | `src/platform/gl.hpp`, include sweep, `setDrawBuffer`, version injection on `.vert`/`.frag` only, desktop context stays 4.6. `make config=debug tests` green. | 0.5 d |
 | 2. Done | Add a Premake Web configuration that links TraitVis for WebGL2 without changing the desktop build. | `bin/Web/traitvis.html` serves the ImGui window on a white canvas. Occupancy queries are skipped on web. Opaque colour for a transparent frame is drawn into a `DEPTH_COMPONENT24` scene target. Default `maxDepthPeels` is 4. A peel has not been seen yet; that needs a dataset. | 1 d |
 | 3. Done | Feed browser attribute bytes through the existing dataset loader, including the desktop byte swap. | C API in §7.2; `swapFloatEndianInPlace`; `beginDatasetLoad(path, provider, selectedFiles)`; `waitForJob` so wasm tests do not hang; `pollLevelSet` uses a timed slab count. Native tests pass (109). `node bin/Web/tests.js` passes (109). | 1 d |
-| 4 | Add the browser page that drops a dataset folder onto the WebGL build. | `web/shell.html`, `style.css`, `upload.js`. Path box and Load Dataset hidden on web. Escape and pointer-lock loss leave camera mode. Test-dataset drop loads and renders. Transparency still peels. | 1–1.5 d |
+| 4. Done | Add the browser page that drops a dataset folder onto the WebGL build. | `web/shell.html`, `style.css`, `upload.js`. Path box and Load Dataset hidden on web. Escape does not close the page; Space requests pointer lock from the key event. Dropping `tests/parsingData/testDataset` shows `testDataset` in Controls. A peel is still unseen: that brick is uniform, and the camera is framed on the Isabel grid. | 1–1.5 d |
 | 5 | Let a visitor choose attributes and stream the Isabel wind sample without a second copy of the file. | Checkboxes from `traitvisDescribeConfig`. Progress, memory total, 2 GB cap. **Load sample** streams `velocity.bin`. A 14-attribute folder refuses an over-cap selection. | 1 d |
 | 6 | Build the web page in CI and record how it is copied onto the portfolio site. | Emscripten pinned in README and CI. wasm Node job in CI. `projects.json` card. Optional in this commit: OBJ export via MEMFS download, ImGui bump. | 0.5 d |
 | 7. Optional | Serve a threaded build from its own top-level tab once single-threaded generation is too slow. | Path-scoped COOP/COEP only. Not part of the first demo. | 0.5 d |

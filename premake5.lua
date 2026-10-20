@@ -148,6 +148,10 @@ project "main"
             "--preload-file %{wks.location}/assets@/assets",
             "--shell-file %{wks.location}/web/shell.html",
         }
+        postbuildcommands {
+            "{COPYFILE} %{wks.location}/web/style.css %{cfg.targetdir}/style.css",
+            "{COPYFILE} %{wks.location}/web/upload.js %{cfg.targetdir}/upload.js",
+        }
     filter {}
 
 project "tests"

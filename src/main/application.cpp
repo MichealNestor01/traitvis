@@ -12,6 +12,9 @@
 #include <iostream>
 #include <span>
 #include <stdexcept>
+#ifdef __EMSCRIPTEN__
+#include <emscripten/html5.h>
+#endif
 
 #include "callbacks.hpp"
 #include "inputProcessing.hpp"
@@ -19,6 +22,34 @@
 #include "../lib/meshTools/cube.hpp"
 
 namespace {
+
+#ifdef __EMSCRIPTEN__
+bool onPointerLockChange(int, const EmscriptenPointerlockChangeEvent* event, void* user) {
+    if (event->isActive) return true;
+    auto* window = static_cast<GLFWwindow*>(user);
+    if (auto* state = static_cast<RenderState*>(glfwGetWindowUserPointer(window)))
+        state->releaseCam(window);
+    return true;
+}
+
+bool onPointerLockError(int, const void*, void* user) {
+    auto* window = static_cast<GLFWwindow*>(user);
+    if (auto* state = static_cast<RenderState*>(glfwGetWindowUserPointer(window)))
+        state->releaseCam(window);
+    return true;
+}
+#endif
+
+#ifdef __EMSCRIPTEN__
+GLFWkeyfun previousKeyCallback = nullptr;
+
+void webKeyCallback(GLFWwindow* keyWindow, int key, int scancode, int action, int mods) {
+    if (previousKeyCallback) previousKeyCallback(keyWindow, key, scancode, action, mods);
+    // WantCaptureKeyboard is the previous frame, which is what ImGui uses for this event.
+    if (ImGui::GetIO().WantCaptureKeyboard) return;
+    onWebKey(keyWindow, key, action);
+}
+#endif
 
 void bindDepthTexture(unsigned int texture) {
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -604,6 +635,12 @@ bool Application::init() {
     });
     gui.emplace(session, *rendering);
     glfwSetWindowUserPointer(window, &*rendering);
+#ifdef __EMSCRIPTEN__
+    // The browser can drop pointer lock on its own (Escape, or focus leaving the tab).
+    emscripten_set_pointerlockchange_callback(EMSCRIPTEN_EVENT_TARGET_DOCUMENT, window, false, onPointerLockChange);
+    emscripten_set_pointerlockerror_callback(EMSCRIPTEN_EVENT_TARGET_DOCUMENT, window, false, onPointerLockError);
+    previousKeyCallback = glfwSetKeyCallback(window, webKeyCallback);
+#endif
     cube.emplace(uploadMesh(std::span<const float>(cubeVerticesWithNormals)));
 
     glUseProgram(lighting->program.get());

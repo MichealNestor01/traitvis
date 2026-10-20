@@ -4,32 +4,22 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>TraitVis</title>
-    <style>
-      html, body { margin: 0; height: 100%; background: #fff; }
-      /* No border or padding: either one shifts mouse coordinates. */
-      #canvas { width: 100%; height: 100%; display: block; background: #fff; }
-      #webgl-fallback { display: none; margin: 0; padding: 1.5rem; font-family: sans-serif; }
-    </style>
+    <link rel="stylesheet" href="style.css">
   </head>
   <body>
+    <header id="bar">
+      <h1>TraitVis</h1>
+      <label id="drop" aria-disabled="true">
+        Drop a dataset folder here. Every attribute in the folder is loaded.
+        <input id="folder" type="file" webkitdirectory multiple disabled>
+      </label>
+      <progress id="progress" max="1" value="0" hidden></progress>
+      <p id="status">Starting…</p>
+      <p id="error"></p>
+    </header>
     <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
     <p id="webgl-fallback">WebGL2 is not available in this browser.</p>
-    <script>
-      var canvas = document.getElementById('canvas');
-      var fallback = document.getElementById('webgl-fallback');
-      var Module = {
-        canvas: canvas,
-        print: function () { console.log.apply(console, arguments); },
-        printErr: function () {
-          console.error.apply(console, arguments);
-          var text = Array.prototype.join.call(arguments, ' ');
-          if (text.indexOf('WebGL') !== -1) {
-            canvas.style.display = 'none';
-            fallback.style.display = 'block';
-          }
-        }
-      };
-    </script>
+    <script src="upload.js"></script>
     {{{ SCRIPT }}}
   </body>
 </html>

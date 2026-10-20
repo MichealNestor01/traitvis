@@ -101,11 +101,12 @@ char* traitvisDescribeConfig(const char* configPath) {
     return copy;
 }
 
+// Returns 1 when the session accepted the load. A 0 leaves the staged buffers freed.
 EMSCRIPTEN_KEEPALIVE
-void traitvisBeginLoad(const char* configPath, const char* selectedCsv) {
+int traitvisBeginLoad(const char* configPath, const char* selectedCsv) {
     auto staged = std::make_shared<std::unordered_map<std::string, std::vector<float>>>(std::move(stagedAttributes));
     stagedAttributes.clear();
-    if (boundApplication == nullptr || configPath == nullptr) return;
+    if (boundApplication == nullptr || configPath == nullptr) return 0;
 
     std::vector<std::string> selected = splitCsv(selectedCsv);
     if (!selected.empty()) {
@@ -118,7 +119,7 @@ void traitvisBeginLoad(const char* configPath, const char* selectedCsv) {
         return takeStaged(staged, file, count);
     };
     // A refused load drops `staged` with this provider, so the buffers do not leak.
-    boundApplication->sessionState().beginDatasetLoad(configPath, std::move(provider), std::move(selected));
+    return boundApplication->sessionState().beginDatasetLoad(configPath, std::move(provider), std::move(selected)) ? 1 : 0;
 }
 
 }

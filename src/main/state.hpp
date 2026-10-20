@@ -58,6 +58,14 @@ struct RenderState {
         else glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
 
+    // Leave camera mode without toggling back on. Escape and a lost pointer lock both call this.
+    void releaseCam(GLFWwindow* window) {
+        if (!enableCam) return;
+        enableCam = false;
+        cam.disableActions();
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+
     void updateTime() {
         float now = glfwGetTime();
         deltaTime = now - lastFrame;
