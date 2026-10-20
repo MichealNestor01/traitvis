@@ -25,7 +25,15 @@ struct RenderState {
     float ambientLightStrength = 0.28f;
     glm::vec3 diffuseLightColour = glm::vec3(1.f, 1.f, 1.f);
     float diffuseLightStrength = 0.58f;
+    // One direction for the whole frame. This is the cheap light; the point light is opt-in.
     glm::vec3 diffuseLightDirection = glm::vec3(-0.44f, -0.82f, -1.f);
+    bool pointLight = false;
+    // Off the Isabel grid (0..500, 0..100, 0..500), on the side the old direction pointed from.
+    glm::vec3 lightPosition = glm::vec3(200.f, -400.f, -200.f);
+    float lightSize = 20.f;
+    float lightRange = 2000.f;
+    bool shadowsEnabled = false;
+    float shadowFloor = 0.35f;
     bool drawWireframe = false;
     bool backFaceCulling = false;
     // How many transparent layers to peel. The loop still stops when a layer is empty.

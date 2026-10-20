@@ -541,7 +541,7 @@ static float clipAxisExtent(const SessionState& session, int axis) {
 void GUI::renderLightingControls() {
     // ImGui UI on the left 30%
     ImGui::SetNextWindowPos(ImVec2(rendering.windowWidth - 300.f, 0)); // Position at top-right corner
-    ImGui::SetNextWindowSize(ImVec2(300, 680)); 
+    ImGui::SetNextWindowSize(ImVec2(300, static_cast<float>(rendering.windowHeight))); 
 
     ImGui::Begin("Rendering Parameters");
     ImGui::SetWindowFontScale(1.f);
@@ -560,10 +560,23 @@ void GUI::renderLightingControls() {
     ImGui::SliderFloat("Strength##2", &rendering.diffuseLightStrength, 0, 1, "%.2f");
 
     ImGui::Text(" ");
-    ImGui::Text("Diffuse Light Direction:");
-    ImGui::SliderFloat("X##1", &rendering.diffuseLightDirection.x, -1, 1, "%.2f");    
-    ImGui::SliderFloat("Y##1", &rendering.diffuseLightDirection.y, -1, 1, "%.2f");    
-    ImGui::SliderFloat("Z##1", &rendering.diffuseLightDirection.z, -1, 1, "%.2f");    
+    ImGui::Checkbox("Point light", &rendering.pointLight);
+    if (rendering.pointLight) {
+        ImGui::Text("Light position:");
+        ImGui::SliderFloat("X##light", &rendering.lightPosition.x, -10000, 10000, "%.0f");
+        ImGui::SliderFloat("Y##light", &rendering.lightPosition.y, -10000, 10000, "%.0f");
+        ImGui::SliderFloat("Z##light", &rendering.lightPosition.z, -10000, 10000, "%.0f");
+        if (ImGui::Button("Move to camera pos")) rendering.lightPosition = rendering.cam.pos;
+        ImGui::SliderFloat("Size##light", &rendering.lightSize, 1.f, 500.f, "%.0f");
+        ImGui::SliderFloat("Range##light", &rendering.lightRange, 1.f, 20000.f, "%.0f");
+        ImGui::Checkbox("Shadows", &rendering.shadowsEnabled);
+        ImGui::SliderFloat("Shadow floor", &rendering.shadowFloor, 0.f, 1.f, "%.2f");
+    } else {
+        ImGui::Text("Diffuse Light Direction:");
+        ImGui::SliderFloat("X##dir", &rendering.diffuseLightDirection.x, -1, 1, "%.2f");
+        ImGui::SliderFloat("Y##dir", &rendering.diffuseLightDirection.y, -1, 1, "%.2f");
+        ImGui::SliderFloat("Z##dir", &rendering.diffuseLightDirection.z, -1, 1, "%.2f");
+    }
 
     ImGui::Text(" ");
     ImGui::SliderInt("Depth layers", &rendering.maxDepthPeels, 1, kMaxDepthPeelCap);
