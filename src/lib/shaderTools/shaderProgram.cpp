@@ -95,6 +95,11 @@ void ShaderProgram::setUniform3f(std::string name, glm::vec3 f) {
     glUniform3f(location, f.x, f.y, f.z);
 }
 
+void ShaderProgram::setUniform2f(std::string name, GLfloat f1, GLfloat f2) {
+    int location = glGetUniformLocation(program.get(), name.c_str());
+    glUniform2f(location, f1, f2);
+}
+
 void ShaderProgram::setUniformMat4f(std::string name, glm::mat4 *mat) {
     int location = glGetUniformLocation(program.get(), name.c_str());
     glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(*mat));

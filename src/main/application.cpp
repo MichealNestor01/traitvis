@@ -4,16 +4,20 @@
 
 #include <GLFW/glfw3.h>
 #include <glm.hpp>
+#include <gtc/matrix_inverse.hpp>
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 
 #include <algorithm>
+#include <cfloat>
 #include <iostream>
 #include <span>
 #include <stdexcept>
 #ifdef __EMSCRIPTEN__
 #include <emscripten/html5.h>
+#include <emscripten.h>
+#include <GLFW/emscripten_glfw3.h>
 #endif
 
 #include "callbacks.hpp"
@@ -25,11 +29,28 @@ namespace {
 
 #ifdef __EMSCRIPTEN__
 bool onPointerLockChange(int, const EmscriptenPointerlockChangeEvent* event, void* user) {
-    if (event->isActive) return true;
     auto* window = static_cast<GLFWwindow*>(user);
-    if (auto* state = static_cast<RenderState*>(glfwGetWindowUserPointer(window)))
-        state->releaseCam(window);
+    auto* state = static_cast<RenderState*>(glfwGetWindowUserPointer(window));
+    if (!state) return true;
+    if (event->isActive) {
+        // Space can be released again before the browser finishes locking.
+        if (state->enableCam) state->pointerLocked = true;
+        else glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        return true;
+    }
+    state->releaseCam(window);
     return true;
+}
+
+// While the pointer is locked, contrib.glfw3 stores each movement as the cursor
+// position and skips the callback when the next movement is identical. Reading
+// movementX here keeps turning when the cursor would otherwise sit in the corner.
+EM_BOOL onCapturedMouseMove(int, const EmscriptenMouseEvent* event, void* user) {
+    auto* window = static_cast<GLFWwindow*>(user);
+    auto* state = static_cast<RenderState*>(glfwGetWindowUserPointer(window));
+    if (!state || !state->enableCam || !state->pointerLocked) return EM_FALSE;
+    state->cam.addLook(static_cast<float>(event->movementX), static_cast<float>(event->movementY));
+    return EM_FALSE;
 }
 
 bool onPointerLockError(int, const void*, void* user) {
@@ -45,11 +66,46 @@ GLFWkeyfun previousKeyCallback = nullptr;
 
 void webKeyCallback(GLFWwindow* keyWindow, int key, int scancode, int action, int mods) {
     if (previousKeyCallback) previousKeyCallback(keyWindow, key, scancode, action, mods);
+    auto* state = static_cast<RenderState*>(glfwGetWindowUserPointer(keyWindow));
+    // Escape always drops the camera, including when a panel had the keyboard.
+    if (state && state->enableCam && key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+        state->releaseCam(keyWindow);
+        return;
+    }
     // WantCaptureKeyboard is the previous frame, which is what ImGui uses for this event.
     if (ImGui::GetIO().WantCaptureKeyboard) return;
     onWebKey(keyWindow, key, action);
 }
 #endif
+
+GLFWcursorposfun previousCursorCallback = nullptr;
+GLFWmousebuttonfun previousMouseButtonCallback = nullptr;
+GLFWscrollfun previousScrollCallback = nullptr;
+
+void cursorCallback(GLFWwindow* cursorWindow, double x, double y) {
+    auto* state = static_cast<RenderState*>(glfwGetWindowUserPointer(cursorWindow));
+    // Captured look must not move ImGui's cursor onto a panel.
+    if (state && state->enableCam) {
+#ifndef __EMSCRIPTEN__
+        state->cam.updateDirection(x, y);
+#endif
+        return;
+    }
+    if (previousCursorCallback) previousCursorCallback(cursorWindow, x, y);
+    if (state) state->cam.updateMousePos(x, y);
+}
+
+void mouseButtonCallback(GLFWwindow* buttonWindow, int button, int action, int mods) {
+    auto* state = static_cast<RenderState*>(glfwGetWindowUserPointer(buttonWindow));
+    if (state && state->enableCam) return;
+    if (previousMouseButtonCallback) previousMouseButtonCallback(buttonWindow, button, action, mods);
+}
+
+void scrollCallback(GLFWwindow* scrollWindow, double xoffset, double yoffset) {
+    auto* state = static_cast<RenderState*>(glfwGetWindowUserPointer(scrollWindow));
+    if (state && state->enableCam) return;
+    if (previousScrollCallback) previousScrollCallback(scrollWindow, xoffset, yoffset);
+}
 
 void bindDepthTexture(unsigned int texture) {
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -289,6 +345,28 @@ LitFromLight renderLightShadows(LightShadowBuffers& shadows, SessionState& sessi
 
 void errorCallback(int error, const char* description) {
     std::cerr << "GLFW Error (" << error << "): " << description << std::endl;
+}
+
+void drawSky(ShaderProgram& shader, unsigned int vao, const RenderState& state, const glm::mat4& invViewProj, float viewportWidth, float viewportHeight) {
+    const GLboolean cull = glIsEnabled(GL_CULL_FACE);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
+    glDepthMask(GL_FALSE);
+    glDisable(GL_BLEND);
+    glUseProgram(shader.program.get());
+    shader.setUniform3f("zenithColour", state.skyZenith);
+    shader.setUniform3f("groundColour", state.skyGround);
+    shader.setUniform3f("cameraPosition", state.cam.getPos());
+    glm::mat4 inverse = invViewProj;
+    shader.setUniformMat4f("invViewProj", &inverse);
+    shader.setUniform2f("viewportSize", viewportWidth, viewportHeight);
+    glBindVertexArray(vao);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glBindVertexArray(0);
+    glDepthMask(GL_TRUE);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    if (cull) glEnable(GL_CULL_FACE);
 }
 
 }
@@ -577,7 +655,6 @@ bool Application::init() {
         return false;
     }
     glfwMakeContextCurrent(window);
-
 #ifndef __EMSCRIPTEN__
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
         std::cout << "Failed to initialize GLAD" << std::endl;
@@ -592,9 +669,6 @@ bool Application::init() {
     ImGuiIO& io = ImGui::GetIO();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(kImGuiGlslVersion);
-#ifdef __EMSCRIPTEN__
-    ImGui_ImplGlfw_InstallEmscriptenCanvasResizeCallback("#canvas");
-#endif
     imguiReady = true;
     ImFont* font = io.Fonts->AddFontFromFileTTF("assets/fonts/OpenSans-VariableFont_wdth,wght.ttf", 24.0f);
     if (font != nullptr) io.FontDefault = font;
@@ -618,6 +692,10 @@ bool Application::init() {
             {GL_VERTEX_SHADER, "assets/compositeLayer.vert"},
             {GL_FRAGMENT_SHADER, "assets/compositeLayer.frag"}
         });
+        sky.emplace(std::vector<ShaderProgram::ShaderSource>{
+            {GL_VERTEX_SHADER, "assets/compositeLayer.vert"},
+            {GL_FRAGMENT_SHADER, "assets/sky.frag"}
+        });
         distanceField.emplace();
         session.gpuDistanceField = [this](std::span<const TraitPoint> points, const MultiField& field) {
             return distanceField->compute(points, field);
@@ -629,7 +707,7 @@ bool Application::init() {
     }
 
     rendering.emplace(RenderState{
-        {glm::vec3(560.f, -200.f, 560.f), glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, 1.f, 0.f)},
+        {glm::vec3(0.f), glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.f, 1.f, 0.f)},
         windowWidth,
         windowHeight
     });
@@ -639,9 +717,22 @@ bool Application::init() {
     // The browser can drop pointer lock on its own (Escape, or focus leaving the tab).
     emscripten_set_pointerlockchange_callback(EMSCRIPTEN_EVENT_TARGET_DOCUMENT, window, false, onPointerLockChange);
     emscripten_set_pointerlockerror_callback(EMSCRIPTEN_EVENT_TARGET_DOCUMENT, window, false, onPointerLockError);
+    emscripten_set_mousemove_callback(EMSCRIPTEN_EVENT_TARGET_DOCUMENT, window, true, onCapturedMouseMove);
     previousKeyCallback = glfwSetKeyCallback(window, webKeyCallback);
 #endif
+    previousCursorCallback = glfwSetCursorPosCallback(window, cursorCallback);
+    previousMouseButtonCallback = glfwSetMouseButtonCallback(window, mouseButtonCallback);
+    previousScrollCallback = glfwSetScrollCallback(window, scrollCallback);
     cube.emplace(uploadMesh(std::span<const float>(cubeVerticesWithNormals)));
+    const float skyTriangle[] = {-1.f, -1.f, 3.f, -1.f, -1.f, 3.f};
+    glGenVertexArrays(1, &skyVao);
+    glGenBuffers(1, &skyVbo);
+    glBindVertexArray(skyVao);
+    glBindBuffer(GL_ARRAY_BUFFER, skyVbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyTriangle), skyTriangle, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
+    glBindVertexArray(0);
 
     glUseProgram(lighting->program.get());
     lighting->setUniformf("objectTransparency", 1.f);
@@ -665,16 +756,40 @@ bool Application::init() {
 void Application::frame() {
     RenderState& state = *rendering;
     state.updateTime();
+#ifdef __EMSCRIPTEN__
+    // The first measurement during init can see the 800x600 canvas instead of #view.
+    // Retry until the canvas actually fills the view; the observer keeps later resizes.
+    static bool webViewFitted = false;
+    if (!webViewFitted) emscripten::glfw3::MakeCanvasResizable(window, "#view");
+#endif
     glfwPollEvents();
+#ifdef __EMSCRIPTEN__
+    if (!webViewFitted) {
+        webViewFitted = EM_ASM_INT({
+            const view = document.getElementById('view');
+            const canvas = document.getElementById('canvas');
+            if (!view || !canvas) return 0;
+            const viewRect = view.getBoundingClientRect();
+            const canvasRect = canvas.getBoundingClientRect();
+            const fillsWidth = Math.abs(viewRect.width - window.innerWidth) < 2;
+            const matched = Math.abs(viewRect.width - canvasRect.width) < 2
+                && Math.abs(viewRect.height - canvasRect.height) < 2;
+            return fillsWidth && matched && viewRect.height > 2 ? 1 : 0;
+        }) != 0;
+    }
+#endif
 
     ImGuiIO& io = ImGui::GetIO();
-    if (not io.WantCaptureKeyboard) processInput(window);
+    if (state.enableCam || not io.WantCaptureKeyboard) processInput(window);
 
-    double xpos = 0.0;
-    double ypos = 0.0;
-    glfwGetCursorPos(window, &xpos, &ypos);
-    if (not io.WantCaptureMouse and state.enableCam) state.cam.updateDirection(xpos, ypos);
-    else state.cam.updateMousePos(xpos, ypos);
+#ifndef __EMSCRIPTEN__
+    if (not state.enableCam) {
+        double xpos = 0.0;
+        double ypos = 0.0;
+        glfwGetCursorPos(window, &xpos, &ypos);
+        state.cam.updateMousePos(xpos, ypos);
+    }
+#endif
     state.cam.updateCamera(state.deltaTime);
 
     glDisable(GL_SCISSOR_TEST);
@@ -683,6 +798,10 @@ void Application::frame() {
 
     glm::mat4 proj = state.getProjectionMatrix();
     glm::mat4 view = state.cam.getViewMatrix();
+    const glm::mat4 invViewProj = glm::inverse(proj * view);
+    const float viewWidth = static_cast<float>(state.windowWidth) * state.renderWidthPercentage;
+    const float viewHeight = static_cast<float>(state.windowHeight);
+    drawSky(*sky, skyVao, state, invViewProj, viewWidth, viewHeight);
 
     ShaderProgram& lightingShader = *lighting;
     glUseProgram(lightingShader.program.get());
@@ -760,6 +879,7 @@ void Application::frame() {
         glBindFramebuffer(GL_FRAMEBUFFER, peels.sceneFbo);
         glClearColor(1.f, 1.f, 1.f, 0.f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        drawSky(*sky, skyVao, state, invViewProj, static_cast<float>(fbWidth), static_cast<float>(fbHeight));
     }
 #endif
 
@@ -853,6 +973,14 @@ void Application::frame() {
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
+    if (state.enableCam) {
+        // The captured cursor position is not a point on the panels. Parking it
+        // off-screen stops sliders and buttons from following the look direction.
+        io.ConfigFlags |= ImGuiConfigFlags_NoMouse | ImGuiConfigFlags_NoMouseCursorChange;
+        io.AddMousePosEvent(-FLT_MAX, -FLT_MAX);
+    } else {
+        io.ConfigFlags &= ~(ImGuiConfigFlags_NoMouse | ImGuiConfigFlags_NoMouseCursorChange);
+    }
     ImGui::NewFrame();
     gui->render();
     gui->renderLightingControls();
@@ -884,6 +1012,11 @@ void Application::shutdown() {
         distanceField.reset();
         lighting.reset();
         composite.reset();
+        sky.reset();
+        if (skyVbo != 0) glDeleteBuffers(1, &skyVbo);
+        if (skyVao != 0) glDeleteVertexArrays(1, &skyVao);
+        skyVbo = 0;
+        skyVao = 0;
         glReady = false;
     }
     gui.reset();

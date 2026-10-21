@@ -17,7 +17,9 @@
       <p id="status">Starting…</p>
       <p id="error"></p>
     </header>
-    <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+    <div id="view">
+      <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+    </div>
     <p id="webgl-fallback">WebGL2 is not available in this browser.</p>
     <script src="upload.js"></script>
     {{{ SCRIPT }}}

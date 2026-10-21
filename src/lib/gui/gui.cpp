@@ -210,9 +210,9 @@ void plotAttributeHistogram(AttributeWidget& widget) {
 void GUI::render() {
 
 
-    // ImGui UI on the left 30%
-    ImGui::SetNextWindowPos(ImVec2(0, 0)); // Position at top-left corner
-    ImGui::SetNextWindowSize(ImVec2(rendering.windowWidth * (1-rendering.renderWidthPercentage), rendering.windowHeight)); // 30% width, full height
+    // ImGui UI on the left. Width 0 asks ImGui to fit the contents.
+    ImGui::SetNextWindowPos(ImVec2(0, 0));
+    ImGui::SetNextWindowSize(ImVec2(rendering.windowWidth * (1.f - rendering.renderWidthPercentage), rendering.windowHeight));
     ImGui::Begin("Controls");
     ImGui::SetWindowFontScale(1.f);
 
@@ -538,13 +538,17 @@ static float clipAxisExtent(const SessionState& session, int axis) {
 }
 
 void GUI::renderLightingControls() {
-    // ImGui UI on the left 30%
-    ImGui::SetNextWindowPos(ImVec2(rendering.windowWidth - 300.f, 0)); // Position at top-right corner
-    ImGui::SetNextWindowSize(ImVec2(300, static_cast<float>(rendering.windowHeight))); 
+    ImGui::SetNextWindowPos(ImVec2(rendering.windowWidth - 300.f, 0));
+    ImGui::SetNextWindowSize(ImVec2(300, static_cast<float>(rendering.windowHeight)));
 
     ImGui::Begin("Rendering Parameters");
     ImGui::SetWindowFontScale(1.f);
 
+    ImGui::Text("Sky:");
+    ImGui::ColorEdit3("Zenith", &rendering.skyZenith.x);
+    ImGui::ColorEdit3("Ground", &rendering.skyGround.x);
+
+    ImGui::Text(" ");
     ImGui::Text("Ambient Light:");
     ImGui::SliderFloat("R##1", &rendering.ambientLightColour.x, 0, 1, "%.2f");
     ImGui::SliderFloat("G##1", &rendering.ambientLightColour.y, 0, 1, "%.2f");

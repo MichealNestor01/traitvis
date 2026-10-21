@@ -4,6 +4,9 @@
 #include <gtc/matrix_transform.hpp>
 #include <gtc/type_ptr.hpp>
 
+#include <algorithm>
+#include <cmath>
+
 class Camera {
 private:
     // translation controls
@@ -53,22 +56,25 @@ public:
     // actions
     bool actionForwards, actionBackwards, actionLeft, actionRight, actionUp, actionDown;
 
-    Camera(glm::vec3 pos, glm::vec3 front, glm::vec3 up) : pos(pos), front(front), up(up) {} 
+    Camera(glm::vec3 pos, glm::vec3 front, glm::vec3 up) : pos(pos), front(glm::normalize(front)), up(up) {
+        // updateCamera rebuilds `front` from yaw and pitch, so the spawn direction has to land there.
+        const float y = std::clamp(this->front.y, -1.f, 1.f);
+        pitch = glm::degrees(std::asin(y));
+        yaw = glm::degrees(glm::atan(this->front.z, this->front.x));
+    } 
 
-    void updateDirection(double x, double y) {
-        float xoffset = (x - oldMouseX)*mouseSens;
-        float yoffset = (oldMouseY - y)*mouseSens;
-
-        oldMouseX = x;
-        oldMouseY = y;
-
-        yaw += xoffset;
-        pitch += yoffset;
-
-
-        // restrict pitch to 180 degrees infront of camera.
+    // dx is to the right, dy is downward, both in pixels.
+    void addLook(float dx, float dy) {
+        yaw += dx * mouseSens;
+        pitch -= dy * mouseSens;
         if (pitch > 89.f) pitch = 89.f;
         else if (pitch < -89.f) pitch = -89.f;
+    }
+
+    void updateDirection(double x, double y) {
+        addLook(static_cast<float>(x - oldMouseX), static_cast<float>(y - oldMouseY));
+        oldMouseX = static_cast<float>(x);
+        oldMouseY = static_cast<float>(y);
     }
 
     void updateMousePos(double x, double y) {

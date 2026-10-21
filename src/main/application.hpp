@@ -89,6 +89,9 @@ private:
     std::optional<GUI> gui;
     std::optional<ShaderProgram> lighting;
     std::optional<ShaderProgram> composite;
+    std::optional<ShaderProgram> sky;
+    unsigned int skyVao = 0;
+    unsigned int skyVbo = 0;
     std::optional<GpuDistanceField> distanceField;
     std::optional<GpuMesh> cube;
     DepthPeelBuffers peels;

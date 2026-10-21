@@ -15,6 +15,9 @@ struct RenderState {
     int windowWidth, windowHeight;
     float renderWidthPercentage = 1.f;
     bool enableCam = false;
+    // Set once the browser has actually locked the pointer. Until then, mouse
+    // positions are still the on-screen cursor and run into the canvas edge.
+    bool pointerLocked = false;
     float fov = 45.f;
     float aspectRatio = (renderWidthPercentage*windowWidth)/windowHeight;
     float nearPlane = 0.1f;
@@ -27,6 +30,9 @@ struct RenderState {
     float diffuseLightStrength = 0.58f;
     // One direction for the whole frame. This is the cheap light; the point light is opt-in.
     glm::vec3 diffuseLightDirection = glm::vec3(-0.44f, -0.82f, -1.f);
+    // Pale blue overhead, warm grey underfoot. The mix follows the view direction.
+    glm::vec3 skyZenith = glm::vec3(0.80f, 0.87f, 0.94f);
+    glm::vec3 skyGround = glm::vec3(0.94f, 0.92f, 0.89f);
     bool pointLight = false;
     // Off the Isabel grid (0..500, 0..100, 0..500), on the side the old direction pointed from.
     glm::vec3 lightPosition = glm::vec3(200.f, -400.f, -200.f);
@@ -55,11 +61,15 @@ struct RenderState {
         enableCam = not enableCam;
         cam.disableActions();
         if (enableCam) glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        else glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        else {
+            pointerLocked = false;
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
     }
 
     // Leave camera mode without toggling back on. Escape and a lost pointer lock both call this.
     void releaseCam(GLFWwindow* window) {
+        pointerLocked = false;
         if (!enableCam) return;
         enableCam = false;
         cam.disableActions();

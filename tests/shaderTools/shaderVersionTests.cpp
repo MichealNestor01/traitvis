@@ -16,7 +16,7 @@ TEST(ShaderVersionTests, StageShadersCarryNoVersionDirective) {
         std::getline(input, firstLine);
         EXPECT_NE(firstLine.rfind("#version", 0), 0u) << entry.path();
     }
-    EXPECT_EQ(seen, 4);
+    EXPECT_EQ(seen, 5);
 }
 
 TEST(ShaderVersionTests, ComputeShaderKeepsDesktopVersion) {
