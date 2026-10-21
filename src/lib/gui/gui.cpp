@@ -1,4 +1,4 @@
-#include <glad/glad.h>
+#include "../../platform/gl.hpp"
 #include <GLFW/glfw3.h>
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
@@ -210,9 +210,9 @@ void plotAttributeHistogram(AttributeWidget& widget) {
 void GUI::render() {
 
 
-    // ImGui UI on the left 30%
-    ImGui::SetNextWindowPos(ImVec2(0, 0)); // Position at top-left corner
-    ImGui::SetNextWindowSize(ImVec2(rendering.windowWidth * (1-rendering.renderWidthPercentage), rendering.windowHeight)); // 30% width, full height
+    // ImGui UI on the left. Width 0 asks ImGui to fit the contents.
+    ImGui::SetNextWindowPos(ImVec2(0, 0));
+    ImGui::SetNextWindowSize(ImVec2(rendering.windowWidth * (1.f - rendering.renderWidthPercentage), rendering.windowHeight));
     ImGui::Begin("Controls");
     ImGui::SetWindowFontScale(1.f);
 
@@ -227,14 +227,19 @@ void GUI::render() {
     if (ImGui::Button("Redo")) session.redo();
     ImGui::EndDisabled();
 
+    const double megabytes = static_cast<double>(session.residentBytes()) / (1024.0 * 1024.0);
+    ImGui::Text("Memory: %.0f MB / 2048 MB", megabytes);
+    if (!session.loadError.empty()) ImGui::TextWrapped("%s", session.loadError.c_str());
+
     if (session.activeLoad) {
         ImGui::ProgressBar(session.activeLoad->progress());
         if (ImGui::Button("Cancel load")) session.activeLoad->cancel();
-    } else if (ImGui::Button("Load Dataset")) {
+    }
+#ifndef __EMSCRIPTEN__
+    else if (ImGui::Button("Load Dataset")) {
         fileDialogError.clear();
         session.beginDatasetLoad(std::string(inputTextBuffer));
     }
-#ifndef __EMSCRIPTEN__
     ImGui::SameLine();
     const bool busy = session.activeLoad.has_value() || session.activeLevelSet.has_value();
     if (busy) ImGui::BeginDisabled();
@@ -253,11 +258,9 @@ void GUI::render() {
         }
     }
     if (busy) ImGui::EndDisabled();
-#endif
     ImGui::SameLine();
     ImGui::InputText("##DatasetPath", inputTextBuffer, IM_ARRAYSIZE(inputTextBuffer));
     if (!fileDialogError.empty()) ImGui::TextUnformatted(fileDialogError.c_str());
-#ifndef __EMSCRIPTEN__
     if (busy) ImGui::BeginDisabled();
     if (ImGui::Button("Import OBJ")) {
         const FileDialogOutcome picked = pickMeshFile();
@@ -539,13 +542,17 @@ static float clipAxisExtent(const SessionState& session, int axis) {
 }
 
 void GUI::renderLightingControls() {
-    // ImGui UI on the left 30%
-    ImGui::SetNextWindowPos(ImVec2(rendering.windowWidth - 300.f, 0)); // Position at top-right corner
-    ImGui::SetNextWindowSize(ImVec2(300, static_cast<float>(rendering.windowHeight))); 
+    ImGui::SetNextWindowPos(ImVec2(rendering.windowWidth - 300.f, 0));
+    ImGui::SetNextWindowSize(ImVec2(300, static_cast<float>(rendering.windowHeight)));
 
     ImGui::Begin("Rendering Parameters");
     ImGui::SetWindowFontScale(1.f);
 
+    ImGui::Text("Sky:");
+    ImGui::ColorEdit3("Zenith", &rendering.skyZenith.x);
+    ImGui::ColorEdit3("Ground", &rendering.skyGround.x);
+
+    ImGui::Text(" ");
     ImGui::Text("Ambient Light:");
     ImGui::SliderFloat("R##1", &rendering.ambientLightColour.x, 0, 1, "%.2f");
     ImGui::SliderFloat("G##1", &rendering.ambientLightColour.y, 0, 1, "%.2f");

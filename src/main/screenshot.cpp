@@ -1,6 +1,6 @@
 #include "screenshot.hpp"
 
-#include <glad/glad.h>
+#include "../platform/gl.hpp"
 #include <GLFW/glfw3.h>
 
 #include <algorithm>

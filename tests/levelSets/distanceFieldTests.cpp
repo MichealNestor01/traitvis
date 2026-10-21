@@ -99,11 +99,11 @@ TEST_F(DistanceFieldTests, TwoDimensionalAttributeSpace) {
     // simplified distance field as the coordinates are not needed for this test
     std::vector<float> expectedDistanceField = {
         // x layer 1
-        sqrt(2), 0,         // y = 0
-        sqrt(2), sqrt(2),   // y = 2
+        std::sqrt(2.f), 0,               // y = 0
+        std::sqrt(2.f), std::sqrt(2.f), // y = 2
         // x layer 2
-        sqrt(2), sqrt(2),   // y = 0
-        1,       sqrt(2),   // y = 1
+        std::sqrt(2.f), std::sqrt(2.f), // y = 0
+        1,              std::sqrt(2.f), // y = 1
     };
 
     ScalarField field = generateDistanceField(points, testMultiField);
@@ -124,11 +124,11 @@ TEST_F(DistanceFieldTests, ThreeDimensionalAttributeSpace) {
     // simplified distance field as the coordinates are not needed for this test
     std::vector<float> expectedDistanceField = {
         // x layer 1
-        sqrt(3), 0,         // y = 0
-        sqrt(3), sqrt(3),   // y = 2
+        std::sqrt(3.f), 0,               // y = 0
+        std::sqrt(3.f), std::sqrt(3.f), // y = 2
         // x layer 2
-        sqrt(3), sqrt(3),   // y = 0
-        1,       sqrt(2),   // y = 1
+        std::sqrt(3.f), std::sqrt(3.f), // y = 0
+        1,              std::sqrt(2.f), // y = 1
     };
 
     ScalarField field = generateDistanceField(points, testMultiField);

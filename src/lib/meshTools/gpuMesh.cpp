@@ -1,6 +1,6 @@
 #include "gpuMesh.hpp"
 
-#include <glad/glad.h>
+#include "../../platform/gl.hpp"
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
 

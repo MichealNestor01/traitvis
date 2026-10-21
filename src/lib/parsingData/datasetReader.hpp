@@ -7,9 +7,11 @@
 #include <filesystem>
 #include <functional>
 #include <optional>
-#include <stop_token>
 #include <string>
+#if !defined(__EMSCRIPTEN__) || defined(__EMSCRIPTEN_PTHREADS__)
+#include <stop_token>
 #include <thread>
+#endif
 #include <vector>
 
 // Supplies one attribute file. Desktop reads the file; a browser build returns bytes from JavaScript.
@@ -20,9 +22,10 @@ using AttributeBytesProvider = std::function<std::vector<float>(const std::files
 
 // Reads a dataset off the interface thread. The result is published only by take(),
 // which the interface calls once finished() is true. An empty provider reads the files.
+// An empty `selectedFiles` reads every attribute. A non-empty list reads only those filenames.
 class DatasetReadJob {
 public:
-    explicit DatasetReadJob(std::string path, AttributeBytesProvider provider = {});
+    explicit DatasetReadJob(std::string path, AttributeBytesProvider provider = {}, std::vector<std::string> selectedFiles = {});
     void start();
     void stepOnMainThread();
     [[nodiscard]] float progress() const;
@@ -31,12 +34,16 @@ public:
     void cancel();
     [[nodiscard]] std::optional<MultiField> take();
 private:
+#if !defined(__EMSCRIPTEN__) || defined(__EMSCRIPTEN_PTHREADS__)
     void run(std::stop_token token);
+#endif
     void stepFile();
     void markCancelled();
+    [[nodiscard]] bool included(const std::string& filename) const;
 
     std::string path;
     AttributeBytesProvider provider;
+    std::vector<std::string> selectedFiles;
     DatasetDirConfig config;
     MultiField result;
     int nextFile = 0;
@@ -47,5 +54,7 @@ private:
     std::atomic<int> filesDone{0};
     std::atomic<bool> stop{false};
     std::atomic<bool> complete{false};
+#if !defined(__EMSCRIPTEN__) || defined(__EMSCRIPTEN_PTHREADS__)
     std::jthread worker;
+#endif
 };

@@ -1,7 +1,7 @@
 // This was heavily modified from Markus Bileter's COMP3811 Computer Graphics module.
 #pragma once
 
-#include <glad/glad.h>
+#include "../../platform/gl.hpp"
 #include <glm.hpp>
 #include <gtc/type_ptr.hpp>
 
@@ -33,5 +33,6 @@ class ShaderProgram {
         void setUniformf(std::string name, GLfloat f);
         void setUniform3f(std::string name, GLfloat f1, GLfloat f2, GLfloat f3);
         void setUniform3f(std::string name, glm::vec3 f);
+        void setUniform2f(std::string name, GLfloat f1, GLfloat f2);
         void setUniformMat4f(std::string name, glm::mat4 *mat);
 };

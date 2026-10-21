@@ -1,8 +1,6 @@
 #include "shaderProgram.hpp"
 #include "shaderSource.hpp"
 
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
 #include <glm.hpp>
 #include <gtc/type_ptr.hpp>
 
@@ -13,7 +11,15 @@
 #include <sstream>
 
 GLuint loadShader(GLenum type, const char * path) {
-    const std::string sourceStr = readShaderSource(path);
+    const std::string fileSource = readShaderSource(path);
+    // Compute shaders are desktop-only and keep the #version line in the file.
+    // Vertex and fragment stages share one file across GL 3.3 and GLSL ES 3.00.
+#if defined(GL_COMPUTE_SHADER)
+    const std::string sourceStr = type == GL_COMPUTE_SHADER ? fileSource : std::string(kGlslHeader) + fileSource;
+#else
+    (void)type;
+    const std::string sourceStr = std::string(kGlslHeader) + fileSource;
+#endif
     std::vector<GLchar> sourceCode(sourceStr.begin(), sourceStr.end());
 
     GLuint shader = glCreateShader(type);
@@ -87,6 +93,11 @@ void ShaderProgram::setUniform3f(std::string name, GLfloat f1, GLfloat f2, GLflo
 void ShaderProgram::setUniform3f(std::string name, glm::vec3 f) {
     int location = glGetUniformLocation(program.get(), name.c_str());
     glUniform3f(location, f.x, f.y, f.z);
+}
+
+void ShaderProgram::setUniform2f(std::string name, GLfloat f1, GLfloat f2) {
+    int location = glGetUniformLocation(program.get(), name.c_str());
+    glUniform2f(location, f1, f2);
 }
 
 void ShaderProgram::setUniformMat4f(std::string name, glm::mat4 *mat) {

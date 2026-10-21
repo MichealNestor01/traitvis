@@ -1,16 +1,15 @@
 #include "datasetReader.hpp"
+#include "waitForJob.hpp"
 
 #include <gtest/gtest.h>
 #include <filesystem>
 #include <optional>
-#include <thread>
 #include <vector>
 
 TEST(DatasetReadJobTests, CancelBeforeStartYieldsNoDataset) {
     DatasetReadJob job("tests/parsingData/testDataset/config.txt");
     job.cancel();
-    job.start();
-    while (!job.finished()) std::this_thread::yield();
+    waitForJob(job, [&] { job.stepOnMainThread(); });
     EXPECT_FALSE(job.take().has_value());
 }
 
@@ -39,10 +38,25 @@ TEST(DatasetReadJobTests, ProviderSuppliesAttributeBytes) {
     EXPECT_FLOAT_EQ(result->attributeDomain[0].values[0], 0.25f);
 }
 
+TEST(DatasetReadJobTests, SelectedFileIsTheOnlyAttributeRead) {
+    DatasetReadJob missing("tests/parsingData/testDataset/config.txt", {}, {"does-not-exist.bin"});
+    while (!missing.finished()) missing.stepOnMainThread();
+    const std::optional<MultiField> rejected = missing.take();
+    ASSERT_TRUE(rejected);
+    EXPECT_FALSE(rejected->ok());
+
+    DatasetReadJob chosen("tests/parsingData/testDataset/config.txt", {}, {"test.bin"});
+    while (!chosen.finished()) chosen.stepOnMainThread();
+    const std::optional<MultiField> result = chosen.take();
+    ASSERT_TRUE(result);
+    EXPECT_TRUE(result->ok());
+    EXPECT_EQ(result->attributeDomain.size(), 1u);
+    EXPECT_EQ(result->attributeDomain[0].name, "testAttribute");
+}
+
 TEST(DatasetReadJobTests, BackgroundReadMatchesTheDataset) {
     DatasetReadJob job("tests/parsingData/testDataset/config.txt");
-    job.start();
-    while (!job.finished()) std::this_thread::yield();
+    waitForJob(job, [&] { job.stepOnMainThread(); });
     const std::optional<MultiField> result = job.take();
     ASSERT_TRUE(result);
     EXPECT_TRUE(result->ok());

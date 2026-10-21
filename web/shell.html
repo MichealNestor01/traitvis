@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TraitVis</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <header id="bar">
+      <h1>TraitVis</h1>
+      <label id="drop" aria-disabled="true">
+        Drop a dataset folder here, then choose which attributes to load.
+        <input id="folder" type="file" webkitdirectory multiple disabled>
+      </label>
+      <button id="sample" type="button" disabled>Load sample (Isabel wind velocity)</button>
+      <p id="memory">Memory: 0 MB / 2048 MB</p>
+      <progress id="progress" max="1" value="0" hidden></progress>
+      <p id="status">Starting…</p>
+      <p id="error"></p>
+      <div id="picker" hidden>
+        <p id="picker-title">Choose attributes</p>
+        <div id="picker-list"></div>
+        <p id="picker-note"></p>
+        <button id="picker-load" type="button">Load selected</button>
+        <button id="picker-cancel" type="button">Cancel</button>
+      </div>
+    </header>
+    <div id="view">
+      <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+    </div>
+    <p id="webgl-fallback">WebGL2 is not available in this browser.</p>
+    <script src="upload.js"></script>
+    {{{ SCRIPT }}}
+  </body>
+</html>

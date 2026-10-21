@@ -1,0 +1,120 @@
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #fff;
+  color: #1a1a1a;
+  font-family: sans-serif;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+#bar {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  padding: 0.6rem 0.9rem;
+  border-bottom: 1px solid #ddd;
+}
+
+#bar h1 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+#drop {
+  border: 1px dashed #888;
+  border-radius: 4px;
+  padding: 0.45rem 0.7rem;
+  background: #fafafa;
+}
+
+#drop.drag {
+  border-color: #246;
+  background: #f3f7fb;
+}
+
+#drop[aria-disabled="true"] {
+  opacity: 0.55;
+}
+
+#folder {
+  margin-left: 0.6rem;
+}
+
+#status, #error {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+#error {
+  color: #8a1f1f;
+}
+
+#progress {
+  width: 10rem;
+}
+
+#sample, #picker-load, #picker-cancel {
+  font: inherit;
+}
+
+#memory, #picker-note {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+#picker {
+  flex: 1 0 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.8rem;
+}
+
+#picker[hidden] {
+  display: none;
+}
+
+#picker-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+#picker-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.9rem;
+}
+
+#picker-list label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* The GLFW port sizes the canvas to this element. */
+#view {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+#canvas {
+  display: block;
+  background: #fff;
+}
+
+#webgl-fallback {
+  display: none;
+  margin: 0;
+  padding: 1.5rem;
+}

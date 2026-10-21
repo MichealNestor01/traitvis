@@ -11,18 +11,27 @@
 bool spaceLock = false;
 
 void processInput(GLFWwindow* window) {
-    // program termination
+    auto* state = static_cast<RenderState*>(glfwGetWindowUserPointer(window));
+#ifdef __EMSCRIPTEN__
+    // Escape leaves pointer lock. Closing the window would try to close the tab.
+    if (state && glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        state->releaseCam(window);
+#else
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+#endif
 
-    if (auto* state = static_cast<RenderState*>(glfwGetWindowUserPointer(window))) {
-        // disable/enable mouse
+    if (state) {
+#ifndef __EMSCRIPTEN__
+        // On the web this runs from the key callback instead, because pointer lock
+        // is rejected outside the key event.
         if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS and not spaceLock) {
             state->toggleCam(window);
             spaceLock = true;
-        } else if (spaceLock and glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE) {
-            spaceLock = false;
         }
+#endif
+        if (spaceLock and glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE)
+            spaceLock = false;
 
         if (state->enableCam) {
             if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) state->cam.actionForwards = true;
@@ -40,3 +49,19 @@ void processInput(GLFWwindow* window) {
         }
     }
 }
+
+#ifdef __EMSCRIPTEN__
+void onWebKey(GLFWwindow* window, int key, int action) {
+    if (action != GLFW_PRESS) return;
+    auto* state = static_cast<RenderState*>(glfwGetWindowUserPointer(window));
+    if (!state) return;
+    if (key == GLFW_KEY_ESCAPE) {
+        state->releaseCam(window);
+        return;
+    }
+    if (key == GLFW_KEY_SPACE && !spaceLock) {
+        state->toggleCam(window);
+        spaceLock = true;
+    }
+}
+#endif

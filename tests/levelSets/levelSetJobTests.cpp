@@ -1,10 +1,10 @@
 #include "featureLevelSet.hpp"
 #include "levelSetJob.hpp"
 #include "multiField.hpp"
+#include "waitForJob.hpp"
 
 #include <gtest/gtest.h>
 #include <memory>
-#include <thread>
 #include <vector>
 
 class LevelSetJobTests : public ::testing::Test {
@@ -31,8 +31,7 @@ protected:
 TEST_F(LevelSetJobTests, CancelBeforeStartYieldsNoResult) {
     LevelSetJob job(points, dataset, 0.5f, {1.f, 0.f, 0.f}, "a");
     job.cancel();
-    job.start();
-    while (!job.finished()) std::this_thread::yield();
+    waitForJob(job, [&] { job.stepOnMainThread(1); });
     EXPECT_FALSE(job.take().has_value());
 }
 
@@ -93,8 +92,7 @@ TEST_F(LevelSetJobTests, PrecomputedFieldSkipsTheSlabs) {
 TEST_F(LevelSetJobTests, BackgroundJobProducesSameSurfaceAsSynchronousPath) {
     FeatureLevelSet expected(points, dataset, 0.5f, {1.f, 0.f, 0.f}, "a");
     LevelSetJob job(points, dataset, 0.5f, {1.f, 0.f, 0.f}, "a");
-    job.start();
-    while (!job.finished()) std::this_thread::yield();
+    waitForJob(job, [&] { job.stepOnMainThread(1); });
     const std::optional<FeatureLevelSet> result = job.take();
     ASSERT_TRUE(result);
     EXPECT_EQ(result->surface.vertices, expected.surface.vertices);

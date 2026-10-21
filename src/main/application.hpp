@@ -17,6 +17,11 @@ struct DepthPeelBuffers {
     unsigned int query = 0;
     unsigned int compositeVao = 0;
     unsigned int compositeVbo = 0;
+    // Opaque colour and depth for a frame that also peels. The window depth
+    // buffer is not DEPTH_COMPONENT24, so peels copy depth from this target.
+    unsigned int sceneFbo = 0;
+    unsigned int sceneColour = 0;
+    unsigned int sceneDepth = 0;
     int width = 0;
     int height = 0;
     bool reportedIncomplete = false;
@@ -66,6 +71,8 @@ public:
     void frame();
     void shutdown();
     [[nodiscard]] bool shouldClose() const;
+    // The browser dataset callbacks load into this session.
+    [[nodiscard]] SessionState& sessionState() { return session; }
 
 private:
     GLFWwindow* window = nullptr;
@@ -79,6 +86,9 @@ private:
     std::optional<GUI> gui;
     std::optional<ShaderProgram> lighting;
     std::optional<ShaderProgram> composite;
+    std::optional<ShaderProgram> sky;
+    unsigned int skyVao = 0;
+    unsigned int skyVbo = 0;
     std::optional<GpuDistanceField> distanceField;
     std::optional<GpuMesh> cube;
     DepthPeelBuffers peels;

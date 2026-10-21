@@ -2,7 +2,7 @@
 
 #include "../util/uniqueHandle.hpp"
 
-#include <glad/glad.h>
+#include "../../platform/gl.hpp"
 
 #include <algorithm>
 #include <cstdint>

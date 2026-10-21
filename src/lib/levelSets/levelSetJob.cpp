@@ -66,7 +66,9 @@ bool LevelSetJob::finished() const {
 
 void LevelSetJob::cancel() {
     stop.store(true);
+#if !defined(__EMSCRIPTEN__) || defined(__EMSCRIPTEN_PTHREADS__)
     if (worker.joinable()) worker.request_stop();
+#endif
 }
 
 std::optional<FeatureLevelSet> LevelSetJob::take() {
@@ -74,6 +76,7 @@ std::optional<FeatureLevelSet> LevelSetJob::take() {
     return std::move(result);
 }
 
+#if !defined(__EMSCRIPTEN__) || defined(__EMSCRIPTEN_PTHREADS__)
 void LevelSetJob::run(std::stop_token token) {
     if (stopRequested(token)) { finishCancelled(); return; }
     while (field && !field->done()) {
@@ -87,6 +90,7 @@ void LevelSetJob::run(std::stop_token token) {
 bool LevelSetJob::stopRequested(std::stop_token token) const {
     return stop.load() || token.stop_requested();
 }
+#endif
 
 void LevelSetJob::finishCancelled() {
     cancelled = true;
