@@ -1,6 +1,7 @@
-// Folder drop and the file picker. The config is parsed in C++; this file only copies bytes.
+// Folder drop, the Isabel sample, and the file picker. The config is parsed in C++.
 (function () {
   const sliceBytes = 8 << 20;
+  const memoryCapLabel = '2048 MB';
 
   function status(message) {
     document.getElementById('status').textContent = message;
@@ -22,8 +23,29 @@
   }
 
   function setBusy(busy) {
-    document.getElementById('folder').disabled = busy || !window.traitvisRuntimeReady;
-    document.getElementById('drop').setAttribute('aria-disabled', busy || !window.traitvisRuntimeReady ? 'true' : 'false');
+    const locked = busy || !window.traitvisRuntimeReady;
+    document.getElementById('folder').disabled = locked;
+    document.getElementById('sample').disabled = locked;
+    document.getElementById('drop').setAttribute('aria-disabled', locked ? 'true' : 'false');
+  }
+
+  function formatMegabytes(bytes) {
+    return Math.round(bytes / (1024 * 1024)) + ' MB';
+  }
+
+  function residentBytes() {
+    if (!window.traitvisRuntimeReady) return 0;
+    return Number(Module.ccall('traitvisResidentBytes', 'string', [], []));
+  }
+
+  function selectionFits(bytes) {
+    return Module.ccall('traitvisLoadFits', 'number', ['string'], [String(bytes)]) === 1;
+  }
+
+  function refreshMemory() {
+    const label = document.getElementById('memory');
+    if (!label) return;
+    label.textContent = 'Memory: ' + formatMegabytes(residentBytes()) + ' / ' + memoryCapLabel;
   }
 
   function parseListing(listing) {
@@ -52,14 +74,111 @@
     }
   }
 
+  function describeConfig() {
+    const listingPtr = Module.ccall('traitvisDescribeConfig', 'number', ['string'], ['/dataset/config.txt']);
+    if (!listingPtr) throw new Error('Could not read the dataset config.');
+    const listing = readCString(listingPtr);
+    Module._free(listingPtr);
+    if (listing.startsWith('!')) throw new Error(listing.slice(1).trim());
+    const attributes = parseListing(listing);
+    if (!attributes.length) throw new Error('The config has no attributes.');
+    return attributes;
+  }
+
   async function copyInSlices(file, ptr, onProgress) {
     for (let offset = 0; offset < file.size; offset += sliceBytes) {
       const end = Math.min(file.size, offset + sliceBytes);
       const bytes = new Uint8Array(await file.slice(offset, end).arrayBuffer());
       // Re-read the heap view. An earlier allocation can replace it.
-      Module.HEAPU8.set(bytes, ptr + offset);
+      Module.HEAPU8.set(bytes, (ptr + offset) >>> 0);
       onProgress(end / file.size);
     }
+  }
+
+  async function streamInto(url, ptr, total, onProgress) {
+    const response = await fetch(url);
+    if (!response.ok || !response.body) throw new Error('Could not fetch ' + url + '.');
+    const reader = response.body.getReader();
+    let offset = 0;
+    for (;;) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      Module.HEAPU8.set(chunk.value, (ptr + offset) >>> 0);
+      offset += chunk.value.length;
+      onProgress(offset / total);
+    }
+    if (offset !== total) throw new Error(url + ' was not the size the config describes.');
+  }
+
+  async function stageAndLoad(attributes, readBytes) {
+    const total = attributes.reduce((sum, attribute) => sum + attribute.count * 4, 0);
+    if (!selectionFits(total)) throw new Error('That selection is over the 2 GB limit.');
+
+    let copied = 0;
+    for (const attribute of attributes) {
+      status('Copying ' + attribute.name + '…');
+      const dest = Module.ccall(
+        'traitvisBeginAttribute', 'number', ['string', 'number'], [attribute.file, attribute.count]) >>> 0;
+      if (!dest) throw new Error('Could not allocate ' + attribute.name + '.');
+      await readBytes(attribute, dest, ratio => setProgress((copied + ratio * attribute.count * 4) / total));
+      copied += attribute.count * 4;
+    }
+
+    const started = Module.ccall(
+      'traitvisBeginLoad', 'number', ['string', 'string'],
+      ['/dataset/config.txt', attributes.map(attribute => attribute.file).join(',')]);
+    if (!started) throw new Error('Could not start the load.');
+    const noun = attributes.length === 1 ? 'attribute' : 'attributes';
+    status('Loaded ' + attributes.length + ' ' + noun + '.');
+    refreshMemory();
+  }
+
+  function chooseAttributes(attributes) {
+    const picker = document.getElementById('picker');
+    const list = document.getElementById('picker-list');
+    const note = document.getElementById('picker-note');
+    const load = document.getElementById('picker-load');
+    const cancel = document.getElementById('picker-cancel');
+    list.replaceChildren();
+
+    const boxes = attributes.map(attribute => {
+      const label = document.createElement('label');
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.checked = true;
+      label.append(box, document.createTextNode(attribute.name + ' (' + formatMegabytes(attribute.count * 4) + ')'));
+      list.append(label);
+      return box;
+    });
+
+    function selected() {
+      return attributes.filter((attribute, index) => boxes[index].checked);
+    }
+
+    function updateChoice() {
+      const chosen = selected();
+      const incoming = chosen.reduce((sum, attribute) => sum + attribute.count * 4, 0);
+      const fits = chosen.length > 0 && selectionFits(incoming);
+      load.disabled = !fits;
+      if (!chosen.length) note.textContent = 'Choose at least one attribute.';
+      else if (!fits) note.textContent = 'That selection is over the 2 GB limit.';
+      else note.textContent = 'Selected ' + formatMegabytes(incoming) + '.';
+    }
+
+    boxes.forEach(box => box.addEventListener('change', updateChoice));
+    updateChoice();
+    picker.hidden = false;
+
+    return new Promise(resolve => {
+      function finish(result) {
+        picker.hidden = true;
+        load.onclick = null;
+        cancel.onclick = null;
+        resolve(result);
+      }
+      load.onclick = () => finish(selected());
+      cancel.onclick = () => finish(null);
+    });
   }
 
   function readEntries(reader) {
@@ -89,6 +208,22 @@
     return files;
   }
 
+  async function loadDescribed(attributes, readBytes) {
+    setBusy(true);
+    showError('');
+    try {
+      await stageAndLoad(attributes, readBytes);
+    } catch (error) {
+      Module.ccall('traitvisCancelPending', null, [], []);
+      status('');
+      showError(error && error.message ? error.message : String(error));
+    } finally {
+      setBusy(false);
+      setProgress(0);
+      refreshMemory();
+    }
+  }
+
   async function loadFolder(fileList) {
     const files = Array.from(fileList);
     const configFile = files.find(file => file.name === 'config.txt');
@@ -100,47 +235,58 @@
     setBusy(true);
     showError('');
     status('Reading config…');
+    let attributes;
     try {
       ensureDatasetDir();
       Module.FS.writeFile('/dataset/config.txt', new Uint8Array(await configFile.arrayBuffer()));
-      const listingPtr = Module.ccall('traitvisDescribeConfig', 'number', ['string'], ['/dataset/config.txt']);
-      if (!listingPtr) throw new Error('Could not read the dataset config.');
-      const listing = readCString(listingPtr);
-      Module._free(listingPtr);
-      if (listing.startsWith('!')) throw new Error(listing.slice(1).trim());
-
-      const attributes = parseListing(listing);
-      if (!attributes.length) throw new Error('The config has no attributes.');
-
-      let copied = 0;
-      const total = attributes.reduce((sum, attribute) => sum + attribute.count * 4, 0);
-      for (const attribute of attributes) {
-        const file = files.find(item => item.name === attribute.file);
-        if (!file) throw new Error('Missing attribute file ' + attribute.file + '.');
-        if (file.size !== attribute.count * 4) {
-          throw new Error(attribute.file + ' is not the size the config describes.');
-        }
-        status('Copying ' + attribute.name + '…');
-        const dest = Module.ccall(
-          'traitvisBeginAttribute', 'number', ['string', 'number'], [attribute.file, attribute.count]) >>> 0;
-        if (!dest) throw new Error('Could not allocate ' + attribute.name + '.');
-        await copyInSlices(file, dest, ratio => setProgress((copied + ratio * file.size) / total));
-        copied += file.size;
-      }
-
-      const started = Module.ccall(
-        'traitvisBeginLoad', 'number', ['string', 'string'], ['/dataset/config.txt', '']);
-      if (!started) throw new Error('A dataset is already loading.');
-      const noun = attributes.length === 1 ? 'attribute' : 'attributes';
-      status('Loaded ' + attributes.length + ' ' + noun + '.');
+      attributes = describeConfig();
     } catch (error) {
-      Module.ccall('traitvisCancelPending', null, [], []);
       status('');
       showError(error && error.message ? error.message : String(error));
-    } finally {
       setBusy(false);
-      setProgress(0);
+      return;
     }
+
+    // The folder and sample buttons stay disabled while the visitor is choosing.
+    const chosen = await chooseAttributes(attributes);
+    if (!chosen) {
+      status('Drop a dataset folder, or choose one.');
+      setBusy(false);
+      refreshMemory();
+      return;
+    }
+
+    await loadDescribed(chosen, async (attribute, dest, onProgress) => {
+      const file = files.find(item => item.name === attribute.file);
+      if (!file) throw new Error('Missing attribute file ' + attribute.file + '.');
+      if (file.size !== attribute.count * 4) {
+        throw new Error(attribute.file + ' is not the size the config describes.');
+      }
+      await copyInSlices(file, dest, onProgress);
+    });
+  }
+
+  async function loadSample() {
+    setBusy(true);
+    showError('');
+    status('Reading sample…');
+    let attributes;
+    try {
+      const response = await fetch('isabel/config.txt');
+      if (!response.ok) throw new Error('The Isabel sample config is not next to this page.');
+      ensureDatasetDir();
+      Module.FS.writeFile('/dataset/config.txt', new Uint8Array(await response.arrayBuffer()));
+      attributes = describeConfig();
+    } catch (error) {
+      status('');
+      showError(error && error.message ? error.message : String(error));
+      setBusy(false);
+      return;
+    }
+
+    await loadDescribed(attributes, async (attribute, dest, onProgress) => {
+      await streamInto('isabel/' + attribute.file, dest, attribute.count * 4, onProgress);
+    });
   }
 
   window.traitvisLoadFolder = loadFolder;
@@ -148,19 +294,21 @@
   function bind() {
     const folder = document.getElementById('folder');
     const drop = document.getElementById('drop');
+    const sample = document.getElementById('sample');
     folder.addEventListener('change', () => {
       if (folder.files && folder.files.length) loadFolder(folder.files);
       folder.value = '';
     });
+    sample.addEventListener('click', () => loadSample());
     drop.addEventListener('dragover', event => {
       event.preventDefault();
-      if (window.traitvisRuntimeReady) drop.classList.add('drag');
+      if (window.traitvisRuntimeReady && !folder.disabled) drop.classList.add('drag');
     });
     drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
     drop.addEventListener('drop', async event => {
       event.preventDefault();
       drop.classList.remove('drag');
-      if (!window.traitvisRuntimeReady) return;
+      if (!window.traitvisRuntimeReady || folder.disabled) return;
       const collected = [];
       const items = event.dataTransfer.items;
       if (items && items.length && items[0].webkitGetAsEntry) {
@@ -180,6 +328,8 @@
     window.traitvisRuntimeReady = true;
     setBusy(false);
     status('Drop a dataset folder, or choose one.');
+    refreshMemory();
+    window.setInterval(refreshMemory, 500);
   };
 
   const canvas = document.getElementById('canvas');

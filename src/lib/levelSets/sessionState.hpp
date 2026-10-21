@@ -20,7 +20,12 @@ struct SessionCommand {
     virtual void redo(SessionState& session) = 0;
     // Trait vertices point into the active dataset. They are dropped when that dataset changes.
     [[nodiscard]] virtual bool changesTraitPoints() const { return false; }
+    // A level set parked here still owns its dataset and any kept distance field.
+    virtual void retainedLevelSets(std::vector<const FeatureLevelSet*>& out) const { (void)out; }
 };
+
+// Attributes and kept distance fields. A second copy of Isabel's fourteen attributes does not fit.
+inline constexpr std::size_t kDatasetMemoryCap = 2ull * 1024ull * 1024ull * 1024ull;
 
 // Datasets, trait vertices, and level sets. No window, camera, or OpenGL.
 // A level set holds its own shared_ptr, so removing a dataset does not free a surface
@@ -43,6 +48,8 @@ struct SessionState {
     std::function<std::optional<ScalarField>(std::span<const TraitPoint>, const MultiField&)> gpuDistanceField;
     std::vector<std::unique_ptr<SessionCommand>> undoStack;
     std::vector<std::unique_ptr<SessionCommand>> redoStack;
+    // Set when a load was refused. Cleared when a load starts.
+    std::string loadError;
 
     [[nodiscard]] std::shared_ptr<MultiField> activeDataset() const;
     void addDataset(std::shared_ptr<MultiField> dataset);
@@ -71,6 +78,12 @@ struct SessionState {
     // Drops parked level sets. Call while the GL context is current, so a mesh that was
     // undone after being drawn deletes its buffers before the context goes away.
     void clearHistory();
+    // Attribute samples still reachable from the dataset list, a level set, or the undo
+    // stack, plus every kept distance field. A removed dataset stays counted while a
+    // level set or an undo command still holds it.
+    [[nodiscard]] std::size_t residentBytes() const;
+    // `incoming` is the attribute bytes a new load would add.
+    [[nodiscard]] bool loadFits(std::size_t incoming) const;
     // Returns false when a load is already running. An empty provider reads the files.
     // An empty `selectedFiles` reads every attribute.
     bool beginDatasetLoad(std::string path, AttributeBytesProvider provider = {}, std::vector<std::string> selectedFiles = {});

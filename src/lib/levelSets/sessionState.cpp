@@ -1,8 +1,11 @@
 #include "sessionState.hpp"
 
+#include "../parsingData/configParser.hpp"
+
 #include <algorithm>
 #include <chrono>
 #include <memory>
+#include <unordered_set>
 #include <utility>
 
 namespace {
@@ -69,6 +72,10 @@ struct AddLevelSetCommand : SessionCommand {
         held = std::move(session.levelSets[static_cast<std::size_t>(index)]);
         session.levelSets.erase(session.levelSets.begin() + index);
     }
+
+    void retainedLevelSets(std::vector<const FeatureLevelSet*>& out) const override {
+        if (held) out.push_back(&*held);
+    }
 };
 
 struct RemoveLevelSetCommand : SessionCommand {
@@ -85,6 +92,10 @@ struct RemoveLevelSetCommand : SessionCommand {
     void undo(SessionState& session) override {
         session.levelSets.insert(session.levelSets.begin() + index, std::move(*held));
         held.reset();
+    }
+
+    void retainedLevelSets(std::vector<const FeatureLevelSet*>& out) const override {
+        if (held) out.push_back(&*held);
     }
 };
 
@@ -249,8 +260,72 @@ void SessionState::clearHistory() {
     redoStack.clear();
 }
 
+namespace {
+
+std::size_t attributeBytes(const MultiField& field) {
+    std::size_t bytes = 0;
+    for (const Attribute& attribute : field.attributeDomain)
+        bytes += attribute.values.size() * sizeof(float);
+    return bytes;
+}
+
+std::size_t keptFieldBytes(const FeatureLevelSet& levelSet) {
+    if (!levelSet.distanceField) return 0;
+    return levelSet.distanceField->values.size() * sizeof(float);
+}
+
+std::size_t selectedAttributeBytes(const DatasetDirConfig& config, const std::vector<std::string>& selectedFiles) {
+    if (!config.ok() || !config.dataset || config.dataset->format != ATTRIBUTEPERFILE) return 0;
+    const auto* dataset = static_cast<const AttributePerFileDataset*>(config.dataset.get());
+    std::size_t count = 0;
+    for (const auto& file : dataset->getFiles()) {
+        if (selectedFiles.empty() || std::find(selectedFiles.begin(), selectedFiles.end(), file.filename) != selectedFiles.end())
+            ++count;
+    }
+    const std::size_t perFile = static_cast<std::size_t>(dataset->getValuesPerFile()) * sizeof(float);
+    if (count > 0 && perFile > kDatasetMemoryCap / count) return kDatasetMemoryCap + 1;
+    return count * perFile;
+}
+
+}
+
+std::size_t SessionState::residentBytes() const {
+    std::unordered_set<const MultiField*> seen;
+    std::size_t bytes = 0;
+    auto addDataset = [&](const MultiField* field) {
+        if (field == nullptr || !seen.insert(field).second) return;
+        bytes += attributeBytes(*field);
+    };
+    auto addLevelSet = [&](const FeatureLevelSet& levelSet) {
+        addDataset(levelSet.dataset.get());
+        bytes += keptFieldBytes(levelSet);
+    };
+    for (const std::shared_ptr<MultiField>& dataset : datasets) addDataset(dataset.get());
+    for (const FeatureLevelSet& levelSet : levelSets) addLevelSet(levelSet);
+
+    std::vector<const FeatureLevelSet*> parked;
+    for (const std::unique_ptr<SessionCommand>& command : undoStack) command->retainedLevelSets(parked);
+    for (const std::unique_ptr<SessionCommand>& command : redoStack) command->retainedLevelSets(parked);
+    for (const FeatureLevelSet* levelSet : parked) addLevelSet(*levelSet);
+    return bytes;
+}
+
+bool SessionState::loadFits(std::size_t incoming) const {
+    if (incoming > kDatasetMemoryCap) return false;
+    return residentBytes() <= kDatasetMemoryCap - incoming;
+}
+
 bool SessionState::beginDatasetLoad(std::string path, AttributeBytesProvider provider, std::vector<std::string> selectedFiles) {
-    if (activeLoad) return false;
+    if (activeLoad) {
+        loadError = "A dataset is already loading.";
+        return false;
+    }
+    const std::size_t incoming = selectedAttributeBytes(parseConfig(path), selectedFiles);
+    if (!loadFits(incoming)) {
+        loadError = "That selection is over the 2 GB limit.";
+        return false;
+    }
+    loadError.clear();
     activeLoad.emplace(std::move(path), std::move(provider), std::move(selectedFiles));
     activeLoad->start();
     return true;

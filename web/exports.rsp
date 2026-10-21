@@ -1,2 +1,2 @@
 -sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','FS','HEAPU8']
--sEXPORTED_FUNCTIONS=['_main','_malloc','_free','_traitvisBeginAttribute','_traitvisCancelPending','_traitvisDescribeConfig','_traitvisBeginLoad']
+-sEXPORTED_FUNCTIONS=['_main','_malloc','_free','_traitvisBeginAttribute','_traitvisCancelPending','_traitvisDescribeConfig','_traitvisBeginLoad','_traitvisResidentBytes','_traitvisLoadFits']

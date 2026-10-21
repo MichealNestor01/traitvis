@@ -10,6 +10,8 @@
 #include "../lib/parsingData/fileReader.hpp"
 
 #include <algorithm>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <filesystem>
 #include <memory>
@@ -99,6 +101,25 @@ char* traitvisDescribeConfig(const char* configPath) {
     if (copy == nullptr) return nullptr;
     std::memcpy(copy, text.c_str(), text.size() + 1);
     return copy;
+}
+
+// Decimal byte count. A signed 32-bit return wraps past 2 GB.
+EMSCRIPTEN_KEEPALIVE
+const char* traitvisResidentBytes() {
+    static char text[32];
+    const std::size_t bytes = boundApplication == nullptr ? 0 : boundApplication->sessionState().residentBytes();
+    std::snprintf(text, sizeof(text), "%zu", bytes);
+    return text;
+}
+
+// `incoming` is a decimal byte count. Returns 1 when it fits under the cap.
+EMSCRIPTEN_KEEPALIVE
+int traitvisLoadFits(const char* incoming) {
+    if (boundApplication == nullptr || incoming == nullptr) return 0;
+    char* end = nullptr;
+    const unsigned long long bytes = std::strtoull(incoming, &end, 10);
+    if (end == incoming || bytes > kDatasetMemoryCap) return 0;
+    return boundApplication->sessionState().loadFits(static_cast<std::size_t>(bytes)) ? 1 : 0;
 }
 
 // Returns 1 when the session accepted the load. A 0 leaves the staged buffers freed.

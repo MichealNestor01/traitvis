@@ -227,6 +227,10 @@ void GUI::render() {
     if (ImGui::Button("Redo")) session.redo();
     ImGui::EndDisabled();
 
+    const double megabytes = static_cast<double>(session.residentBytes()) / (1024.0 * 1024.0);
+    ImGui::Text("Memory: %.0f MB / 2048 MB", megabytes);
+    if (!session.loadError.empty()) ImGui::TextWrapped("%s", session.loadError.c_str());
+
     if (session.activeLoad) {
         ImGui::ProgressBar(session.activeLoad->progress());
         if (ImGui::Button("Cancel load")) session.activeLoad->cancel();
