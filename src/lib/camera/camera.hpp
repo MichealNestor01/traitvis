@@ -49,7 +49,7 @@ public:
     // direction controls
     float mouseSens = 0.15f;
     // speed
-    float speed = 20.f;
+    float speed = 60.f;
     // translation controls 
     glm::vec3 pos;
     glm::vec3 front;

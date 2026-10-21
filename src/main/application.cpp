@@ -349,6 +349,8 @@ void errorCallback(int error, const char* description) {
 
 void drawSky(ShaderProgram& shader, unsigned int vao, const RenderState& state, const glm::mat4& invViewProj, float viewportWidth, float viewportHeight) {
     const GLboolean cull = glIsEnabled(GL_CULL_FACE);
+    GLint previousProgram = 0;
+    glGetIntegerv(GL_CURRENT_PROGRAM, &previousProgram);
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
     glDepthMask(GL_FALSE);
@@ -367,6 +369,16 @@ void drawSky(ShaderProgram& shader, unsigned int vao, const RenderState& state, 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     if (cull) glEnable(GL_CULL_FACE);
+    if (previousProgram != 0) glUseProgram(static_cast<GLuint>(previousProgram));
+}
+
+void drawFullscreenTexture(ShaderProgram& shader, unsigned int vao, unsigned int texture) {
+    glUseProgram(shader.program.get());
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glBindVertexArray(vao);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glBindVertexArray(0);
 }
 
 }
@@ -430,7 +442,6 @@ bool DepthPeelBuffers::ensure(int newWidth, int newHeight, int peelCount) {
     }
     glBindTexture(GL_TEXTURE_2D, 0);
 
-#ifdef __EMSCRIPTEN__
     if (first) {
         glGenFramebuffers(1, &sceneFbo);
         glGenTextures(1, &sceneColour);
@@ -450,6 +461,7 @@ bool DepthPeelBuffers::ensure(int newWidth, int newHeight, int peelCount) {
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sceneColour, 0);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, sceneDepth, 0);
         setDrawBuffer(GL_COLOR_ATTACHMENT0);
+        glReadBuffer(GL_COLOR_ATTACHMENT0);
         const bool sceneComplete = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glBindTexture(GL_TEXTURE_2D, 0);
@@ -461,7 +473,6 @@ bool DepthPeelBuffers::ensure(int newWidth, int newHeight, int peelCount) {
             return false;
         }
     }
-#endif
 
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colour[0], 0);
@@ -489,15 +500,12 @@ void DepthPeelBuffers::destroy() {
     if (query != 0) glDeleteQueries(1, &query);
     if (compositeVbo != 0) glDeleteBuffers(1, &compositeVbo);
     if (compositeVao != 0) glDeleteVertexArrays(1, &compositeVao);
-#ifdef __EMSCRIPTEN__
     if (sceneFbo != 0) glDeleteFramebuffers(1, &sceneFbo);
     if (sceneColour != 0) glDeleteTextures(1, &sceneColour);
     if (sceneDepth != 0) glDeleteTextures(1, &sceneDepth);
     sceneFbo = 0;
     sceneColour = 0;
     sceneDepth = 0;
-    sceneBlitChecked = false;
-#endif
     fbo = 0;
     depth[0] = depth[1] = 0;
     colour.clear();
@@ -873,7 +881,6 @@ void Application::frame() {
     if (peels.dummyDepth != 0) glBindTexture(GL_TEXTURE_2D, peels.dummyDepth);
 
     glDepthMask(GL_TRUE);
-#ifdef __EMSCRIPTEN__
     const bool useSceneTarget = anyTransparent && peels.ensure(fbWidth, fbHeight, state.maxDepthPeels);
     if (useSceneTarget) {
         glBindFramebuffer(GL_FRAMEBUFFER, peels.sceneFbo);
@@ -881,7 +888,6 @@ void Application::frame() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         drawSky(*sky, skyVao, state, invViewProj, static_cast<float>(fbWidth), static_cast<float>(fbHeight));
     }
-#endif
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -889,24 +895,16 @@ void Application::frame() {
     if (state.pointLight)
         drawLightMarker(lightingShader, *cube, state.lightPosition, state.lightSize, state.diffuseLightColour, defaultModel);
 
-#ifdef __EMSCRIPTEN__
     if (useSceneTarget) {
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, peels.sceneFbo);
-        glReadBuffer(GL_COLOR_ATTACHMENT0);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        if (!peels.sceneBlitChecked) {
-            while (glGetError() != GL_NO_ERROR) {}
-        }
-        glBlitFramebuffer(0, 0, fbWidth, fbHeight, 0, 0, fbWidth, fbHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-        if (!peels.sceneBlitChecked) {
-            const GLenum blitError = glGetError();
-            peels.sceneBlitChecked = true;
-            if (blitError != GL_NO_ERROR)
-                std::cerr << "Scene colour blit failed: 0x" << std::hex << blitError << std::dec << "\n";
-        }
+        // A colour blit onto the canvas is invalid when the formats differ, and it
+        // was dropping every surface once one of them became transparent.
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
+        drawFullscreenTexture(*composite, peels.compositeVao, peels.sceneColour);
+        glEnable(GL_DEPTH_TEST);
+        glUseProgram(lightingShader.program.get());
     }
-#endif
 
     int peelCount = 0;
     if (anyTransparent && peels.ensure(fbWidth, fbHeight, state.maxDepthPeels)) {
@@ -922,13 +920,14 @@ void Application::frame() {
             glBindFramebuffer(GL_FRAMEBUFFER, peels.fbo);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, peels.colour[peel], 0);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, writeDepth, 0);
-#ifdef __EMSCRIPTEN__
+            // Depth-only blit. A colour read buffer makes this call fail on WebGL,
+            // which leaves the peel depth at 0 and rejects every fragment.
             glBindFramebuffer(GL_READ_FRAMEBUFFER, peels.sceneFbo);
-#else
-            glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-#endif
+            glReadBuffer(GL_NONE);
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, peels.fbo);
+            setDrawBuffer(GL_NONE);
             glBlitFramebuffer(0, 0, fbWidth, fbHeight, 0, 0, fbWidth, fbHeight, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+            setDrawBuffer(GL_COLOR_ATTACHMENT0);
             glBindFramebuffer(GL_FRAMEBUFFER, peels.fbo);
             glClear(GL_COLOR_BUFFER_BIT);
 
@@ -953,12 +952,8 @@ void Application::frame() {
             glDisable(GL_DEPTH_TEST);
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            glUseProgram(composite->program.get());
-            glBindVertexArray(peels.compositeVao);
-            for (int peel = peelCount - 1; peel >= 0; --peel) {
-                glBindTexture(GL_TEXTURE_2D, peels.colour[peel]);
-                glDrawArrays(GL_TRIANGLES, 0, 3);
-            }
+            for (int peel = peelCount - 1; peel >= 0; --peel)
+                drawFullscreenTexture(*composite, peels.compositeVao, peels.colour[peel]);
             glEnable(GL_DEPTH_TEST);
 #ifndef __EMSCRIPTEN__
             if (state.drawWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
