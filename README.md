@@ -20,6 +20,27 @@ $ make config=release
 
 The binary is `./bin/Release/main`. Run it from the repository root so `assets/` resolves. A debug build is `make config=debug`, and `./bin/Debug/tests` runs the test suite.
 
+## Web build
+
+The browser build uses Emscripten 4.0.14. Activate that SDK, then build the `Web` configuration:
+
+```
+$ source ~/emsdk/emsdk_env.sh
+$ premake5 gmake
+$ emmake make config=web core main
+```
+
+`scripts/build_web.sh` does those steps and serves the result. The page is `bin/Web/traitvis.html`. Open it through a local server, for example `python3 -m http.server 8080 --directory bin/Web`, at `http://127.0.0.1:8080/traitvis.html`.
+
+Drop a dataset folder onto the page and choose which attributes to load. The header shows how much of the 2 GB dataset budget is in use. **Load sample** fetches `isabel/config.txt` and `isabel/velocity.bin` from beside the page. The config in `web/isabel/` is Hurricane Isabel wind velocity only. If `dataset/timestep02/velocity.bin` is on disk, the web build links it to `bin/Web/isabel/velocity.bin`. That bin is not part of the git repository.
+
+The same configuration builds the test suite. Run it from the repository root:
+
+```
+$ emmake make config=web tests
+$ node bin/Web/tests.js
+```
+
 ## Loading Datasets
 
 A dataset is a directory of attribute files plus a `config.txt`. Each attribute is a separate brick-of-floats binary, big-endian, and every attribute in one dataset has the same number of samples. The Hurricane Isabel dataset is one that TraitVis supports, and it can be downloaded [here](https://www.earthsystemgrid.org/dataset/isabeldata.html).
