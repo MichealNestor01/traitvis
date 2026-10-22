@@ -27,6 +27,7 @@
     const locked = busy || !window.traitvisRuntimeReady;
     document.getElementById('folder').disabled = locked;
     document.getElementById('sample').disabled = locked;
+    document.getElementById('levelset').disabled = locked;
     document.getElementById('drop').setAttribute('aria-disabled', locked ? 'true' : 'false');
   }
 
@@ -290,6 +291,37 @@
     });
   }
 
+  async function openLevelSet(file) {
+    if (!file || file.size === 0) {
+      showError('That file is not a TraitVis level set.');
+      return;
+    }
+    setBusy(true);
+    showError('');
+    status('Reading ' + file.name + '…');
+    const ptr = Module._malloc(file.size);
+    if (!ptr) {
+      showError('Could not allocate memory for that level set.');
+      setBusy(false);
+      return;
+    }
+    try {
+      await copyInSlices(file, ptr >>> 0, setProgress);
+      const message = Module.ccall(
+        'traitvisOpenLevelSet', 'string', ['string', 'string'],
+        [String(ptr >>> 0), String(file.size)]);
+      if (message) showError(message);
+      status(message ? '' : 'Opening ' + file.name + '…');
+    } catch (error) {
+      showError(error && error.message ? error.message : String(error));
+      status('');
+    } finally {
+      Module._free(ptr);
+      setProgress(0);
+      setBusy(false);
+    }
+  }
+
   window.traitvisLoadFolder = loadFolder;
 
   function bind() {
@@ -301,6 +333,14 @@
       folder.value = '';
     });
     sample.addEventListener('click', () => loadSample());
+    const levelSetButton = document.getElementById('levelset');
+    const levelSetFile = document.getElementById('levelset-file');
+    levelSetButton.addEventListener('click', () => levelSetFile.click());
+    levelSetFile.addEventListener('change', () => {
+      const file = levelSetFile.files && levelSetFile.files[0];
+      levelSetFile.value = '';
+      if (file) openLevelSet(file);
+    });
     drop.addEventListener('dragover', event => {
       event.preventDefault();
       if (window.traitvisRuntimeReady && !folder.disabled) drop.classList.add('drag');

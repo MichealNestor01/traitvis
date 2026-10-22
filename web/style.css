@@ -88,6 +88,10 @@ button:disabled, #drop[aria-disabled="true"] {
   color: var(--fg);
 }
 
+#levelset-file {
+  display: none;
+}
+
 #folder {
   position: absolute;
   width: 1px;

@@ -14,6 +14,7 @@ version = str((root / "traitvis.wasm").stat().st_mtime_ns)
 html_path = root / "traitvis.html"
 text = html_path.read_text()
 text = re.sub(r'src="upload\.js[^"]*"', f'src="upload.js?v={version}"', text)
+text = re.sub(r'src=upload\.js(?=[\s>])', f'src="upload.js?v={version}"', text)
 text = re.sub(r'src="traitvis\.js[^"]*"', f'src="traitvis.js?v={version}"', text)
-text = re.sub(r"src=traitvis\.js(?![?\"])", f'src="traitvis.js?v={version}"', text)
+text = re.sub(r'src=traitvis\.js(?=[\s>])', f'src="traitvis.js?v={version}"', text)
 html_path.write_text(text)
