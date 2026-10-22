@@ -177,6 +177,16 @@ namespace {
 constexpr int kAttributeHistogramBins = 64;
 constexpr float kAttributeHistogramHeight = 40.f;
 
+std::string groupedCount(std::size_t count) {
+    const std::string digits = std::to_string(count);
+    std::string grouped;
+    for (std::size_t index = 0; index < digits.size(); ++index) {
+        if (index > 0 && (digits.size() - index) % 3 == 0) grouped.push_back(',');
+        grouped.push_back(digits[index]);
+    }
+    return grouped;
+}
+
 // The samples are already normalised onto [0, 1] when the bounds have a span,
 // and the slider still runs over those bounds, so the bins line up with it.
 // A zero span skips normalisation and the samples stay at the bound.
@@ -424,6 +434,9 @@ void GUI::render() {
             ImGui::SameLine();
             ImGui::TextDisabled("(%s)", levelSet.dataset->name.c_str());
         }
+        const std::string vertexCount = groupedCount(levelSet.surface.vertices.size());
+        ImGui::SameLine();
+        ImGui::Text("Vertices: %s", vertexCount.c_str());
         ImGui::SameLine();
         ImGui::Checkbox((std::string("##show") + levelSet.id).c_str(), &levelSet.active);
 #ifndef __EMSCRIPTEN__

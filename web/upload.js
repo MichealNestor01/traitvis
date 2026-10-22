@@ -2,6 +2,7 @@
 (function () {
   const sliceBytes = 8 << 20;
   const memoryCapLabel = '2048 MB';
+  const assetVersion = new URL(document.currentScript.src, window.location.href).searchParams.get('v') || '';
 
   function status(message) {
     document.getElementById('status').textContent = message;
@@ -337,6 +338,10 @@
   // The shell minifier drops braces in an inline script, so the runtime object lives here.
   window.Module = {
     canvas: canvas,
+    locateFile: function (file, prefix) {
+      const name = assetVersion ? file + '?v=' + assetVersion : file;
+      return prefix ? prefix + name : name;
+    },
     onRuntimeInitialized: function () { traitvisUiReady(); },
     print: function () { console.log.apply(console, arguments); },
     printErr: function () {
