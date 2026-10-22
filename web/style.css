@@ -119,6 +119,33 @@ button:disabled, #drop[aria-disabled="true"] {
   accent-color: var(--primary);
 }
 
+#saved-level-sets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+#saved-level-sets[hidden] {
+  display: none;
+}
+
+#sample-level-set {
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--fg);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.55rem;
+}
+
+#sample-level-set:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 #picker-cancel {
   background: transparent;
   color: var(--fg);

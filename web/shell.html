@@ -19,6 +19,13 @@
       <button id="sample" type="button" disabled>Load sample dataset</button>
       <button id="levelset" type="button" disabled>Load level set</button>
       <input id="levelset-file" type="file" accept=".tvls" hidden>
+      <div id="saved-level-sets" hidden>
+        <select id="sample-level-set" disabled>
+          <option value="levelSets/highWindSpeed.tvls">High wind speed</option>
+          <option value="levelSets/lowAirPressure.tvls">Low air pressure</option>
+        </select>
+        <button id="load-sample-level-set" type="button" disabled>Load sample level set</button>
+      </div>
       <p id="memory">Memory: 0 MB / 2048 MB</p>
       <progress id="progress" max="1" value="0" hidden></progress>
       <p id="status">Starting…</p>

@@ -28,6 +28,9 @@
     document.getElementById('folder').disabled = locked;
     document.getElementById('sample').disabled = locked;
     document.getElementById('levelset').disabled = locked;
+    const samplesHidden = document.getElementById('saved-level-sets').hidden;
+    document.getElementById('sample-level-set').disabled = locked || samplesHidden;
+    document.getElementById('load-sample-level-set').disabled = locked || samplesHidden;
     document.getElementById('drop').setAttribute('aria-disabled', locked ? 'true' : 'false');
   }
 
@@ -132,6 +135,7 @@
     if (!started) throw new Error('Could not start the load.');
     const noun = attributes.length === 1 ? 'attribute' : 'attributes';
     status('Loaded ' + attributes.length + ' ' + noun + '.');
+    document.getElementById('saved-level-sets').hidden = false;
     refreshMemory();
   }
 
@@ -291,6 +295,14 @@
     });
   }
 
+  function submitLevelSet(ptr, byteCount, label) {
+    const message = Module.ccall(
+      'traitvisOpenLevelSet', 'string', ['string', 'string'],
+      [String(ptr >>> 0), String(byteCount)]);
+    if (message) showError(message);
+    status(message ? '' : 'Opening ' + label + '…');
+  }
+
   async function openLevelSet(file) {
     if (!file || file.size === 0) {
       showError('That file is not a TraitVis level set.');
@@ -307,16 +319,45 @@
     }
     try {
       await copyInSlices(file, ptr >>> 0, setProgress);
-      const message = Module.ccall(
-        'traitvisOpenLevelSet', 'string', ['string', 'string'],
-        [String(ptr >>> 0), String(file.size)]);
-      if (message) showError(message);
-      status(message ? '' : 'Opening ' + file.name + '…');
+      submitLevelSet(ptr, file.size, file.name);
     } catch (error) {
       showError(error && error.message ? error.message : String(error));
       status('');
     } finally {
       Module._free(ptr);
+      setProgress(0);
+      setBusy(false);
+    }
+  }
+
+  async function openSavedLevelSet(url, label) {
+    setBusy(true);
+    showError('');
+    status('Reading ' + label + '…');
+    let ptr = 0;
+    try {
+      const response = await fetch(url);
+      if (!response.ok || !response.body) throw new Error('Could not fetch ' + label + '.');
+      const total = Number(response.headers.get('Content-Length'));
+      if (!total) throw new Error(label + ' was not the expected size.');
+      ptr = Module._malloc(total);
+      if (!ptr) throw new Error('Could not allocate memory for that level set.');
+      const reader = response.body.getReader();
+      let offset = 0;
+      for (;;) {
+        const chunk = await reader.read();
+        if (chunk.done) break;
+        Module.HEAPU8.set(chunk.value, (ptr + offset) >>> 0);
+        offset += chunk.value.length;
+        setProgress(offset / total);
+      }
+      if (offset !== total) throw new Error(label + ' was not the expected size.');
+      submitLevelSet(ptr, total, label);
+    } catch (error) {
+      showError(error && error.message ? error.message : String(error));
+      status('');
+    } finally {
+      if (ptr) Module._free(ptr);
       setProgress(0);
       setBusy(false);
     }
@@ -340,6 +381,12 @@
       const file = levelSetFile.files && levelSetFile.files[0];
       levelSetFile.value = '';
       if (file) openLevelSet(file);
+    });
+    document.getElementById('load-sample-level-set').addEventListener('click', () => {
+      const select = document.getElementById('sample-level-set');
+      const option = select.selectedOptions[0];
+      if (!option || select.disabled) return;
+      openSavedLevelSet(option.value, option.textContent);
     });
     drop.addEventListener('dragover', event => {
       event.preventDefault();

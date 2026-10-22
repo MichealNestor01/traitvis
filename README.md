@@ -32,7 +32,7 @@ $ emmake make config=web core main
 
 `scripts/build_web.sh` does those steps and serves the result. The page is `bin/Web/traitvis.html`. Open it through a local server, for example `python3 -m http.server 8080 --directory bin/Web`, at `http://127.0.0.1:8080/traitvis.html`.
 
-Drop a dataset folder onto the page and choose which attributes to load. The header shows how much of the 2 GB dataset budget is in use. **Load level set** opens a `.tvls` file saved from the desktop app. **Load sample** fetches `isabel/config.txt` and `isabel/velocity.bin` from beside the page. The config in `web/isabel/` is Hurricane Isabel wind velocity only. If `dataset/timestep02/velocity.bin` is on disk, the web build links it to `bin/Web/isabel/velocity.bin`. That bin is not part of the git repository.
+Drop a dataset folder onto the page and choose which attributes to load. The header shows how much of the 2 GB dataset budget is in use. **Load level set** opens a `.tvls` file saved from the desktop app. After a dataset has loaded, a sample menu offers **High wind speed** and **Low air pressure**. **Load sample level set** fetches the chosen file from beside the page. Those two Isabel surfaces are `web/levelSets/highWindSpeed.tvls` and `web/levelSets/lowAirPressure.tvls`, and the web build links them to `bin/Web/levelSets/`. **Load sample** fetches `isabel/config.txt` and `isabel/velocity.bin` from beside the page. The config in `web/isabel/` is Hurricane Isabel wind velocity only. If `dataset/timestep02/velocity.bin` is on disk, the web build links it to `bin/Web/isabel/velocity.bin`. That bin is not part of the git repository.
 
 The same configuration builds the test suite. Run it from the repository root:
 
