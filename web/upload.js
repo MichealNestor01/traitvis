@@ -250,7 +250,7 @@
     // The folder and sample buttons stay disabled while the visitor is choosing.
     const chosen = await chooseAttributes(attributes);
     if (!chosen) {
-      status('Drop a dataset folder, or choose one.');
+      status('Drop a folder, or load the sample.');
       setBusy(false);
       refreshMemory();
       return;
@@ -327,7 +327,7 @@
   window.traitvisUiReady = function () {
     window.traitvisRuntimeReady = true;
     setBusy(false);
-    status('Drop a dataset folder, or choose one.');
+    status('Drop a folder, or load the sample.');
     refreshMemory();
     window.setInterval(refreshMemory, 500);
   };

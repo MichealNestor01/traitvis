@@ -4,16 +4,19 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>TraitVis</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
     <header id="bar">
       <h1>TraitVis</h1>
       <label id="drop" aria-disabled="true">
-        Drop a dataset folder here, then choose which attributes to load.
+        Drop a dataset folder
         <input id="folder" type="file" webkitdirectory multiple disabled>
+        <span class="choose">Choose</span>
       </label>
-      <button id="sample" type="button" disabled>Load sample (Isabel wind velocity)</button>
+      <button id="sample" type="button" disabled>Load sample dataset</button>
       <p id="memory">Memory: 0 MB / 2048 MB</p>
       <progress id="progress" max="1" value="0" hidden></progress>
       <p id="status">Starting…</p>
