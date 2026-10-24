@@ -117,3 +117,9 @@ The grid is stored with x outermost and z innermost, the same order as the dista
 Screenshot writes the 3D view, without the panels, to a PNG.
 
 The Rendering Parameters panel has ambient and diffuse colour, a directional light, and an optional point light. The point light is a cube you can move, including Move to camera pos. Shadows, off unless enabled, darken surfaces behind shells; Shadow floor keeps a shadowed surface from going flat. Enable the clip plane to drop everything on one side of an X, Y, or Z slice. Draw Wireframes and Back Face Culling are there as well.
+
+## Licence
+
+TraitVis is released under the [MIT License](LICENSE).
+
+Dear ImGui, GLFW, and GLM keep their own licences in `third_party/`. The bundled Open Sans font remains under the SIL Open Font License. See `assets/fonts/LICENSE.txt`.
