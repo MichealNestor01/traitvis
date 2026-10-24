@@ -65,6 +65,9 @@ struct SessionState {
     // When gpuDistanceField returns a field, the slabs are skipped and the job only extracts the surface.
     void generateLevelSet(float euclideanDistance, glm::vec3 colour, std::string id, bool keepField = false, bool closeAtMissingData = true);
     void addLevelSet(FeatureLevelSet levelSet);
+    // Reads a saved level set and extracts its surface on the level-set job.
+    // The distance field is kept, so the distance slider can move it afterwards.
+    bool openSavedLevelSet(std::span<const unsigned char> bytes);
     void removeLevelSet(int index);
     // `before` is the value at the start of the edit. The level set already holds `after`.
     void setLevelSetColour(int index, glm::vec3 before, glm::vec3 after);

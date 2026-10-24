@@ -151,7 +151,9 @@ project "main"
         postbuildcommands {
             "{COPYFILE} %{wks.location}/web/style.css %{cfg.targetdir}/style.css",
             "{COPYFILE} %{wks.location}/web/upload.js %{cfg.targetdir}/upload.js",
-            "mkdir -p %{cfg.targetdir}/isabel && cp -f %{wks.location}/web/isabel/config.txt %{cfg.targetdir}/isabel/config.txt && ln -sfn \"$(cd %{wks.location} && pwd)/dataset/timestep02/velocity.bin\" %{cfg.targetdir}/isabel/velocity.bin",
+            "mkdir -p %{cfg.targetdir}/isabel && cp -f %{wks.location}/web/isabel/config.txt %{cfg.targetdir}/isabel/config.txt && ln -sfn \"$$(cd %{wks.location} && pwd)/dataset/timestep02/velocity.bin\" %{cfg.targetdir}/isabel/velocity.bin",
+            "mkdir -p %{cfg.targetdir}/levelSets && ln -sfn \"$$(cd %{wks.location} && pwd)/web/levelSets/highWindSpeed.tvls\" %{cfg.targetdir}/levelSets/highWindSpeed.tvls && ln -sfn \"$$(cd %{wks.location} && pwd)/web/levelSets/lowAirPressure.tvls\" %{cfg.targetdir}/levelSets/lowAirPressure.tvls",
+            "python3 %{wks.location}/web/stamp_assets.py %{cfg.targetdir}",
         }
     filter {}
 

@@ -1,4 +1,5 @@
 #include "sessionState.hpp"
+#include "savedLevelSet.hpp"
 
 #include "../parsingData/configParser.hpp"
 
@@ -214,8 +215,61 @@ void SessionState::generateLevelSet(float euclideanDistance, glm::vec3 colour, s
     activeLevelSet->start();
 }
 
+namespace {
+
+std::string uniqueLevelSetId(const SessionState& session, std::string stem) {
+    if (stem.empty()) stem = "level set";
+    auto taken = [&](const std::string& id) {
+        for (const FeatureLevelSet& levelSet : session.levelSets)
+            if (levelSet.id == id) return true;
+        return false;
+    };
+    if (!taken(stem)) return stem;
+    for (int suffix = 2; ; ++suffix) {
+        const std::string candidate = stem + " " + std::to_string(suffix);
+        if (!taken(candidate)) return candidate;
+    }
+}
+
+}
+
 void SessionState::addLevelSet(FeatureLevelSet levelSet) {
     execute(std::make_unique<AddLevelSetCommand>(std::move(levelSet)));
+}
+
+bool SessionState::openSavedLevelSet(std::span<const unsigned char> bytes) {
+    if (activeLevelSet) {
+        loadError = "A level set is already being built.";
+        return false;
+    }
+    SavedLevelSet saved = readSavedLevelSet(bytes);
+    if (!saved.ok()) {
+        loadError = std::move(saved.error);
+        return false;
+    }
+    const std::size_t incoming = saved.field.values.size() * sizeof(float);
+    if (!loadFits(incoming)) {
+        loadError = "That level set is over the 2 GB limit.";
+        return false;
+    }
+    const std::string id = uniqueLevelSetId(*this, std::move(saved.id));
+    const float isoValue = saved.isoValue;
+    const glm::vec3 colour = saved.colour;
+    const float transparency = saved.transparency;
+    const bool closeAtMissingData = saved.closeAtMissingData;
+    loadError.clear();
+    activeLevelSet.emplace(
+        std::vector<TraitPoint>{},
+        std::shared_ptr<const MultiField>{},
+        isoValue,
+        colour,
+        id,
+        true,
+        std::move(saved.field),
+        closeAtMissingData,
+        transparency);
+    activeLevelSet->start();
+    return true;
 }
 
 void SessionState::removeLevelSet(int index) {
