@@ -2,6 +2,7 @@
 (function () {
   const sliceBytes = 8 << 20;
   const memoryCapLabel = '2048 MB';
+  const assetVersion = new URL(document.currentScript.src, window.location.href).searchParams.get('v') || '';
 
   function status(message) {
     document.getElementById('status').textContent = message;
@@ -26,6 +27,10 @@
     const locked = busy || !window.traitvisRuntimeReady;
     document.getElementById('folder').disabled = locked;
     document.getElementById('sample').disabled = locked;
+    document.getElementById('levelset').disabled = locked;
+    const samplesHidden = document.getElementById('saved-level-sets').hidden;
+    document.getElementById('sample-level-set').disabled = locked || samplesHidden;
+    document.getElementById('load-sample-level-set').disabled = locked || samplesHidden;
     document.getElementById('drop').setAttribute('aria-disabled', locked ? 'true' : 'false');
   }
 
@@ -130,6 +135,7 @@
     if (!started) throw new Error('Could not start the load.');
     const noun = attributes.length === 1 ? 'attribute' : 'attributes';
     status('Loaded ' + attributes.length + ' ' + noun + '.');
+    document.getElementById('saved-level-sets').hidden = false;
     refreshMemory();
   }
 
@@ -250,7 +256,7 @@
     // The folder and sample buttons stay disabled while the visitor is choosing.
     const chosen = await chooseAttributes(attributes);
     if (!chosen) {
-      status('Drop a dataset folder, or choose one.');
+      status('Drop a folder, or load the sample.');
       setBusy(false);
       refreshMemory();
       return;
@@ -289,6 +295,74 @@
     });
   }
 
+  function submitLevelSet(ptr, byteCount, label) {
+    const message = Module.ccall(
+      'traitvisOpenLevelSet', 'string', ['string', 'string'],
+      [String(ptr >>> 0), String(byteCount)]);
+    if (message) showError(message);
+    status(message ? '' : 'Opening ' + label + '…');
+  }
+
+  async function openLevelSet(file) {
+    if (!file || file.size === 0) {
+      showError('That file is not a TraitVis level set.');
+      return;
+    }
+    setBusy(true);
+    showError('');
+    status('Reading ' + file.name + '…');
+    const ptr = Module._malloc(file.size);
+    if (!ptr) {
+      showError('Could not allocate memory for that level set.');
+      setBusy(false);
+      return;
+    }
+    try {
+      await copyInSlices(file, ptr >>> 0, setProgress);
+      submitLevelSet(ptr, file.size, file.name);
+    } catch (error) {
+      showError(error && error.message ? error.message : String(error));
+      status('');
+    } finally {
+      Module._free(ptr);
+      setProgress(0);
+      setBusy(false);
+    }
+  }
+
+  async function openSavedLevelSet(url, label) {
+    setBusy(true);
+    showError('');
+    status('Reading ' + label + '…');
+    let ptr = 0;
+    try {
+      const response = await fetch(url);
+      if (!response.ok || !response.body) throw new Error('Could not fetch ' + label + '.');
+      const total = Number(response.headers.get('Content-Length'));
+      if (!total) throw new Error(label + ' was not the expected size.');
+      ptr = Module._malloc(total);
+      if (!ptr) throw new Error('Could not allocate memory for that level set.');
+      const reader = response.body.getReader();
+      let offset = 0;
+      for (;;) {
+        const chunk = await reader.read();
+        if (chunk.done) break;
+        Module.HEAPU8.set(chunk.value, (ptr + offset) >>> 0);
+        offset += chunk.value.length;
+        setProgress(offset / total);
+      }
+      if (offset !== total) throw new Error(label + ' was not the expected size.');
+      submitLevelSet(ptr, total, label);
+    } catch (error) {
+      showError(error && error.message ? error.message : String(error));
+      status('');
+    } finally {
+      if (ptr) Module._free(ptr);
+      setProgress(0);
+      setBusy(false);
+    }
+  }
+
   window.traitvisLoadFolder = loadFolder;
 
   function bind() {
@@ -300,6 +374,20 @@
       folder.value = '';
     });
     sample.addEventListener('click', () => loadSample());
+    const levelSetButton = document.getElementById('levelset');
+    const levelSetFile = document.getElementById('levelset-file');
+    levelSetButton.addEventListener('click', () => levelSetFile.click());
+    levelSetFile.addEventListener('change', () => {
+      const file = levelSetFile.files && levelSetFile.files[0];
+      levelSetFile.value = '';
+      if (file) openLevelSet(file);
+    });
+    document.getElementById('load-sample-level-set').addEventListener('click', () => {
+      const select = document.getElementById('sample-level-set');
+      const option = select.selectedOptions[0];
+      if (!option || select.disabled) return;
+      openSavedLevelSet(option.value, option.textContent);
+    });
     drop.addEventListener('dragover', event => {
       event.preventDefault();
       if (window.traitvisRuntimeReady && !folder.disabled) drop.classList.add('drag');
@@ -327,7 +415,7 @@
   window.traitvisUiReady = function () {
     window.traitvisRuntimeReady = true;
     setBusy(false);
-    status('Drop a dataset folder, or choose one.');
+    status('Drop a folder, or load the sample.');
     refreshMemory();
     window.setInterval(refreshMemory, 500);
   };
@@ -337,6 +425,10 @@
   // The shell minifier drops braces in an inline script, so the runtime object lives here.
   window.Module = {
     canvas: canvas,
+    locateFile: function (file, prefix) {
+      const name = assetVersion ? file + '?v=' + assetVersion : file;
+      return prefix ? prefix + name : name;
+    },
     onRuntimeInitialized: function () { traitvisUiReady(); },
     print: function () { console.log.apply(console, arguments); },
     printErr: function () {

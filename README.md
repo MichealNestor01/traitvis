@@ -1,6 +1,6 @@
 # TraitVis
 
-Final year undergraduate project by Micheal Nestor. A tool for generating feature level-sets in arbitrary multifield datasets. Please reivew branch v1.0-dissertation-submission to see the state of the project at submission, it recieved a First Class clasification.
+Final year undergraduate project by Micheal Nestor. A tool for generating feature level-sets in arbitrary multifield datasets. The dissertation, *Generating and Exploring Feature Level-Sets in Arbitrary Multi-field Datasets*, is [report.pdf](report.pdf). Please review branch v1.0-dissertation-submission to see the state of the project at submission. It received a First Class classification.
 
 ## Build Instructions
 
@@ -32,7 +32,7 @@ $ emmake make config=web core main
 
 `scripts/build_web.sh` does those steps and serves the result. The page is `bin/Web/traitvis.html`. Open it through a local server, for example `python3 -m http.server 8080 --directory bin/Web`, at `http://127.0.0.1:8080/traitvis.html`.
 
-Drop a dataset folder onto the page and choose which attributes to load. The header shows how much of the 2 GB dataset budget is in use. **Load sample** fetches `isabel/config.txt` and `isabel/velocity.bin` from beside the page. The config in `web/isabel/` is Hurricane Isabel wind velocity only. If `dataset/timestep02/velocity.bin` is on disk, the web build links it to `bin/Web/isabel/velocity.bin`. That bin is not part of the git repository.
+Drop a dataset folder onto the page and choose which attributes to load. The header shows how much of the 2 GB dataset budget is in use. **Load level set** opens a `.tvls` file saved from the desktop app. After a dataset has loaded, a sample menu offers **High wind speed** and **Low air pressure**. **Load sample level set** fetches the chosen file from beside the page. Those two Isabel surfaces are `web/levelSets/highWindSpeed.tvls` and `web/levelSets/lowAirPressure.tvls`, and the web build links them to `bin/Web/levelSets/`. **Load sample** fetches `isabel/config.txt` and `isabel/velocity.bin` from beside the page. The config in `web/isabel/` is Hurricane Isabel wind velocity only. If `dataset/timestep02/velocity.bin` is on disk, the web build links it to `bin/Web/isabel/velocity.bin`. That bin is not part of the git repository.
 
 The same configuration builds the test suite. Run it from the repository root:
 
@@ -91,7 +91,28 @@ Two surfaces on Isabel. The orange surface shows areas of high wind velocity, an
 
 Space captures the mouse. WASD moves, Q and E move up and down, and Escape closes the window. The same camera values can be typed in Camera Controls.
 
-Each level set can be hidden, removed, or exported as OBJ. Import OBJ reads a mesh back in. Transparency from 0 to 1 peels nested surfaces from front to back; Depth layers caps how many of those layers are drawn. Show boundary vertices marks samples inside and outside the trait. Invert Normals flips the shading.
+Each level set can be hidden, removed, or exported as OBJ. Import OBJ reads a mesh back in. That file is only the triangles, so an imported mesh can be recoloured but the Distance slider is not there. Transparency from 0 to 1 peels nested surfaces from front to back; Depth layers caps how many of those layers are drawn. Show boundary vertices marks samples inside and outside the trait. Invert Normals flips the shading.
+
+## Saved level sets (TVLS)
+
+TVLS is a file format made for TraitVis. The extension is `.tvls`. Save, next to Export, writes one when Keep distance field was ticked for that level set. Without the field the button stays disabled, because the file's purpose is to keep the distance samples, not just the mesh. Open level set on the desktop, and Load level set on the web page, read it back. Opening runs marching cubes again at the saved distance, and the Distance slider can cut a new surface from the same field.
+
+The surface itself is not in the file. Colour, transparency, the distance, and whether the surface closes at missing data are. The bytes are little-endian, and version 1 is the only version read today.
+
+| Bytes | Contents |
+| --- | --- |
+| 4 | ASCII `TVLS` |
+| 4 | Version, `1` as a 32-bit integer |
+| 4 | Name length in bytes, at most 1024 |
+| name length | The level set name, as raw bytes |
+| 12 | Colour, three 32-bit floats, red then green then blue |
+| 4 | Transparency, a 32-bit float from 0 to 1 |
+| 4 | Distance, a 32-bit float. This is the fraction the slider uses, so 0.5 is the slider at 50 |
+| 4 | Flags. Bit 0 set means close the surface where a sample is missing |
+| 12 | Grid size, three 32-bit integers, x then y then z |
+| 4 × x × y × z | One 32-bit float per grid cell |
+
+The grid is stored with x outermost and z innermost, the same order as the distance field in memory. An Isabel volume is 500×100×500, so the sample block alone is 100 MB. Anything after that block, or a file that ends early, is rejected.
 
 Screenshot writes the 3D view, without the panels, to a PNG.
 

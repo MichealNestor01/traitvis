@@ -6,13 +6,16 @@
 
 #include <emscripten.h>
 
+#include "../lib/levelSets/savedLevelSet.hpp"
 #include "../lib/parsingData/configParser.hpp"
 #include "../lib/parsingData/fileReader.hpp"
 
 #include <algorithm>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <limits>
 #include <filesystem>
 #include <memory>
 #include <sstream>
@@ -141,6 +144,26 @@ int traitvisBeginLoad(const char* configPath, const char* selectedCsv) {
     };
     // A refused load drops `staged` with this provider, so the buffers do not leak.
     return boundApplication->sessionState().beginDatasetLoad(configPath, std::move(provider), std::move(selected)) ? 1 : 0;
+}
+
+// Empty when the level set was accepted. The caller passes the pointer and size as decimal strings
+// because a signed 32-bit argument cannot hold a heap address past 2 GB.
+EMSCRIPTEN_KEEPALIVE
+const char* traitvisOpenLevelSet(const char* ptrText, const char* sizeText) {
+    if (boundApplication == nullptr) return "TraitVis is not running.";
+    if (ptrText == nullptr || sizeText == nullptr) return "That file is not a TraitVis level set.";
+    char* ptrEnd = nullptr;
+    char* sizeEnd = nullptr;
+    const unsigned long long data = std::strtoull(ptrText, &ptrEnd, 10);
+    const unsigned long long size = std::strtoull(sizeText, &sizeEnd, 10);
+    if (ptrEnd == ptrText || sizeEnd == sizeText
+        || data > std::numeric_limits<std::uintptr_t>::max()
+        || size > std::numeric_limits<std::size_t>::max())
+        return "That file is not a TraitVis level set.";
+    const auto* bytes = reinterpret_cast<const unsigned char*>(static_cast<std::uintptr_t>(data));
+    SessionState& session = boundApplication->sessionState();
+    if (!session.openSavedLevelSet({bytes, static_cast<std::size_t>(size)})) return session.loadError.c_str();
+    return "";
 }
 
 }

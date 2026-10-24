@@ -20,10 +20,10 @@
 class LevelSetJob {
 public:
     LevelSetJob(std::vector<TraitPoint> points, std::shared_ptr<const MultiField> dataset,
-                float isoValue, glm::vec3 colour, std::string id, bool keepField = false, bool closeAtMissingData = true);
+                float isoValue, glm::vec3 colour, std::string id, bool keepField = false, bool closeAtMissingData = true, float transparency = 1.f);
     // `precomputed` is the finished distance field. The slabs are not run.
     LevelSetJob(std::vector<TraitPoint> points, std::shared_ptr<const MultiField> dataset,
-                float isoValue, glm::vec3 colour, std::string id, bool keepField, ScalarField precomputed, bool closeAtMissingData = true);
+                float isoValue, glm::vec3 colour, std::string id, bool keepField, ScalarField precomputed, bool closeAtMissingData = true, float transparency = 1.f);
     void start();
     void stepOnMainThread(int slabs);
     [[nodiscard]] float progress() const;
@@ -46,6 +46,7 @@ private:
     float isoValue = 0.f;
     bool keepField = false;
     bool closeAtMissingData = true;
+    float transparency = 1.f;
     glm::vec3 colour{};
     std::string id;
     std::optional<FeatureLevelSet> result;

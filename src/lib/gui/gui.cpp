@@ -6,7 +6,9 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <fstream>
 #include <string>
+#include <vector>
 
 #ifndef __EMSCRIPTEN__
 #include <cstdio>
@@ -21,6 +23,7 @@ extern char** environ;
 #include "../../main/screenshot.hpp"
 #include "../util/pngImage.hpp"
 #include "../../main/state.hpp"
+#include "../levelSets/savedLevelSet.hpp"
 #include "../meshTools/objMesh.hpp"
 #include "../multiField/histogram.hpp"
 #include "../multiField/multiField.hpp"
@@ -129,6 +132,48 @@ FileDialogOutcome pickSaveMesh(const std::string& suggested) {
     return runFileDialog(kdialog);
 }
 
+FileDialogOutcome pickLevelSetFile() {
+    const std::vector<const char*> zenity = {
+        "zenity", "--file-selection",
+        "--title=Open level set",
+        "--file-filter=TraitVis level set | *.tvls",
+        "--file-filter=All files | *",
+    };
+    const FileDialogOutcome zenityResult = runFileDialog(zenity);
+    if (zenityResult.status != FileDialogStatus::Unavailable) return zenityResult;
+    const std::vector<const char*> kdialog = {
+        "kdialog", "--getopenfilename", ".",
+        "*.tvls|TraitVis level set\n*|All files",
+    };
+    return runFileDialog(kdialog);
+}
+
+FileDialogOutcome pickSaveLevelSet(const std::string& suggested) {
+    const std::string filename = "--filename=" + suggested;
+    const std::vector<const char*> zenity = {
+        "zenity", "--file-selection", "--save", "--confirm-overwrite",
+        "--title=Save level set",
+        filename.c_str(),
+        "--file-filter=TraitVis level set | *.tvls",
+        "--file-filter=All files | *",
+    };
+    const FileDialogOutcome zenityResult = runFileDialog(zenity);
+    if (zenityResult.status != FileDialogStatus::Unavailable) return zenityResult;
+    const std::vector<const char*> kdialog = {
+        "kdialog", "--getsavefilename", suggested.c_str(),
+        "*.tvls|TraitVis level set\n*|All files",
+    };
+    return runFileDialog(kdialog);
+}
+
+std::string withTvlsExtension(std::string path) {
+    if (path.size() >= 5) {
+        const std::string suffix = path.substr(path.size() - 5);
+        if (suffix == ".tvls" || suffix == ".TVLS") return path;
+    }
+    return path + ".tvls";
+}
+
 FileDialogOutcome pickSavePng(const std::string& suggested) {
     const std::string filename = "--filename=" + suggested;
     const std::vector<const char*> zenity = {
@@ -176,6 +221,16 @@ namespace {
 
 constexpr int kAttributeHistogramBins = 64;
 constexpr float kAttributeHistogramHeight = 40.f;
+
+std::string groupedCount(std::size_t count) {
+    const std::string digits = std::to_string(count);
+    std::string grouped;
+    for (std::size_t index = 0; index < digits.size(); ++index) {
+        if (index > 0 && (digits.size() - index) % 3 == 0) grouped.push_back(',');
+        grouped.push_back(digits[index]);
+    }
+    return grouped;
+}
 
 // The samples are already normalised onto [0, 1] when the bounds have a span,
 // and the slider still runs over those bounds, so the bins line up with it.
@@ -274,6 +329,20 @@ void GUI::render() {
                 session.addLevelSet(FeatureLevelSet(
                     {}, std::move(mesh.surface), glm::vec3{1.f, 0.f, 0.f}, id, {}));
             }
+        } else if (picked.status == FileDialogStatus::Unavailable) {
+            meshError = "No file dialog is available.";
+        }
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Open level set")) {
+        const FileDialogOutcome picked = pickLevelSetFile();
+        if (picked.status == FileDialogStatus::Selected) {
+            std::ifstream in(picked.path, std::ios::binary);
+            const std::vector<unsigned char> bytes{
+                std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
+            if (!in && bytes.empty()) meshError = "Failed to read " + picked.path;
+            else if (!session.openSavedLevelSet(bytes)) meshError = session.loadError;
+            else meshError.clear();
         } else if (picked.status == FileDialogStatus::Unavailable) {
             meshError = "No file dialog is available.";
         }
@@ -424,6 +493,9 @@ void GUI::render() {
             ImGui::SameLine();
             ImGui::TextDisabled("(%s)", levelSet.dataset->name.c_str());
         }
+        const std::string vertexCount = groupedCount(levelSet.surface.vertices.size());
+        ImGui::SameLine();
+        ImGui::Text("Vertices: %s", vertexCount.c_str());
         ImGui::SameLine();
         ImGui::Checkbox((std::string("##show") + levelSet.id).c_str(), &levelSet.active);
 #ifndef __EMSCRIPTEN__
@@ -438,6 +510,20 @@ void GUI::render() {
                 meshError = "No file dialog is available.";
             }
         }
+        ImGui::SameLine();
+        if (!levelSet.distanceField) ImGui::BeginDisabled();
+        if (ImGui::Button((std::string("Save##") + levelSet.id).c_str())) {
+            const FileDialogOutcome picked = pickSaveLevelSet(levelSet.id + ".tvls");
+            if (picked.status == FileDialogStatus::Selected) {
+                const std::string path = withTvlsExtension(picked.path);
+                std::ofstream out(path, std::ios::binary);
+                if (!out || !writeSavedLevelSet(levelSet, out)) meshError = "Failed to write " + path;
+                else meshError.clear();
+            } else if (picked.status == FileDialogStatus::Unavailable) {
+                meshError = "No file dialog is available.";
+            }
+        }
+        if (!levelSet.distanceField) ImGui::EndDisabled();
         if (busy) ImGui::EndDisabled();
 #endif
         ImGui::SameLine();
