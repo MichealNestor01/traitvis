@@ -1,6 +1,6 @@
 # TraitVis
 
-Final year undergraduate project by Micheal Nestor. A tool for generating feature level-sets in arbitrary multifield datasets. Please reivew branch v1.0-dissertation-submission to see the state of the project at submission, it recieved a First Class clasification.
+Final year undergraduate project by Micheal Nestor. A tool for generating feature level-sets in arbitrary multifield datasets. The dissertation, *Generating and Exploring Feature Level-Sets in Arbitrary Multi-field Datasets*, is [report.pdf](report.pdf). Please review branch v1.0-dissertation-submission to see the state of the project at submission. It received a First Class classification.
 
 ## Build Instructions
 
